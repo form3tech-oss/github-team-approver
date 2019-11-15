@@ -1,0 +1,12 @@
+.idea/
+build/
+faas-cli*
+github-app-private-key.pem
+github-team-approver/log/
+github-team-approver/logs/
+github-team-approver/target/
+github-team-approver/vendor/
+pact/
+template/
+tmp/
+.DS_Store
