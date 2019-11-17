@@ -1,0 +1,187 @@
+{
+  "provider": {
+    "name": "github-api"
+  },
+  "consumer": {
+    "name": "github-team-approver"
+  },
+  "interactions": [
+    {
+      "description": "Get reviews (#5)",
+      "request": {
+        "method": "GET",
+        "path": "/repos/form3tech/github-team-approver-test/pulls/5/reviews"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8"
+        },
+        "body": []
+      }
+    },
+    {
+      "description": "Get '.github' (#5)",
+      "request": {
+        "method": "GET",
+        "path": "/repos/form3tech/github-team-approver-test/contents/.github"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8"
+        },
+        "body": [
+          {
+            "name": "GITHUB_TEAM_APPROVER.yaml",
+            "download_url": "http://localhost:18080/form3tech/github-team-approver-test/master/.github/GITHUB_TEAM_APPROVER.yaml"
+          }
+        ]
+      }
+    },
+    {
+      "description": "Get '.github/GITHUB_TEAM_APPROVER.yaml' (#5)",
+      "request": {
+        "method": "GET",
+        "path": "/form3tech/github-team-approver-test/master/.github/GITHUB_TEAM_APPROVER.yaml"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "text/plain; charset=utf-8"
+        },
+        "body": "pull_request_approval_rules:\n- target_branches:\n  - master\n  rules:\n  - regex: \"- \\\\[x\\\\] Yes - this change impacts customers\"\n    approving_team_handles:\n    -  CAB - Foo\n    -  CAB - Bar\n    labels:\n    - needs-cab-approval\n  - regex: \"- \\\\[x\\\\] Yes - this change impacts documentation\"\n    approving_team_handles:\n    -  CAB - Documentation\n    labels:\n    - needs-doc-approval\n"
+      }
+    },
+    {
+      "description": "Get Team IDs (Page 1, Per Page: 100) (#5)",
+      "request": {
+        "method": "GET",
+        "path": "/orgs/form3tech/teams",
+        "query": "page=1&per_page=100"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8"
+        },
+        "body": [
+          {
+            "id": 1,
+            "name": "CAB - Foo",
+            "slug": "cab-foo"
+          },
+          {
+            "id": 2,
+            "name": "CAB - Bar",
+            "slug": "cab-bar"
+          }
+        ]
+      }
+    },
+    {
+      "description": "Get Team Members (CAB - Foo) (#5)",
+      "providerStates": [
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/teams/1/members"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8"
+        },
+        "body": [
+          {
+            "login": "alice"
+          },
+          {
+            "login": "bob"
+          }
+        ]
+      }
+    },
+    {
+      "description": "Get Team Members (CAB - Bar) (#5)",
+      "providerStates": [
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/teams/2/members"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8"
+        },
+        "body": [
+          {
+            "login": "carol"
+          }
+        ]
+      }
+    },
+    {
+      "description": "Report Status (#5)",
+      "request": {
+        "method": "POST",
+        "path": "/repos/form3tech/github-team-approver-test/statuses/0e7aa0c3cf3421ec914afc47c76f44d5af91c598",
+        "body": {
+          "state": "pending",
+          "description": "Needs approval from:\nCAB - Foo\nCAB - Bar",
+          "context": "github-team-approver"
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8"
+        }
+      }
+    },
+    {
+      "description": "Update Labels (#5)",
+      "request": {
+        "method": "PUT",
+        "path": "/repos/form3tech/github-team-approver-test/issues/5/labels",
+        "body": [
+          "github-team-approver/needs-cab-approval"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8"
+        }
+      }
+    },
+    {
+      "description": "Request Reviews (#5) (Pending)",
+      "request": {
+        "method": "POST",
+        "path": "/repos/form3tech/github-team-approver-test/pulls/5/requested_reviewers",
+        "body": {
+          "team_reviewers": [
+            "cab-foo",
+            "cab-bar"
+          ]
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8"
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "pact-specification": {
+      "version": "3.0.0"
+    },
+    "pact-jvm": {
+      "version": "3.0.0"
+    }
+  }
+}
