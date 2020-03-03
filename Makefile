@@ -4,9 +4,9 @@ ROOT_DIR := $(shell git rev-parse --show-toplevel)
 GO_FILES := $(shell find . -name "*.go" -not -path "./build/*" -not -path "./template/*" -not -path "**/vendor/*")
 TEMPLATE := golang-http
 
-VERSION ?= $(shell git describe --dirty="-dev")
-DOCKER_IMG ?= form3tech/github-team-approver
-DOCKER_TAG ?= $(VERSION)
+VERSION = $(shell git describe --dirty="-dev")
+DOCKER_IMG = form3tech/github-team-approver
+DOCKER_TAG = $(VERSION)
 
 .DEFAULT_GOAL := error
 
