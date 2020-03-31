@@ -1,19 +1,21 @@
 sudo: required
 language: go
 go:
-- '1.10'
+- '1.14'
 services:
 - docker
-install:
-- make install-deps
-script:
-- make build
-- make test
-- |
-  if [[ -n "$TRAVIS_TAG" ]]; then
-    make push
-  fi
 env:
   global:
   - secure: gXmiBY5zGdtX911qvsGgFCcXPf7DZYqwCeklazxaHZfyGZdBOEr5ol0PjfNqxO3kqIY1u+HjEzPa94/wGKwl1VcD/NzF2I9qL/haSTHSmEdHwoXcrn7nYbhxdyBl2V/w0yvp2phnEGrIS4io3bV0Ic2P2OzQC2WYdiKiwtzEPnOcgsQkLDh/XzFVNH6WVegBJBmx7Q5CMBEiK590nbcGm8s8gq308oYBW/KXNmJUqDhosBRajDbH2BxBwWu1r70oIlTfY0+bofqHH1fLf/xKKsbd7IiKvZjmJrESW4ZYRB70QZ/Yy5HYLoHkKu+gIcpq9iECXUS4k4wzqsfhlMEvKbmzEvOX605GfYlZfSD7L/Ux7T8kQ9Qy/kc4JXfRkWgMQsP42bEZ8M29h+My4lkqxIeTh+SBYmjGHMrJX21QHq8d2uxXoKVf9WEvjry56RWqmw0JklSHhoLhO79ZdqiiGRlFEsCBDXxsuhw+K0VR6arPb1IB4m1wlcaiU03jc458ZqteSnRt+lulv0EPKBvQ3mLeRCY51XPTTYsQimmp3Gq/wTG2dvtAQhhhHIEu8S4N0m65WhdE5/q7CsRkb2Lm0Xz7M0unhTTgEL6ZMeaMROcFc391Duf9NIxCt4Hfyxh11hiPVpBoSmwNqZbcIQfdPQxT6d7GZO4oLIyfk5KcEa4=
   - secure: XIbI2blfaU346WrzEDw681cj0DWrZaNc14Ne/OFWAJPdXu7suz7kXkp1VOiAhkUYcDF/PoEQm/mqQUW4ld1ay+EKwzLgWJDgaC+8NLLfCLpik2lHsK6LQnL0AV+w+7JyPQ38NQ/QY0DsChAeuB6BDLCOc2FGFsT2W9uZcc4O8D+nSfRyGJjLhMR2876F6DVgao5YhY7/1j14K7UPhdgBPuPh16AnldZrfgKFdlCFRWhuR2nCJ9/4TMRKxEObaK3hP1lwGA+S/OcsOeMOD8wMxfhtquOH4nEsHlz/ASw8Io5nOAdDH5hkvonaF5Le+R54dztBoKUwL6BTB6UepRcQSLLw7iDyrySRgZp52K0t74QmxPTP4lwzqLU74rbWTWX7zfD6/Q8bXm/+MZWDcL1AY1FRyHKm+10e2ZAAiP2AKQQvMoDaG+eu/7PuSgZq7RgLbhh2mBavh20gBG7jR4ds/zMg/ibG1ANslCWbfqnvRWTvYhqXGdIu47UnsrxJg+BUidCJibUCJUxhj3fAcntfHUOKkpR6Ru+DaSC8ERbh1KZKJHkXeUFvw2s9IL/0DIiOH003F9AFxH68cyL0sLgnDd9OVD2dWw/D0W+Val8xU6M3Se7b5zByPLZ0uEwBWGV13lwNG/ZrHEQ6s+kBozH21Po0Kr/D63S6YJtpso1RRco=
+install:
+- make install-deps
+script:
+- make test
+deploy:
+- provider: script
+  skip_cleanup: true
+  script: make skaffold.build
+  on:
+    tags: true
+    condition: $TRAVIS_OS_NAME = linux

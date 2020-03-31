@@ -1,0 +1,27 @@
+---
+apiVersion: skaffold/v2alpha2
+kind: Config
+build:
+  local:
+    useDockerCLI: true
+    useBuildkit: true
+  tagPolicy:
+    sha256: {}
+  artifacts:
+    - image: form3tech/github-team-approver
+      context: ./
+      docker:
+        dockerfile: ./Dockerfile
+deploy:
+  kubectl:
+    manifests:
+      - ./tmp/kubernetes/charts/github-team-approver/templates/*
+profiles:
+  - name: push
+    patches:
+      - op: remove
+        path: /build/tagPolicy/sha256
+      - op: add
+        path: /build/tagPolicy/envTemplate
+        value:
+          template: "{{.IMAGE_NAME}}:{{.IMAGE_TAG}}"

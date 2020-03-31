@@ -1,0 +1,27 @@
+affinity: {}
+appName: github-team-approver
+fullnameOverride: ""
+github:
+  app:
+    id: ""
+    installationId: ""
+  statusName: github-team-approver
+http:
+  useCachingTransport: true
+ignoredRepositories: ""
+image:
+  repository: form3tech/github-team-approver
+  tag: 0.2.1
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+logLevel: info
+nameOverride: ""
+namespaceOverride: github-team-approver
+nodeSelector: {}
+priorityClassName: ""
+replicaCount: 1
+resources: {}
+secretName: github-team-approver
+service:
+  type: ClusterIP
+tolerations: []

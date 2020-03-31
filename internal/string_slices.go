@@ -1,4 +1,4 @@
-package function
+package internal
 
 func appendIfMissing(s []string, v string) []string {
 	for _, e := range s {

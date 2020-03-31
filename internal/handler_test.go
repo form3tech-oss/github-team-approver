@@ -1,8 +1,11 @@
-package function
+package internal
 
 import (
+	"bytes"
+	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path"
 	"strings"
@@ -11,7 +14,6 @@ import (
 
 	"github.com/form3tech-oss/go-pact-testing/pacttesting"
 	"github.com/google/tcpproxy"
-	handler "github.com/openfaas-incubator/go-function-sdk"
 	"github.com/spf13/viper"
 )
 
@@ -128,11 +130,10 @@ func Test_Handle(t *testing.T) {
 				})
 
 				// Call the handler and make sure the response matches our expectations.
-				res, err := Handle(buildRequest(tt.eventType, tt.eventBody, tt.eventSignature))
-				if err != nil {
-					t.Fatalf("handleEvent() failed: %v", err)
-				}
-				finalStatus := res.Header.Get(httpHeaderXFinalStatus)
+				req := buildRequest(tt.eventType, tt.eventBody, tt.eventSignature)
+				res := httptest.NewRecorder()
+				Handle(res, req)
+				finalStatus := res.Result().Header.Get(httpHeaderXFinalStatus)
 				if finalStatus != tt.expectedFinalStatus {
 					t.Errorf("handleEvent() returned %q (expected %q)", finalStatus, tt.expectedFinalStatus)
 				}
@@ -141,19 +142,19 @@ func Test_Handle(t *testing.T) {
 	}
 }
 
-func buildRequest(eventType string, eventBody []byte, eventSignature string) handler.Request {
-	hdr := http.Header{}
-	hdr.Set(httpHeaderXGithubEvent, eventType)
-	hdr.Set(httpHeaderXHubSignature, eventSignature)
-	return handler.Request{
-		Body:   eventBody,
-		Header: hdr,
-		Method: http.MethodPost,
-	}
+func buildRequest(eventType string, eventBody []byte, eventSignature string) *http.Request {
+	r := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(eventBody))
+	r.Header.Set(httpHeaderXGithubEvent, eventType)
+	r.Header.Set(httpHeaderXHubSignature, eventSignature)
+	return r
 }
 
 func readGitHubExampleFile(file string) []byte {
-	bytes, err := ioutil.ReadFile(path.Join("./examples/github", file))
+	v := os.Getenv("EXAMPLES_DIR")
+	if v == "" {
+		panic(fmt.Errorf("EXAMPLES_DIR must be set"))
+	}
+	bytes, err := ioutil.ReadFile(path.Join(v, file))
 	if err != nil {
 		panic(err)
 	}

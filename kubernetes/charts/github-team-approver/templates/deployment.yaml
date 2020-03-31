@@ -1,0 +1,99 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+{{ include "github-team-approver.labels" . | indent 4 }}
+  name: {{ include "github-team-approver.fullname" . }}
+  namespace: {{ include "github-team-approver.namespace" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "github-team-approver.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "github-team-approver.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      priorityClassName: {{ .Values.priorityClassName }}
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "github-team-approver.fullname" . }}
+      securityContext:
+        fsGroup: 65532 # nonroot
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: APP_NAME
+              value: {{ .Values.appName }}
+            - name: GITHUB_APP_ID
+              value: "{{ .Values.github.app.id }}"
+            - name: GITHUB_APP_INSTALLATION_ID
+              value: "{{ .Values.github.app.installationId }}"
+            - name: GITHUB_APP_PRIVATE_KEY_PATH
+              value: "/secrets/github-app-private-key"
+            - name: GITHUB_APP_WEBHOOK_SECRET_TOKEN_PATH
+              value: "/secrets/github-app-webhook-secret-token"
+            - name: IGNORED_REPOSITORIES
+              value: {{ .Values.ignoredRepositories }}
+            - name: LOG_LEVEL
+              value: {{ .Values.logLevel }}
+            - name: LOGZIO_TOKEN_PATH
+              value: "/secrets/logzio-token"
+            - name: STATUS_NAME
+              value: {{ .Values.github.statusName }}
+            - name: USE_CACHING_TRANSPORT
+              value: "{{ .Values.http.useCachingTransport }}"
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsGroup: 65532 # nonroot
+            runAsNonRoot: true
+            runAsUser: 65532 # nonroot
+          volumeMounts:
+            - mountPath: /secrets
+              name: secrets
+            - mountPath: /tmp
+              name: tmp
+      volumes:
+        - name: secrets
+          secret:
+            secretName: github-team-approver
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
