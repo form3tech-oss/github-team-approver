@@ -23,5 +23,6 @@ replicaCount: 1
 resources: {}
 secretName: github-team-approver
 service:
+  nodePort: 30000
   type: ClusterIP
 tolerations: []
