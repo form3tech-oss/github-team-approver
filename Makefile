@@ -12,20 +12,30 @@ error:
 	@echo "Please check 'README.md' for instructions on how to build and deploy 'github-team-approver'."
 	@exit 2
 
+SKAFFOLD_VERSION ?= v1.6.0
+
 platform := $(shell uname)
 pact_version := 1.64.0
 ifeq (${platform},Darwin)
     pact_filename := "pact-${pact_version}-osx.tar.gz"
+	skaffold_url := https://storage.googleapis.com/skaffold/releases/$(SKAFFOLD_VERSION)/skaffold-darwin-amd64
 else
     pact_filename := "pact-${pact_version}-linux-x86_64.tar.gz"
+	skaffold_url := https://storage.googleapis.com/skaffold/releases/$(SKAFFOLD_VERSION)/skaffold-linux-amd64
 endif
 
 .PHONY: install-deps
-install-deps: install-goimports install-pact
+install-deps: install-goimports install-pact install-skaffold
 
 .PHONY: install-goimports
 install-goimports:
 	go get -u golang.org/x/tools/cmd/goimports
+
+.PHONY: install-skaffold
+install-skaffold:
+	@curl -Lo skaffold-bin ${skaffold_url}
+	@chmod +x skaffold-bin
+	@sudo mv skaffold-bin /usr/local/bin/skaffold
 
 .PHONY: install-pact
 install-pact:
