@@ -1,4 +1,4 @@
-package function
+package internal
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 
 	"github.com/bradleyfalzon/ghinstallation"
 	"github.com/form3tech-oss/github-team-approver-commons/pkg/configuration"
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v28/github"
 	"github.com/gregjones/httpcache"
 	log "github.com/sirupsen/logrus"
 )
@@ -135,7 +135,7 @@ func (c *client) getTeamMembers(teams []*github.Team, organisation, name string)
 }
 
 func (c *client) reportStatus(ownerLogin, repoName, statusesURL, status, description string) error {
-	n := os.Getenv(envStatusName)
+	n := os.Getenv(envGitHubStatusName)
 	v := &github.RepoStatus{
 		State:       &status,
 		Description: &description,

@@ -1,10 +1,10 @@
-package function
+package internal
 
 import (
 	"context"
+	"net/http"
 	"os"
 
-	handler "github.com/openfaas-incubator/go-function-sdk"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -23,7 +23,7 @@ func getLogger(ctx context.Context) *log.Entry {
 	return l
 }
 
-func newRequestContext(req handler.Request) context.Context {
+func newRequestContext(req *http.Request) context.Context {
 	return context.WithValue(context.Background(), contextKeyLogger, log.WithFields(log.Fields{
 		logFieldServiceName: getAppNameOrDefault(),
 		logFieldDeliveryID:  req.Header.Get(httpHeaderXGithubDelivery),

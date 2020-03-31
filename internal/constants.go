@@ -1,4 +1,4 @@
-package function
+package internal
 
 const (
 	defaultAppName = "github-team-approver"
@@ -20,10 +20,10 @@ const (
 	envGitHubAppPrivateKeyPath         = "GITHUB_APP_PRIVATE_KEY_PATH"
 	envGitHubAppWebhookSecretTokenPath = "GITHUB_APP_WEBHOOK_SECRET_TOKEN_PATH"
 	envGitHubBaseURL                   = "GITHUB_BASE_URL"
+	envGitHubStatusName                = "GITHUB_STATUS_NAME"
 	envIgnoredRepositories             = "IGNORED_REPOSITORIES"
 	envLogLevel                        = "LOG_LEVEL"
 	envLogzioTokenPath                 = "LOGZIO_TOKEN_PATH"
-	envStatusName                      = "STATUS_NAME"
 	envUseCachingTransport             = "USE_CACHING_TRANSPORT"
 )
 

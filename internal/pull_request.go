@@ -1,11 +1,11 @@
-package function
+package internal
 
 import (
 	"context"
 	"fmt"
 	"sync"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v28/github"
 )
 
 type event interface {

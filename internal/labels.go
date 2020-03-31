@@ -1,7 +1,7 @@
-package function
+package internal
 
 import (
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v28/github"
 )
 
 func getLabelNames(labels []*github.Label) []string {

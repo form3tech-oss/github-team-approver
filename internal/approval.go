@@ -1,4 +1,4 @@
-package function
+package internal
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/form3tech-oss/github-team-approver-commons/pkg/configuration"
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v28/github"
 )
 
 func computeApprovalStatus(ctx context.Context, c *client, ownerLogin, repoName string, prNumber int, prTargetBranch string, prBody string, initialLabels []string) (status, description string, finalLabels []string, reviewsToRequest []string, err error) {

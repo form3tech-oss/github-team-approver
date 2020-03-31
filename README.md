@@ -4,10 +4,6 @@ GitHub application to manage approvals to release software.
 
 ## Installing
 
-### Prerequisites
-
-* A [Kubernetes](https://kubernetes.io/) cluster having [OpenFaaS](https://www.openfaas.com/) installed and publicly exposed.
-
 ### Registering as a GitHub App
 
 The first step towards installing `github-team-approver` is to generate a secret meant to allow validation of incoming payloads.
@@ -16,7 +12,7 @@ Then, you should proceed to registering `github-team-approver` as a GitHub appli
 
 * **GitHub App Name:** Choose a meaningful value.
 * **Homepage URL:** Choose a meaningful value.
-* **Webhook URL:** Choose `https://<host>/function/github-team-approver` (where `<host>` is the host where the [OpenFaaS](https://www.openfaas.com/) gateway is exposed).
+* **Webhook URL:** Choose `https://<host>/` (where `<host>` is the host where the application is exposed).
 * **Webhook Secret**: The secret created above.
 * **SSL Verification:** Depending on your setup, you may need to choose "_Disable (not recommended)_".
 * **Permissions:** Choose the following sets of permissions:
@@ -48,24 +44,24 @@ Take note of the value of `<installation-id>`, as it will be needed later on.
 
 ### Running
 
-`github-team-approver` runs as an [OpenFaaS](https://www.openfaas.com/) function.
-In its turn, OpenFaas runs on top of [Kubernetes](https://kubernetes.io/).
-Hence, and as mentioned above, a Kubernetes cluster is required to run `github-team-approver`.
+`github-team-approver` is meant to run as a standalone application on top of [Kubernetes](https://kubernetes.io/).
+Hence, a Kubernetes cluster is required to run `github-team-approver`.
 For local development and testing, this may correspond to a [Docker Desktop](https://www.docker.com/products/docker-desktop) or [Minikube](https://github.com/kubernetes/minikube) cluster.
 For production, a managed offering of Kubernetes such as [GKE](https://cloud.google.com/kubernetes-engine/) or [EKS](https://aws.amazon.com/eks/) is strongly recommended.
 
-Once you've got a running OpenFaaS installation (including a working `faas` or `faas-cli` command), run the following command to create the required [secrets](https://docs.openfaas.com/reference/secrets/) (containing the GitHub application's private key and webhook secret token):
+Once you've got a running Kubernetes cluster, run the following command to create the required secret containing the GitHub application's private key and webhook secret token:
 
 ```shell
-$ make secrets \
-    GITHUB_APP_PRIVATE_KEY=<path-to-private-key> \
-    GITHUB_APP_WEBHOOK_SECRET_TOKEN=<path-to-webhook-secret-token>
+$ make secret \
+    GITHUB_APP_PRIVATE_KEY_PATH=<path-to-private-key> \
+    GITHUB_APP_WEBHOOK_SECRET_TOKEN_PATH=<path-to-webhook-secret-token> \
+    LOGZIO_TOKEN_PATH=<path-to-logzio-token>
 ```
 
-Then, run the following command to build, push and deploy `github-team-approver`:
+Then, run the following command to build and deploy `github-team-approver` in development mode:
 
 ```shell
-$ make up \
+$ make skaffold.dev \
     GITHUB_APP_ID=<app-id> \
     GITHUB_APP_INSTALLATION_ID=<installation-id>
 ``` 
@@ -75,13 +71,7 @@ $ make up \
 **NOTE:** If you are using AWS ECR as the container registry, you may need to run the following command:
 
 ```shell
-$ eval $(aws ecr get-login --no-include-email)
-```
-
-**NOTE:** If you are running OpenFaaS on top of Minikube, you may need to configure OpenFaaS to use the `IfNotPresent` image pull policy, as well as to run the following command:
-
-```shell
-$ eval $(minikube docker-env)
+$ docker login <registry> --username AWS --password $(aws ecr get-login-password)
 ```
 
 ### Configuring

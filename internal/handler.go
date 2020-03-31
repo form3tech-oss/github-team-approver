@@ -1,4 +1,4 @@
-package function
+package internal
 
 import (
 	"encoding/json"
@@ -9,9 +9,8 @@ import (
 	"strings"
 
 	"github.com/form3tech-oss/logrus-logzio-hook/pkg/hook"
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v28/github"
 	"github.com/logzio/logzio-go"
-	handler "github.com/openfaas-incubator/go-function-sdk"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -51,10 +50,11 @@ func init() {
 }
 
 // Handle handles an HTTP request.
-func Handle(req handler.Request) (handler.Response, error) {
+func Handle(res http.ResponseWriter, req *http.Request) {
 	// Make sure we're dealing with a POST request.
 	if req.Method != http.MethodPost {
-		return newHttpMethodNotAllowedResponse(fmt.Errorf("unsupported method %q", req.Method)), nil
+		sendHttpMethodNotAllowedResponse(res, fmt.Errorf("unsupported method %q", req.Method))
+		return
 	}
 
 	var (
@@ -64,11 +64,20 @@ func Handle(req handler.Request) (handler.Response, error) {
 		signature = req.Header.Get(httpHeaderXHubSignature)
 	)
 
+	// Read the request's body.
+	body, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		getLogger(ctx).Errorf("Failed to validate payload: %v", err)
+		sendHttpBadRequestResponse(res, fmt.Errorf("failed to validate payload: %v", err))
+		return
+	}
+
 	// Validate the incoming payload if we're configured to do so.
 	if len(githubWebhookSecretToken) != 0 {
-		if err := github.ValidateSignature(signature, req.Body, githubWebhookSecretToken); err != nil {
+		if err := github.ValidateSignature(signature, body, githubWebhookSecretToken); err != nil {
 			getLogger(ctx).Errorf("Failed to validate payload: %v", err)
-			return newHttpBadRequestResponse(fmt.Errorf("failed to validate payload: %v", err)), nil
+			sendHttpBadRequestResponse(res, fmt.Errorf("failed to validate payload: %v", err))
+			return
 		}
 	}
 
@@ -78,9 +87,11 @@ func Handle(req handler.Request) (handler.Response, error) {
 		var (
 			e github.PullRequestEvent
 		)
-		if err := json.Unmarshal(req.Body, &e); err != nil {
+
+		if err := json.Unmarshal(body, &e); err != nil {
 			getLogger(ctx).Errorf("Failed to unmarshal request into PullRequestEvent: %v", err)
-			return newHttpBadRequestResponse(fmt.Errorf("failed to unmarshal request into PullRequestEvent: %v", err)), nil
+			sendHttpBadRequestResponse(res, fmt.Errorf("failed to unmarshal request into PullRequestEvent: %v", err))
+			return
 		} else {
 			event = &e
 		}
@@ -88,15 +99,17 @@ func Handle(req handler.Request) (handler.Response, error) {
 		var (
 			e github.PullRequestReviewEvent
 		)
-		if err := json.Unmarshal(req.Body, &e); err != nil {
+		if err := json.Unmarshal(body, &e); err != nil {
 			getLogger(ctx).Errorf("Failed to unmarshal request into PullRequestReviewEvent: %v", err)
-			return newHttpBadRequestResponse(fmt.Errorf("failed to unmarshal request into PullRequestReviewEvent: %v", err)), nil
+			sendHttpBadRequestResponse(res, fmt.Errorf("failed to unmarshal request into PullRequestReviewEvent: %v", err))
+			return
 		} else {
 			event = &e
 		}
 	default:
 		getLogger(ctx).Warn("Ignoring event: unsupported type")
-		return newHttpNoContentResponse(), nil
+		sendHttpNoContentResponse(res)
+		return
 	}
 
 	// Update the current request's context.
@@ -106,49 +119,49 @@ func Handle(req handler.Request) (handler.Response, error) {
 	rfn := event.GetRepo().GetFullName()
 	if indexOf(ignoredRepositories, rfn) >= 0 {
 		getLogger(ctx).Warn("Ignoring event: ignored repository")
-		return newHttpNoContentResponse(), nil
+		sendHttpNoContentResponse(res)
+		return
 	}
 
 	// Handle the incoming event.
 	if r, err := handleEvent(ctx, eventType, event); err != nil {
 		if err == errNoConfigurationFile {
 			getLogger(ctx).Warnf("Ignoring event: %v", err)
-			return newHttpNoContentResponse(), nil
+			sendHttpNoContentResponse(res)
+			return
 		}
 		getLogger(ctx).Errorf("Failed to handle event: %v", err)
-		return newHttpInternalServerErrorResponse(fmt.Errorf("failed to handle event: %v", err)), nil
+		sendHttpInternalServerErrorResponse(res, fmt.Errorf("failed to handle event: %v", err))
+		return
 	} else {
 		getLogger(ctx).Tracef("%q will be reported as the status", r)
-		return newHttpOkResponse(r), nil
+		sendHttpOkResponse(res, r)
+		return
 	}
 }
 
-func newHttpResponse(statusCode int, message string) handler.Response {
-	return handler.Response{
-		Body:       []byte(message),
-		Header:     http.Header{},
-		StatusCode: statusCode,
-	}
+func sendHttpResponse(res http.ResponseWriter, statusCode int, message string) {
+	res.WriteHeader(statusCode)
+	res.Write([]byte(message))
 }
 
-func newHttpOkResponse(finalStatus string) handler.Response {
-	r := newHttpResponse(http.StatusOK, "")
-	r.Header.Set(httpHeaderXFinalStatus, finalStatus)
-	return r
+func sendHttpOkResponse(res http.ResponseWriter, finalStatus string) {
+	res.Header().Set(httpHeaderXFinalStatus, finalStatus)
+	res.WriteHeader(http.StatusOK)
 }
 
-func newHttpBadRequestResponse(err error) handler.Response {
-	return newHttpResponse(http.StatusBadRequest, err.Error())
+func sendHttpBadRequestResponse(res http.ResponseWriter, err error) {
+	sendHttpResponse(res, http.StatusBadRequest, err.Error())
 }
 
-func newHttpInternalServerErrorResponse(err error) handler.Response {
-	return newHttpResponse(http.StatusInternalServerError, err.Error())
+func sendHttpInternalServerErrorResponse(res http.ResponseWriter, err error) {
+	sendHttpResponse(res, http.StatusInternalServerError, err.Error())
 }
 
-func newHttpMethodNotAllowedResponse(err error) handler.Response {
-	return newHttpResponse(http.StatusMethodNotAllowed, err.Error())
+func sendHttpMethodNotAllowedResponse(res http.ResponseWriter, err error) {
+	sendHttpResponse(res, http.StatusMethodNotAllowed, err.Error())
 }
 
-func newHttpNoContentResponse() handler.Response {
-	return newHttpResponse(http.StatusNoContent, "")
+func sendHttpNoContentResponse(res http.ResponseWriter) {
+	sendHttpResponse(res, http.StatusNoContent, "")
 }
