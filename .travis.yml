@@ -15,7 +15,7 @@ script:
 deploy:
 - provider: script
   skip_cleanup: true
-  script: make skaffold.build
+  script: make skaffold.push
   on:
     tags: true
     condition: $TRAVIS_OS_NAME = linux
