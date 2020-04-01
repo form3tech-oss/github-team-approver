@@ -49,14 +49,14 @@ spec:
               value: "/secrets/github-app-private-key"
             - name: GITHUB_APP_WEBHOOK_SECRET_TOKEN_PATH
               value: "/secrets/github-app-webhook-secret-token"
+            - name: GITHUB_STATUS_NAME
+              value: {{ .Values.github.statusName }}
             - name: IGNORED_REPOSITORIES
               value: {{ .Values.ignoredRepositories }}
             - name: LOG_LEVEL
               value: {{ .Values.logLevel }}
             - name: LOGZIO_TOKEN_PATH
               value: "/secrets/logzio-token"
-            - name: STATUS_NAME
-              value: {{ .Values.github.statusName }}
             - name: USE_CACHING_TRANSPORT
               value: "{{ .Values.http.useCachingTransport }}"
           ports:
