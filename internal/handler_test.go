@@ -39,7 +39,7 @@ func Test_Handle(t *testing.T) {
 
 		slackAlerts []struct {
 			webhookSecret string
-			hookId string
+			hookId        string
 		}
 	}{
 		{
@@ -118,7 +118,7 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequest,
 			eventBody:      readGitHubExampleFile("pull_request_merged_to_master.json"),
 			eventSignature: "sha1=12b9d49c35c1a11673d9287cda2a5b8f2b6b1b63",
-			pacts:   		[]pacttesting.Pact{"pull_request_merged_single_alert", "slack_post_message_for_emergency_change"},
+			pacts:          []pacttesting.Pact{"pull_request_merged_single_alert", "slack_post_message_for_emergency_change"},
 
 			slackAlerts: []struct {
 				webhookSecret string
@@ -136,7 +136,7 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequest,
 			eventBody:      readGitHubExampleFile("pull_request_closed.json"),
 			eventSignature: "sha1=d2b6698e162d59d7e73d75900edf22bd903af731",
-			pacts:   		[]pacttesting.Pact{},
+			pacts:          []pacttesting.Pact{},
 
 			slackAlerts: []struct {
 				webhookSecret string
@@ -155,38 +155,38 @@ func Test_Handle(t *testing.T) {
 			pacttesting.IntegrationTest(
 				tt.pacts,
 				func() {
-				// A simple proxy is used in order to make the Pact server available on a stable, well-known "host:port" combination.
-				// This is required because pacts reference this "host:port" combination.
-				// In its turn, this is required because the GitHub client's "DownloadContents" function will follow URLs returned in the responses themselves (bypassing the configured base URL).
-				// NOTE: It is possible to initialise the proxy only once because "url" won't change between successive test cases.
-				proxyOnce.Do(func() {
-					url := viper.GetString("github-api")
-					idx := strings.LastIndex(url, ":")
-					prx := tcpproxy.Proxy{}
-					prx.AddRoute(stablePactHostPort, tcpproxy.To(url[idx:]))
-					go prx.Run()
-					if err := os.Setenv(envGitHubBaseURL, url); err != nil {
-						t.Fatal(err)
+					// A simple proxy is used in order to make the Pact server available on a stable, well-known "host:port" combination.
+					// This is required because pacts reference this "host:port" combination.
+					// In its turn, this is required because the GitHub client's "DownloadContents" function will follow URLs returned in the responses themselves (bypassing the configured base URL).
+					// NOTE: It is possible to initialise the proxy only once because "url" won't change between successive test cases.
+					proxyOnce.Do(func() {
+						url := viper.GetString("github-api")
+						idx := strings.LastIndex(url, ":")
+						prx := tcpproxy.Proxy{}
+						prx.AddRoute(stablePactHostPort, tcpproxy.To(url[idx:]))
+						go prx.Run()
+						if err := os.Setenv(envGitHubBaseURL, url); err != nil {
+							t.Fatal(err)
+						}
+					})
+
+					for _, slackAlert := range tt.slackAlerts {
+						slackUrl := viper.GetString("slack")
+						os.Setenv(slackAlert.webhookSecret, fmt.Sprintf("%s/%s", slackUrl, slackAlert.hookId))
+					}
+					// Call the handler and make sure the response matches our expectations.
+					req := buildRequest(tt.eventType, tt.eventBody, tt.eventSignature)
+					res := httptest.NewRecorder()
+
+					// Act
+					Handle(res, req)
+
+					// Assertions
+					finalStatus := res.Result().Header.Get(httpHeaderXFinalStatus)
+					if finalStatus != tt.expectedFinalStatus {
+						t.Errorf("handleEvent() returned %q (expected %q)", finalStatus, tt.expectedFinalStatus)
 					}
 				})
-
-				for _, slackAlert := range tt.slackAlerts {
-					slackUrl := viper.GetString("slack")
-					os.Setenv(slackAlert.webhookSecret, fmt.Sprintf("%s/%s", slackUrl, slackAlert.hookId))
-				}
-				// Call the handler and make sure the response matches our expectations.
-				req := buildRequest(tt.eventType, tt.eventBody, tt.eventSignature)
-				res := httptest.NewRecorder()
-
-				// Act
-				Handle(res, req)
-
-				// Assertions
-				finalStatus := res.Result().Header.Get(httpHeaderXFinalStatus)
-				if finalStatus != tt.expectedFinalStatus {
-					t.Errorf("handleEvent() returned %q (expected %q)", finalStatus, tt.expectedFinalStatus)
-				}
-			})
 		})
 	}
 }
@@ -209,5 +209,3 @@ func readGitHubExampleFile(file string) []byte {
 	}
 	return bytes
 }
-
-

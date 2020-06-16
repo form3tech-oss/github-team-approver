@@ -23,7 +23,7 @@ func handlePrMergeEvent(ctx context.Context, event event) error {
 		repoName       = event.GetRepo().GetName()
 		prTargetBranch = event.GetPullRequest().GetBase().GetRef()
 		prBody         = event.GetPullRequest().GetBody()
-		prUrl 		= event.GetPullRequest().GetHTMLURL()
+		prUrl          = event.GetPullRequest().GetHTMLURL()
 	)
 
 	getLogger(ctx).Tracef("Computing the set of alerts that applies to target branch %q", prTargetBranch)
@@ -49,7 +49,7 @@ func handlePrMergeEvent(ctx context.Context, event event) error {
 
 			msg := slack.WebhookMessage{
 				IconEmoji: "form3",
-				Text: strings.ReplaceAll(alert.SlackMessage, pr_url_template, prUrl),
+				Text:      strings.ReplaceAll(alert.SlackMessage, pr_url_template, prUrl),
 			}
 
 			if err := slack.PostWebhook(url, &msg); err != nil {
@@ -60,8 +60,6 @@ func handlePrMergeEvent(ctx context.Context, event event) error {
 
 	return nil
 }
-
-
 
 func computeAlertsForTargetBranch(c *client, ownerLogin, repoName, targetBranch string) ([]configuration.Alert, error) {
 	// Get the configuration for approvals in the current repository.

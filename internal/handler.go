@@ -126,7 +126,6 @@ func Handle(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-
 	// handle PR merge event for alerts
 	if isPrMergeEvent(event) {
 		err := handlePrMergeEvent(ctx, event)

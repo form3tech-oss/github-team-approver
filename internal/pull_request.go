@@ -89,7 +89,7 @@ func toBool(b *bool) bool {
 	return *b
 }
 
-func isPrMergeEvent(event event ) bool{
+func isPrMergeEvent(event event) bool {
 	return toBool(event.GetPullRequest().Merged) && event.GetAction() == pullRequestActionClosed
 }
 
