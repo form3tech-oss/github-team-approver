@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/form3tech-oss/github-team-approver-commons/pkg/configuration"
 	"github.com/slack-go/slack"
-	"os"
+	"io/ioutil"
 	"regexp"
 	"strings"
 )
@@ -43,11 +43,16 @@ func handlePrMergeEvent(ctx context.Context, event event) error {
 		if m {
 			getLogger(ctx).Tracef("matched alert expression: %q, firing alert", alert.Regex)
 
+			b, _ := ioutil.ReadFile(fmt.Sprintf("/secrets/%s", alert.SlackWebhookSecret))
+			url := string(b)
+			getLogger(ctx).Tracef("url: %s", url)
+
 			msg := slack.WebhookMessage{
+				IconEmoji: "form3",
 				Text: strings.ReplaceAll(alert.SlackMessage, pr_url_template, prUrl),
 			}
 
-			if err := slack.PostWebhook(os.Getenv(alert.SlackWebhookSecret), &msg); err != nil {
+			if err := slack.PostWebhook(url, &msg); err != nil {
 				return err
 			}
 		}
