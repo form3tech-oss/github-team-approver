@@ -51,6 +51,7 @@ const (
 	pullRequestActionOpened      = "opened"
 	pullRequestActionReopened    = "reopened"
 	pullRequestActionSynchronize = "synchronize"
+	pullRequestActionClosed = "closed"
 )
 
 const (

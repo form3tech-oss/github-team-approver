@@ -6,7 +6,7 @@ replace github.com/gregjones/httpcache => github.com/form3tech-oss/httpcache v0.
 
 require (
 	github.com/bradleyfalzon/ghinstallation v0.1.2
-	github.com/form3tech-oss/github-team-approver-commons v1.0.0
+	github.com/form3tech-oss/github-team-approver-commons v1.0.1
 	github.com/form3tech-oss/go-pact-testing v1.0.0
 	github.com/form3tech-oss/logrus-logzio-hook v1.0.0
 	github.com/giantswarm/retry-go v0.0.0-20151203102909-867bc2467430 // indirect
@@ -29,5 +29,7 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/viper v1.4.0
 	github.com/stretchr/testify v1.4.0
+	golang.org/x/mod v0.3.0 // indirect
 	golang.org/x/text v0.3.2 // indirect
+	golang.org/x/tools v0.0.0-20200615222825-6aa8f57aacd9 // indirect
 )

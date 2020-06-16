@@ -72,6 +72,9 @@ func Handle(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	token := string(githubWebhookSecretToken)
+	fmt.Printf(token)
+
 	// Validate the incoming payload if we're configured to do so.
 	if len(githubWebhookSecretToken) != 0 {
 		if err := github.ValidateSignature(signature, body, githubWebhookSecretToken); err != nil {
@@ -123,7 +126,19 @@ func Handle(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Handle the incoming event.
+
+	// handle PR merge event for alerts
+	if isPrMergeEvent(event) {
+		err := handlePrMergeEvent(ctx, event)
+		if err != nil {
+			sendHttpInternalServerErrorResponse(res, fmt.Errorf("failed to handle event: %v", err))
+			return
+		}
+		sendHttpOkResponse(res)
+		return
+	}
+
+	// Handle the incoming event PR request event
 	if r, err := handleEvent(ctx, eventType, event); err != nil {
 		if err == errNoConfigurationFile {
 			getLogger(ctx).Warnf("Ignoring event: %v", err)
@@ -135,7 +150,7 @@ func Handle(res http.ResponseWriter, req *http.Request) {
 		return
 	} else {
 		getLogger(ctx).Tracef("%q will be reported as the status", r)
-		sendHttpOkResponse(res, r)
+		sendHttpOkWithStatusResponse(res, r)
 		return
 	}
 }
@@ -145,8 +160,12 @@ func sendHttpResponse(res http.ResponseWriter, statusCode int, message string) {
 	res.Write([]byte(message))
 }
 
-func sendHttpOkResponse(res http.ResponseWriter, finalStatus string) {
+func sendHttpOkWithStatusResponse(res http.ResponseWriter, finalStatus string) {
 	res.Header().Set(httpHeaderXFinalStatus, finalStatus)
+	res.WriteHeader(http.StatusOK)
+}
+
+func sendHttpOkResponse(res http.ResponseWriter) {
 	res.WriteHeader(http.StatusOK)
 }
 
