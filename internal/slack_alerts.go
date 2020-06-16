@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/form3tech-oss/github-team-approver-commons/pkg/configuration"
+	"github.com/slack-go/slack"
+	"os"
 	"regexp"
 )
 
@@ -38,10 +40,17 @@ func handlePrMergeEvent(ctx context.Context, event event) error {
 		if m {
 			getLogger(ctx).Tracef("matched alert expression: %q, firing alert", alert.Regex)
 			// fire alert here
+
+
+			msg := slack.WebhookMessage{
+				Text: "emergency change merged https://github.com/form3tech/github-team-approver-test/pull/86",
+			}
+
+			if err := slack.PostWebhook(os.Getenv(alert.SlackWebhookSecret), &msg); err != nil {
+				return err
+			}
 		}
 	}
-
-
 
 	return nil
 }
