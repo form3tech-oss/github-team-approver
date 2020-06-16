@@ -113,8 +113,8 @@ func Test_Handle(t *testing.T) {
 
 			eventType:      eventTypePullRequest,
 			eventBody:      readGitHubExampleFile("pull_request_merged_to_master.json"),
-			eventSignature: "sha1=bb54261cfbcd46ee826e7f40373a1c86031b01f2",
-			pactFileName:   "pull_request_review_submitted_approval_mode_require_any.json",
+			eventSignature: "sha1=12b9d49c35c1a11673d9287cda2a5b8f2b6b1b63",
+			pactFileName:   "pull_request_merged_single_alert.json",
 
 			expectedFinalStatus: statusEventStatusSuccess,
 		},
