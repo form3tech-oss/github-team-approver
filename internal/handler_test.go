@@ -33,13 +33,12 @@ func Test_Handle(t *testing.T) {
 		eventType      string
 		eventBody      []byte
 		eventSignature string
-		pactFileName   string
+		pacts          []pacttesting.Pact
 
 		expectedFinalStatus string
 
 		slackAlerts []struct {
 			webhookSecret string
-			expectedText string
 			hookId string
 		}
 	}{
@@ -49,7 +48,7 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequest,
 			eventBody:      readGitHubExampleFile("pull_request_opened.json"),
 			eventSignature: "sha1=f3a30cf3d5f785b779163dd04a20f87f9bce8aef",
-			pactFileName:   "pull_request_opened_pending.json",
+			pacts:          []pacttesting.Pact{"pull_request_opened_pending.json"},
 
 			expectedFinalStatus: statusEventStatusPending,
 		},
@@ -59,7 +58,7 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequest,
 			eventBody:      readGitHubExampleFile("pull_request_opened_no_rules_for_branch.json"),
 			eventSignature: "sha1=668a5b79988a958c5535bc7f484384f956a71799",
-			pactFileName:   "pull_request_opened_no_rules_for_branch.json",
+			pacts:          []pacttesting.Pact{"pull_request_opened_no_rules_for_branch.json"},
 
 			expectedFinalStatus: statusEventStatusSuccess,
 		},
@@ -69,7 +68,7 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequestReview,
 			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
 			eventSignature: "sha1=19206052dc16ae2f9a6c82df5d28fbc3b1eed0cd",
-			pactFileName:   "pull_request_review_submitted_approved.json",
+			pacts:          []pacttesting.Pact{"pull_request_review_submitted_approved.json"},
 
 			expectedFinalStatus: statusEventStatusSuccess,
 		},
@@ -79,7 +78,7 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequestReview,
 			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
 			eventSignature: "sha1=19206052dc16ae2f9a6c82df5d28fbc3b1eed0cd",
-			pactFileName:   "pull_request_review_submitted_pending.json",
+			pacts:          []pacttesting.Pact{"pull_request_review_submitted_pending.json"},
 
 			expectedFinalStatus: statusEventStatusPending,
 		},
@@ -89,7 +88,7 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequestReview,
 			eventBody:      readGitHubExampleFile("pull_request_review_submitted_force_approval.json"),
 			eventSignature: "sha1=c3850ad259e927948f20804f0128e692ae598a5a",
-			pactFileName:   "pull_request_review_submitted_force_approval.json",
+			pacts:          []pacttesting.Pact{"pull_request_review_submitted_force_approval.json"},
 
 			expectedFinalStatus: statusEventStatusSuccess,
 		},
@@ -99,7 +98,7 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequestReview,
 			eventBody:      readGitHubExampleFile("pull_request_review_submitted_no_regexes_matched.json"),
 			eventSignature: "sha1=da2609f8738084d21d7b9390c23bcd6dd67adb5b",
-			pactFileName:   "pull_request_review_submitted_no_regexes_matched.json",
+			pacts:          []pacttesting.Pact{"pull_request_review_submitted_no_regexes_matched.json"},
 
 			expectedFinalStatus: statusEventStatusPending,
 		},
@@ -109,28 +108,43 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequestReview,
 			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
 			eventSignature: "sha1=19206052dc16ae2f9a6c82df5d28fbc3b1eed0cd",
-			pactFileName:   "pull_request_review_submitted_approval_mode_require_any.json",
+			pacts:          []pacttesting.Pact{"pull_request_review_submitted_approval_mode_require_any.json"},
 
 			expectedFinalStatus: statusEventStatusSuccess,
 		},
-
 		{
-			name: `PR review Merged to master (matches slack alert - alert should fire)`,
+			name: `PR Merged to master (matches slack alert - alert should fire)`,
 
 			eventType:      eventTypePullRequest,
 			eventBody:      readGitHubExampleFile("pull_request_merged_to_master.json"),
 			eventSignature: "sha1=12b9d49c35c1a11673d9287cda2a5b8f2b6b1b63",
-			pactFileName:   "pull_request_merged_single_alert.json",
+			pacts:   		[]pacttesting.Pact{"pull_request_merged_single_alert", "slack_post_message_for_emergency_change"},
 
 			slackAlerts: []struct {
 				webhookSecret string
-				expectedText  string
 				hookId        string
 			}{
 				{
 					webhookSecret: "slack_platform_team_secret",
-					expectedText:  "emergency change merged https://github.com/form3tech/github-team-approver-test/pull/86",
 					hookId:        "1234",
+				},
+			},
+		},
+		{
+			name: `PR closed (matches slack alert - alert should not fire)`,
+
+			eventType:      eventTypePullRequest,
+			eventBody:      readGitHubExampleFile("pull_request_closed.json"),
+			eventSignature: "sha1=d2b6698e162d59d7e73d75900edf22bd903af731",
+			pacts:   		[]pacttesting.Pact{},
+
+			slackAlerts: []struct {
+				webhookSecret string
+				hookId        string
+			}{
+				{
+					webhookSecret: "slack_platform_team_secret",
+					hookId:        "5678",
 				},
 			},
 		},
@@ -138,10 +152,9 @@ func Test_Handle(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pacttesting.IntegrationTest([]pacttesting.Pact{
-				tt.pactFileName,
-			}, func() {
-				var fakeSlackServer *FakeServer
+			pacttesting.IntegrationTest(
+				tt.pacts,
+				func() {
 				// A simple proxy is used in order to make the Pact server available on a stable, well-known "host:port" combination.
 				// This is required because pacts reference this "host:port" combination.
 				// In its turn, this is required because the GitHub client's "DownloadContents" function will follow URLs returned in the responses themselves (bypassing the configured base URL).
@@ -155,20 +168,12 @@ func Test_Handle(t *testing.T) {
 					if err := os.Setenv(envGitHubBaseURL, url); err != nil {
 						t.Fatal(err)
 					}
-
-					var err error
-					if fakeSlackServer, err = NewFakeSlackServer(); err != nil {
-						t.Fatal(err)
-					}
-					if err := fakeSlackServer.Start(); err != nil {
-						t.Fatal(err)
-					}
 				})
 
 				for _, slackAlert := range tt.slackAlerts {
-					os.Setenv(slackAlert.webhookSecret, fakeSlackServer.AddHookEndpoint(slackAlert.hookId))
+					slackUrl := viper.GetString("slack")
+					os.Setenv(slackAlert.webhookSecret, fmt.Sprintf("%s/%s", slackUrl, slackAlert.hookId))
 				}
-
 				// Call the handler and make sure the response matches our expectations.
 				req := buildRequest(tt.eventType, tt.eventBody, tt.eventSignature)
 				res := httptest.NewRecorder()
@@ -180,12 +185,6 @@ func Test_Handle(t *testing.T) {
 				finalStatus := res.Result().Header.Get(httpHeaderXFinalStatus)
 				if finalStatus != tt.expectedFinalStatus {
 					t.Errorf("handleEvent() returned %q (expected %q)", finalStatus, tt.expectedFinalStatus)
-				}
-				for _, slackAlert := range tt.slackAlerts {
-					webhook := fakeSlackServer.GetHookRequest(slackAlert.hookId)
-					if slackAlert.expectedText != webhook.Text {
-						t.Errorf("slack message not equal, expected: %s got: %s", slackAlert.expectedText, webhook.Text)
-					}
 				}
 			})
 		})

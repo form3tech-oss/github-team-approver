@@ -7,12 +7,14 @@ import (
 	"github.com/slack-go/slack"
 	"os"
 	"regexp"
+	"strings"
 )
 
 // download config
 // if alert match
 // fire alert
 
+const pr_url_template = "<PR_URL>"
 
 func handlePrMergeEvent(ctx context.Context, event event) error {
 
@@ -21,6 +23,7 @@ func handlePrMergeEvent(ctx context.Context, event event) error {
 		repoName       = event.GetRepo().GetName()
 		prTargetBranch = event.GetPullRequest().GetBase().GetRef()
 		prBody         = event.GetPullRequest().GetBody()
+		prUrl 		= event.GetPullRequest().GetHTMLURL()
 	)
 
 	getLogger(ctx).Tracef("Computing the set of alerts that applies to target branch %q", prTargetBranch)
@@ -39,11 +42,9 @@ func handlePrMergeEvent(ctx context.Context, event event) error {
 		}
 		if m {
 			getLogger(ctx).Tracef("matched alert expression: %q, firing alert", alert.Regex)
-			// fire alert here
-
 
 			msg := slack.WebhookMessage{
-				Text: "emergency change merged https://github.com/form3tech/github-team-approver-test/pull/86",
+				Text: strings.ReplaceAll(alert.SlackMessage, pr_url_template, prUrl),
 			}
 
 			if err := slack.PostWebhook(os.Getenv(alert.SlackWebhookSecret), &msg); err != nil {

@@ -34,5 +34,5 @@ require (
 	github.com/stretchr/testify v1.4.0
 	golang.org/x/mod v0.3.0 // indirect
 	golang.org/x/text v0.3.2 // indirect
-	golang.org/x/tools v0.0.0-20200615222825-6aa8f57aacd9 // indirect
+	golang.org/x/tools v0.0.0-20200616164858-e3971a17a80d // indirect
 )
