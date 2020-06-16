@@ -2,9 +2,11 @@ package internal
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/liamg/waitforhttp"
 	"github.com/phayes/freeport"
+	"github.com/slack-go/slack"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -12,26 +14,26 @@ import (
 
 type FakeServer struct {
 	addr         string
-	requestStore map[string]string
+	requestStore map[string]slack.WebhookMessage
 	server       *http.Server
-	mux          http.ServeMux
+	mux          *http.ServeMux
 }
 
 func NewFakeSlackServer() (*FakeServer, error) {
 	serverPort, _ := freeport.GetFreePort()
 	return &FakeServer{
 		addr:         fmt.Sprintf(":%d", serverPort),
-		requestStore: map[string]string{},
+		requestStore: map[string]slack.WebhookMessage{},
+		mux:          http.NewServeMux(),
 	}, nil
 }
 
 func (f *FakeServer) Start() error {
 
-	mux := http.NewServeMux()
-
+	//f.AddHookEndpoint("1234")
 	f.server = &http.Server{
 		Addr:    f.addr,
-		Handler: mux,
+		Handler: f.mux,
 	}
 	serverCh := make(chan struct{})
 	go func() {
@@ -60,7 +62,9 @@ func (f *FakeServer) AddHookEndpoint(hookId string) string {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		b, _ := ioutil.ReadAll(r.Body)
 		defer r.Body.Close()
-		f.requestStore[hookId] = string(b)
+		var slackMsg slack.WebhookMessage
+		json.Unmarshal(b, &slackMsg)
+		f.requestStore[hookId] = slackMsg
 		w.WriteHeader(http.StatusOK)
 	}
 	f.mux.HandleFunc(hookPath, handler)
@@ -68,10 +72,9 @@ func (f *FakeServer) AddHookEndpoint(hookId string) string {
 	return fmt.Sprintf("http://localhost%s%s", f.addr, hookPath)
 }
 
-func (f *FakeServer) GetHookRequest(hookId string) string {
+func (f *FakeServer) GetHookRequest(hookId string) slack.WebhookMessage {
 	return f.requestStore[hookId]
 }
-
 
 
 
