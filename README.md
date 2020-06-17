@@ -124,8 +124,23 @@ Each item under `alert` represents a slack alert that will fire if regex is matc
 A live example of a configuration file can be seen [here](https://github.com/form3tech/application-versions/blob/develop/.github/GITHUB_TEAM_APPROVER.yaml).
 
 #### Encryption
-In order to send a slack alert you need to register a slack app by:
+In order to send a slack alert you need to register a slack app and setup a webhook to a channel.  Upon doing this slack will generate a secret url, do not share this url as it will enable anyone to post to your slack channel.
 
+Generate a 256 bit aes key in hex for example by using: https://www.allkeysgenerator.com/Random/Security-Encryption-Key-Generator.aspx
+
+Place the key into a file and encrypt the webhook by building the `encrypt` program
+
+```
+go build ./cmd/encrypt
+```
+
+Then encrypt your webhook by:
+
+```
+env LOG_LEVEL=fatal ./encrypt https://hooks.slack.com/services/1234/5678/9012 /home/kevin/code/src/github.com/form3tech-oss/github-team-approver/encryption.key 
+```
+
+Place the encrypted webhook as the `slack_webhook_secret` in the yaml.
 
 #### Remarks
 
