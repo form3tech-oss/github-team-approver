@@ -19,10 +19,12 @@ import (
 
 const (
 	stablePactHostPort = "localhost:18080"
+	stableSlackHostPort = "localhost:18081"
 )
 
 var (
 	proxyOnce sync.Once
+	proxySlack sync.Once
 )
 
 func Test_Handle(t *testing.T) {
@@ -169,6 +171,16 @@ func Test_Handle(t *testing.T) {
 							t.Fatal(err)
 						}
 					})
+
+					slackUrl := viper.GetString("slack")
+					if slackUrl != "" {
+						proxySlack.Do(func() {
+							idx := strings.LastIndex(slackUrl, ":")
+							prx := tcpproxy.Proxy{}
+							prx.AddRoute(stableSlackHostPort, tcpproxy.To(slackUrl[idx:]))
+							go prx.Run()
+						})
+					}
 
 					for _, slackAlert := range tt.slackAlerts {
 						slackUrl := viper.GetString("slack")

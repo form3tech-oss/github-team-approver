@@ -49,6 +49,8 @@ spec:
               value: "/secrets/github-app-private-key"
             - name: GITHUB_APP_WEBHOOK_SECRET_TOKEN_PATH
               value: "/secrets/github-app-webhook-secret-token"
+            - name: ENCRYPTION_KEY_PATH
+              value: "/secrets/encryption.key"
             - name: GITHUB_STATUS_NAME
               value: {{ .Values.github.statusName }}
             - name: IGNORED_REPOSITORIES

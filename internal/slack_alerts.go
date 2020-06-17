@@ -5,16 +5,12 @@ import (
 	"fmt"
 	"github.com/form3tech-oss/github-team-approver-commons/pkg/configuration"
 	"github.com/slack-go/slack"
-	"io/ioutil"
 	"regexp"
 	"strings"
 )
 
-// download config
-// if alert match
-// fire alert
 
-const pr_url_template = "<PR_URL>"
+const prUrlTemplate = "<PR_URL>"
 
 func handlePrMergeEvent(ctx context.Context, event event) error {
 
@@ -25,6 +21,10 @@ func handlePrMergeEvent(ctx context.Context, event event) error {
 		prBody         = event.GetPullRequest().GetBody()
 		prUrl          = event.GetPullRequest().GetHTMLURL()
 	)
+
+	if c == nil {
+		return fmt.Errorf("can not handle webhook as cryptor not setup")
+	}
 
 	getLogger(ctx).Tracef("Computing the set of alerts that applies to target branch %q", prTargetBranch)
 
@@ -43,13 +43,13 @@ func handlePrMergeEvent(ctx context.Context, event event) error {
 		if m {
 			getLogger(ctx).Tracef("matched alert expression: %q, firing alert", alert.Regex)
 
-			b, _ := ioutil.ReadFile(fmt.Sprintf("/secrets/%s", alert.SlackWebhookSecret))
-			url := string(b)
-			getLogger(ctx).Tracef("url: %s", url)
+			url, err := c.Decrypt(alert.SlackWebhookSecret)
+			if err != nil {
+				return err
+			}
 
 			msg := slack.WebhookMessage{
-				IconEmoji: "form3",
-				Text:      strings.ReplaceAll(alert.SlackMessage, pr_url_template, prUrl),
+				Text:      strings.ReplaceAll(alert.SlackMessage, prUrlTemplate, prUrl),
 			}
 
 			if err := slack.PostWebhook(url, &msg); err != nil {

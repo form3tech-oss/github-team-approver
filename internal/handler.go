@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -19,6 +20,8 @@ var (
 	githubWebhookSecretToken []byte
 	// ignoredRepositories is the list of repositories for which events will be ignored.
 	ignoredRepositories []string
+	// cryptor for secrets
+	c *cryptor
 )
 
 func init() {
@@ -47,6 +50,22 @@ func init() {
 	githubWebhookSecretToken = b
 	// Parse the list of ignored repositories.
 	ignoredRepositories = strings.Split(os.Getenv(envIgnoredRepositories), ",")
+
+	// Read the encryption key for slack web hooks
+	k, err := ioutil.ReadFile(os.Getenv(envEncryptionKeyPath))
+	if err != nil {
+		// Warn but do not fail, meaning we will not be able to decrypt slack hooks
+		log.Warnf("Failed to read decryption key: %v", err)
+	}
+
+	key, err :=  hex.DecodeString(string(k))
+	if err != nil {
+		// Warn but do not fail, meaning we will not be able to decrypt slack hooks
+		log.Warnf("Failed to read decryption key: %v", err)
+	}
+	c, err = NewCyptor(key); if err != nil {
+		log.Warnf("Failed to create cryptor for decrypting: %v", err)
+	}
 }
 
 // Handle handles an HTTP request.

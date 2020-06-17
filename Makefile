@@ -54,14 +54,14 @@ goimports:
 .PHONY: secret
 secret: GITHUB_APP_PRIVATE_KEY_PATH ?= $(ROOT)/github-app-private-key
 secret: GITHUB_APP_WEBHOOK_SECRET_TOKEN_PATH ?= $(ROOT)/github-app-webhook-secret-token
-secret: SLACK_WEBHOOK_URL ?= $(ROOT)/slack-webhook-url
+secret: ENCRYPTION_KEY_PATH ?= $(ROOT)/encryption.key
 secret: LOGZIO_TOKEN_PATH ?= $(ROOT)/logzio-token
 secret: NAMESPACE ?= github-team-approver
 secret:
 	@kubectl -n $(NAMESPACE) create secret generic github-team-approver \
 		--from-file github-app-private-key=$(GITHUB_APP_PRIVATE_KEY_PATH) \
 		--from-file github-app-webhook-secret-token=$(GITHUB_APP_WEBHOOK_SECRET_TOKEN_PATH) \
-		--from-file slack-webhook-url=$(SLACK_WEBHOOK_URL) \
+		--from-file encryption_key=$(ENCRYPTION_KEY_PATH) \
 		--from-file logzio-token=$(LOGZIO_TOKEN_PATH) \
 		--dry-run \
 		-o yaml | kubectl apply -n $(NAMESPACE) -f-
@@ -83,6 +83,7 @@ test: EXAMPLES_DIR := $(ROOT)/examples/github
 test:
 	EXAMPLES_DIR=$(EXAMPLES_DIR) \
 	GITHUB_APP_WEBHOOK_SECRET_TOKEN_PATH=$(EXAMPLES_DIR)/token.txt \
+	ENCRYPTION_KEY=$(EXAMPLES_DIR)/test.key \
 	GITHUB_STATUS_NAME=github-team-approver \
 	RUN_PACT_TESTS=1 \
 	go test ./internal/... -count 1 -cover
