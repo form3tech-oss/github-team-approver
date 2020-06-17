@@ -92,9 +92,6 @@ func Handle(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	token := string(githubWebhookSecretToken)
-	fmt.Printf(token)
-
 	// Validate the incoming payload if we're configured to do so.
 	if len(githubWebhookSecretToken) != 0 {
 		if err := github.ValidateSignature(signature, body, githubWebhookSecretToken); err != nil {
