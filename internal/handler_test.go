@@ -50,7 +50,7 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequest,
 			eventBody:      readGitHubExampleFile("pull_request_opened.json"),
 			eventSignature: "sha1=f3a30cf3d5f785b779163dd04a20f87f9bce8aef",
-			pacts:          []pacttesting.Pact{"pull_request_opened_pending.json"},
+			pacts:          []pacttesting.Pact{"pull_request_opened_pending"},
 
 			expectedFinalStatus: statusEventStatusPending,
 		},
@@ -60,7 +60,7 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequest,
 			eventBody:      readGitHubExampleFile("pull_request_opened_no_rules_for_branch.json"),
 			eventSignature: "sha1=668a5b79988a958c5535bc7f484384f956a71799",
-			pacts:          []pacttesting.Pact{"pull_request_opened_no_rules_for_branch.json"},
+			pacts:          []pacttesting.Pact{"pull_request_opened_no_rules_for_branch"},
 
 			expectedFinalStatus: statusEventStatusSuccess,
 		},
@@ -70,7 +70,7 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequestReview,
 			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
 			eventSignature: "sha1=19206052dc16ae2f9a6c82df5d28fbc3b1eed0cd",
-			pacts:          []pacttesting.Pact{"pull_request_review_submitted_approved.json"},
+			pacts:          []pacttesting.Pact{"pull_request_review_submitted_approved"},
 
 			expectedFinalStatus: statusEventStatusSuccess,
 		},
@@ -80,7 +80,7 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequestReview,
 			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
 			eventSignature: "sha1=19206052dc16ae2f9a6c82df5d28fbc3b1eed0cd",
-			pacts:          []pacttesting.Pact{"pull_request_review_submitted_pending.json"},
+			pacts:          []pacttesting.Pact{"pull_request_review_submitted_pending"},
 
 			expectedFinalStatus: statusEventStatusPending,
 		},
@@ -90,7 +90,7 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequestReview,
 			eventBody:      readGitHubExampleFile("pull_request_review_submitted_force_approval.json"),
 			eventSignature: "sha1=c3850ad259e927948f20804f0128e692ae598a5a",
-			pacts:          []pacttesting.Pact{"pull_request_review_submitted_force_approval.json"},
+			pacts:          []pacttesting.Pact{"pull_request_review_submitted_force_approval"},
 
 			expectedFinalStatus: statusEventStatusSuccess,
 		},
@@ -100,7 +100,7 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequestReview,
 			eventBody:      readGitHubExampleFile("pull_request_review_submitted_no_regexes_matched.json"),
 			eventSignature: "sha1=da2609f8738084d21d7b9390c23bcd6dd67adb5b",
-			pacts:          []pacttesting.Pact{"pull_request_review_submitted_no_regexes_matched.json"},
+			pacts:          []pacttesting.Pact{"pull_request_review_submitted_no_regexes_matched"},
 
 			expectedFinalStatus: statusEventStatusPending,
 		},
@@ -110,7 +110,7 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequestReview,
 			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
 			eventSignature: "sha1=19206052dc16ae2f9a6c82df5d28fbc3b1eed0cd",
-			pacts:          []pacttesting.Pact{"pull_request_review_submitted_approval_mode_require_any.json"},
+			pacts:          []pacttesting.Pact{"pull_request_review_submitted_approval_mode_require_any"},
 
 			expectedFinalStatus: statusEventStatusSuccess,
 		},
