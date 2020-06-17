@@ -61,7 +61,7 @@ secret:
 	@kubectl -n $(NAMESPACE) create secret generic github-team-approver \
 		--from-file github-app-private-key=$(GITHUB_APP_PRIVATE_KEY_PATH) \
 		--from-file github-app-webhook-secret-token=$(GITHUB_APP_WEBHOOK_SECRET_TOKEN_PATH) \
-		--from-file encryption_key=$(ENCRYPTION_KEY_PATH) \
+		--from-file encryption-key=$(ENCRYPTION_KEY_PATH) \
 		--from-file logzio-token=$(LOGZIO_TOKEN_PATH) \
 		--dry-run \
 		-o yaml | kubectl apply -n $(NAMESPACE) -f-

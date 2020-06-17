@@ -45,9 +45,11 @@ func handlePrMergeEvent(ctx context.Context, event event) error {
 
 			url, err := c.Decrypt(alert.SlackWebhookSecret)
 			if err != nil {
+				getLogger(ctx).Errorf("could not decrypt: secret: %s, url: %s, err: %v", alert.SlackWebhookSecret, url, err)
 				return err
 			}
 
+			getLogger(ctx).Tracef("sending to url: %s", url)
 			msg := slack.WebhookMessage{
 				Text:      strings.ReplaceAll(alert.SlackMessage, prUrlTemplate, prUrl),
 			}
