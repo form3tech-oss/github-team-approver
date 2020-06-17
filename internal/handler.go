@@ -58,12 +58,13 @@ func init() {
 		log.Warnf("Failed to read decryption key: %v", err)
 	}
 
-	key, err :=  hex.DecodeString(string(k))
+	key, err := hex.DecodeString(string(k))
 	if err != nil {
 		// Warn but do not fail, meaning we will not be able to decrypt slack hooks
 		log.Warnf("Failed to read decryption key: %v", err)
 	}
-	c, err = NewCyptor(key); if err != nil {
+	c, err = NewCyptor(key)
+	if err != nil {
 		log.Warnf("Failed to create cryptor for decrypting: %v", err)
 	}
 }

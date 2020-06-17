@@ -18,12 +18,12 @@ import (
 )
 
 const (
-	stablePactHostPort = "localhost:18080"
+	stablePactHostPort  = "localhost:18080"
 	stableSlackHostPort = "localhost:18081"
 )
 
 var (
-	proxyOnce sync.Once
+	proxyOnce  sync.Once
 	proxySlack sync.Once
 )
 

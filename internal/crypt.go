@@ -15,7 +15,7 @@ type cryptor struct {
 	cipher cipher.Block
 }
 
-func NewCyptor(key []byte) (*cryptor, error){
+func NewCyptor(key []byte) (*cryptor, error) {
 	c, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err

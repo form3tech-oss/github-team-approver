@@ -9,7 +9,6 @@ import (
 	"strings"
 )
 
-
 const prUrlTemplate = "<PR_URL>"
 
 func handlePrMergeEvent(ctx context.Context, event event) error {
@@ -51,7 +50,7 @@ func handlePrMergeEvent(ctx context.Context, event event) error {
 
 			getLogger(ctx).Tracef("sending to url: %s", url)
 			msg := slack.WebhookMessage{
-				Text:      strings.ReplaceAll(alert.SlackMessage, prUrlTemplate, prUrl),
+				Text: strings.ReplaceAll(alert.SlackMessage, prUrlTemplate, prUrl),
 			}
 
 			if err := slack.PostWebhook(url, &msg); err != nil {

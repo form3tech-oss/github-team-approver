@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestEncryptDecrypt(t *testing.T){
+func TestEncryptDecrypt(t *testing.T) {
 
 	key, _ := hex.DecodeString("6368616e676520746869732070617373776f726420746f206120736563726574")
 	plainText := "http://slack.com/1234/XXXX"
@@ -32,7 +32,7 @@ func TestEncryptDecrypt(t *testing.T){
 	}
 }
 
-func TestDecrypt(t *testing.T){
+func TestDecrypt(t *testing.T) {
 	key, _ := hex.DecodeString("6368616e676520746869732070617373776f726420746f206120736563726574")
 	plainText := "http://slack.com/1234/XXXX"
 
@@ -51,8 +51,7 @@ func TestDecrypt(t *testing.T){
 	}
 }
 
-
-func TestEncryptHook(t *testing.T){
+func TestEncryptHook(t *testing.T) {
 	key, _ := hex.DecodeString("6368616e676520746869732070617373776f726420746f206120736563726574")
 	plainText := "http://localhost:18081/1234"
 
@@ -68,8 +67,3 @@ func TestEncryptHook(t *testing.T){
 
 	fmt.Print(cipherText)
 }
-
-
-
-
-
