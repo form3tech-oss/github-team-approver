@@ -17,7 +17,7 @@ pushd "${CHARTS_ROOT}" > /dev/null
     --output-dir "${TMP_DIR}" \
     --set github.app.id="${GITHUB_APP_ID}" \
     --set github.app.installationId="${GITHUB_APP_INSTALLATION_ID}" \
-    --set logLevel="trace" \
+    --set logLevel="debug" \
     --set namespaceOverride="${NAMESPACE}"
 
 popd > /dev/null
