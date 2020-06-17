@@ -2,7 +2,6 @@ package internal
 
 import (
 	"encoding/hex"
-	"fmt"
 	"strings"
 	"testing"
 )
@@ -49,21 +48,4 @@ func TestDecrypt(t *testing.T) {
 	if !strings.EqualFold(plainText, decryptedText) {
 		t.Errorf("decryption error, expected: %s, got: %s", plainText, decryptedText)
 	}
-}
-
-func TestEncryptHook(t *testing.T) {
-	key, _ := hex.DecodeString("6368616e676520746869732070617373776f726420746f206120736563726574")
-	plainText := "http://localhost:18081/1234"
-
-	c, err := NewCyptor(key)
-	if err != nil {
-		t.Errorf("could not create crytor, error: %v", err)
-	}
-
-	cipherText, err := c.Encrypt(plainText)
-	if err != nil {
-		t.Errorf("could not encrypt text, error: %v", err)
-	}
-
-	fmt.Print(cipherText)
 }
