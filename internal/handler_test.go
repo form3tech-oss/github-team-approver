@@ -38,11 +38,6 @@ func Test_Handle(t *testing.T) {
 		pacts          []pacttesting.Pact
 
 		expectedFinalStatus string
-
-		slackAlerts []struct {
-			webhookSecret string
-			hookId        string
-		}
 	}{
 		{
 			name: `PR opened (requires approval from the "CAB" team)`,
@@ -121,16 +116,6 @@ func Test_Handle(t *testing.T) {
 			eventBody:      readGitHubExampleFile("pull_request_merged_to_master.json"),
 			eventSignature: "sha1=12b9d49c35c1a11673d9287cda2a5b8f2b6b1b63",
 			pacts:          []pacttesting.Pact{"pull_request_merged_single_alert", "slack_post_message_for_emergency_change"},
-
-			slackAlerts: []struct {
-				webhookSecret string
-				hookId        string
-			}{
-				{
-					webhookSecret: "slack_platform_team_secret",
-					hookId:        "1234",
-				},
-			},
 		},
 		{
 			name: `PR closed (matches slack alert - alert should not fire)`,
@@ -139,16 +124,6 @@ func Test_Handle(t *testing.T) {
 			eventBody:      readGitHubExampleFile("pull_request_closed.json"),
 			eventSignature: "sha1=d2b6698e162d59d7e73d75900edf22bd903af731",
 			pacts:          []pacttesting.Pact{},
-
-			slackAlerts: []struct {
-				webhookSecret string
-				hookId        string
-			}{
-				{
-					webhookSecret: "slack_platform_team_secret",
-					hookId:        "5678",
-				},
-			},
 		},
 	}
 
@@ -182,10 +157,6 @@ func Test_Handle(t *testing.T) {
 						})
 					}
 
-					for _, slackAlert := range tt.slackAlerts {
-						slackUrl := viper.GetString("slack")
-						os.Setenv(slackAlert.webhookSecret, fmt.Sprintf("%s/%s", slackUrl, slackAlert.hookId))
-					}
 					// Call the handler and make sure the response matches our expectations.
 					req := buildRequest(tt.eventType, tt.eventBody, tt.eventSignature)
 					res := httptest.NewRecorder()
