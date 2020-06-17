@@ -2,7 +2,6 @@
 /build/
 /github-app-private-key
 /github-app-webhook-secret-token
-/slack-webhook-url
 /internal/log/
 /internal/logs/
 /logzio-token

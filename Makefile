@@ -83,7 +83,7 @@ test: EXAMPLES_DIR := $(ROOT)/examples/github
 test:
 	EXAMPLES_DIR=$(EXAMPLES_DIR) \
 	GITHUB_APP_WEBHOOK_SECRET_TOKEN_PATH=$(EXAMPLES_DIR)/token.txt \
-	ENCRYPTION_KEY=$(EXAMPLES_DIR)/test.key \
+	ENCRYPTION_KEY_PATH=$(EXAMPLES_DIR)/test.key \
 	GITHUB_STATUS_NAME=github-team-approver \
 	RUN_PACT_TESTS=1 \
 	go test ./internal/... -count 1 -cover
