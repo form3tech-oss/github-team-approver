@@ -43,6 +43,15 @@ install-pact:
 	tar xzf ${pact_filename}
 	rm ${pact_filename}
 
+.PHONY: build-encrypt
+build-encrypt:
+	go build ./cmd/encrypt
+
+.PHONY: encrypt-hook
+encrypt-hook: build-encrypt
+encrypt-hook:
+	./encrypt ${HOOK} ${ENCRYPTION_KEY_PATH}
+
 .PHONY: dep
 dep:
 	cd github-team-approver && dep ensure -v
