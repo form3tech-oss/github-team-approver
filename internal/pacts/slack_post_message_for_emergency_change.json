@@ -12,7 +12,7 @@
         "method": "POST",
         "path": "/1234",
         "body" : {
-          "text": "emergency change merged https://github.com/form3tech/github-team-approver-test/pull/86"
+          "blocks": "emergency change merged https://github.com/form3tech/github-team-approver-test/pull/86"
         }
       },
       "response": {
