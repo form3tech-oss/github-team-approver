@@ -22,7 +22,6 @@ func TestTemplate(t *testing.T){
 	template := `
 Action: {{.Action}}
 User:  {{.PullRequest.User.Login}}
-Image: 
 `
 	output, err := render(e, template)
 	if err != nil {

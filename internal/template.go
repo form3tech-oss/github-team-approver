@@ -6,9 +6,7 @@ import (
 	"text/template"
 )
 
-func render(e github.PullRequestEvent, t string) (string, error){
-
-
+func Render(e github.PullRequestEvent, t string) (string, error){
 	tmpl, err := template.New("test").Parse(t)
 	if err != nil {
 		return "", err
