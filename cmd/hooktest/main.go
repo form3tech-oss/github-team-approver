@@ -22,6 +22,13 @@ func main() {
 }
 
 
+
+type event interface {
+	GetAction() string
+	GetPullRequest() *github.PullRequest
+	GetRepo() *github.Repository
+}
+
 func sendHook(args [] string) error {
 	if len(args) != 4 {
 		return fmt.Errorf("you need to pass 4 arguments in format: ./hooktest http://slack/bar ./examples/templates/merged.template /examples/github/pull_request_closed.json")
@@ -45,7 +52,10 @@ func sendHook(args [] string) error {
 		return err
 	}
 
-	rendered, err := internal.Render(e, string(t)); if err != nil {
+	var event event
+	event = &e
+
+	rendered, err := internal.Render(event, string(t)); if err != nil {
 		return fmt.Errorf("could not render template, error: %v", err)
 	}
 

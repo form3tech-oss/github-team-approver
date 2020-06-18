@@ -53,7 +53,8 @@ func init() {
 	ignoredRepositories = strings.Split(os.Getenv(envIgnoredRepositories), ",")
 
 	// Read the encryption key for slack web hooks
-	k, err := ioutil.ReadFile(os.Getenv(envEncryptionKeyPath))
+	getenv := os.Getenv(envEncryptionKeyPath)
+	k, err := ioutil.ReadFile(getenv)
 	if err != nil {
 		// Warn but do not fail, meaning we will not be able to decrypt slack hooks
 		log.Warnf("Failed to read decryption key: %v", err)

@@ -12,7 +12,24 @@
         "method": "POST",
         "path": "/1234",
         "body" : {
-          "blocks": "emergency change merged https://github.com/form3tech/github-team-approver-test/pull/86"
+
+
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "*PR*: <https://github.com/form3tech/github-team-approver-test/pull/86|adding another> \n *Repo:* github-team-approver-test \n *Branch:* `master` \n *Author:* kevholditch \n *Merged By:* jeeves-form3 "
+                },
+                "block_id": "section567",
+                "accessory": {
+                  "type": "image",
+                  "image_url": "https://avatars3.githubusercontent.com/u/1679458?v=4",
+                  "alt_text": "kevholditch"
+                }
+              }
+            ]
+
         }
       },
       "response": {

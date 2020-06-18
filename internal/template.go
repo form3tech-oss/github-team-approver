@@ -2,11 +2,10 @@ package internal
 
 import (
 	"bytes"
-	"github.com/google/go-github/v28/github"
 	"text/template"
 )
 
-func Render(e github.PullRequestEvent, t string) ([]byte, error){
+func Render(e event, t string) ([]byte, error){
 	tmpl, err := template.New("test").Parse(t)
 	if err != nil {
 		return nil, err

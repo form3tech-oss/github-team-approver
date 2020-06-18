@@ -2,11 +2,11 @@ package internal
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/form3tech-oss/github-team-approver-commons/pkg/configuration"
 	"github.com/slack-go/slack"
 	"regexp"
-	"strings"
 )
 
 const prUrlTemplate = "<PR_URL>"
@@ -18,7 +18,6 @@ func handlePrMergeEvent(ctx context.Context, event event) error {
 		repoName       = event.GetRepo().GetName()
 		prTargetBranch = event.GetPullRequest().GetBase().GetRef()
 		prBody         = event.GetPullRequest().GetBody()
-		prUrl          = event.GetPullRequest().GetHTMLURL()
 	)
 
 	if c == nil {
@@ -48,8 +47,13 @@ func handlePrMergeEvent(ctx context.Context, event event) error {
 				return err
 			}
 
-			msg := slack.WebhookMessage{
-				Text: strings.ReplaceAll(alert.SlackMessage, prUrlTemplate, prUrl),
+			bytes, err := Render(event, alert.SlackMessage); if err != nil {
+				return err
+			}
+
+			var msg slack.WebhookMessage
+			err = json.Unmarshal(bytes, &msg); if err != nil {
+				return err
 			}
 
 			if err := slack.PostWebhook(url, &msg); err != nil {

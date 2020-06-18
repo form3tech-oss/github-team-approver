@@ -24,7 +24,9 @@ Action: {{.Action}}
 User:  {{.PullRequest.User.Login}}
 `
 
-	output, err := Render(e, template)
+	var event event
+	event = &e
+	output, err := Render(event, template)
 	if err != nil {
 		t.Fatal(err)
 	}
