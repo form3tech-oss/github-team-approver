@@ -6,18 +6,18 @@ import (
 	"text/template"
 )
 
-func Render(e github.PullRequestEvent, t string) (string, error){
+func Render(e github.PullRequestEvent, t string) ([]byte, error){
 	tmpl, err := template.New("test").Parse(t)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	var tpl bytes.Buffer
 	err = tmpl.Execute(&tpl, e)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return tpl.String(), nil
+	return tpl.Bytes(), nil
 }
 

@@ -2,8 +2,8 @@ package internal
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/google/go-github/v28/github"
+	"strings"
 	"testing"
 )
 
@@ -23,12 +23,19 @@ func TestTemplate(t *testing.T){
 Action: {{.Action}}
 User:  {{.PullRequest.User.Login}}
 `
-	output, err := render(e, template)
+
+	output, err := Render(e, template)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	fmt.Print(output)
+	expected := `
+Action: closed
+User:  kevholditch
+`
+	if !strings.EqualFold(string(output), expected) {
+		t.Errorf("template not rendered correctly, expected: %s, got: %s", expected, output)
+	}
 
 
 }
