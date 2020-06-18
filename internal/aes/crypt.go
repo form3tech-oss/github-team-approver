@@ -1,4 +1,4 @@
-package internal
+package aes
 
 import (
 	"bytes"
@@ -15,7 +15,12 @@ type cryptor struct {
 	cipher cipher.Block
 }
 
-func NewCyptor(key []byte) (*cryptor, error) {
+type Cryptor interface {
+	Encrypt(text string) (string, error)
+	Decrypt(text string) (string, error)
+}
+
+func New(key []byte) (Cryptor, error) {
 	c, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err

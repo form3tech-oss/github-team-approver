@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/form3tech-oss/github-team-approver/internal/aes"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -21,7 +22,7 @@ var (
 	// ignoredRepositories is the list of repositories for which events will be ignored.
 	ignoredRepositories []string
 	// cryptor for secrets
-	c *cryptor
+	c aes.Cryptor
 )
 
 func init() {
@@ -63,7 +64,7 @@ func init() {
 		// Warn but do not fail, meaning we will not be able to decrypt slack hooks
 		log.Warnf("Failed to read decryption key: %v", err)
 	}
-	c, err = NewCyptor(key)
+	c, err = aes.New(key)
 	if err != nil {
 		log.Warnf("Failed to create cryptor for decrypting: %v", err)
 	}

@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/form3tech-oss/github-team-approver/internal"
+	"github.com/form3tech-oss/github-team-approver/internal/aes"
 	"io/ioutil"
 	"os"
 )
@@ -13,13 +13,11 @@ import (
 // ./encrypt http://slack.com/bar ./test.key
 // prints encrypted `http://slack.com/bar` using `test.key`, `test.key` should be hex encoded 256 bit
 func main() {
-
 	err := encrypt(os.Args)
 	if err != nil {
 		fmt.Printf("error encrypting hook, error: %v", err)
 		os.Exit(-1)
 	}
-
 }
 
 func encrypt(args []string) error {
@@ -39,7 +37,7 @@ func encrypt(args []string) error {
 		return fmt.Errorf("could not decode string from hex, error: %v", err)
 	}
 
-	c, err := internal.NewCyptor(key)
+	c, err := aes.New(key)
 	if err != nil {
 		return fmt.Errorf("failed to create cryptor for encrypting: %v", err)
 	}

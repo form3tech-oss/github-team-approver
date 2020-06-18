@@ -137,7 +137,13 @@ go build ./cmd/encrypt
 Then encrypt your webhook by:
 
 ```
-env LOG_LEVEL=fatal ./encrypt https://hooks.slack.com/services/1234/5678/9012 /home/kevin/code/src/github.com/form3tech-oss/github-team-approver/encryption.key 
+./encrypt https://hooks.slack.com/services/1234/5678/9012 /home/kevin/code/src/github.com/form3tech-oss/github-team-approver/encryption.key 
+```
+
+Or you can use the Make command: 
+```
+env ENCRYPTION_KEY_PATH=/Users/kevin/code/src/github.com/form3tech-oss/github-team-approver/examples/github/test.key HOOK=https://slack.com/1234 make encrypt-hook
+
 ```
 
 Place the encrypted webhook as the `slack_webhook_secret` in the yaml.

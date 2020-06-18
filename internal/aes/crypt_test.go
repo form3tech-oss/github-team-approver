@@ -1,4 +1,4 @@
-package internal
+package aes
 
 import (
 	"encoding/hex"
@@ -11,7 +11,7 @@ func TestEncryptDecrypt(t *testing.T) {
 	key, _ := hex.DecodeString("6368616e676520746869732070617373776f726420746f206120736563726574")
 	plainText := "http://slack.com/1234/XXXX"
 
-	c, err := NewCyptor(key)
+	c, err := New(key)
 	if err != nil {
 		t.Errorf("could not create crytor, error: %v", err)
 	}
@@ -35,7 +35,7 @@ func TestDecrypt(t *testing.T) {
 	key, _ := hex.DecodeString("6368616e676520746869732070617373776f726420746f206120736563726574")
 	plainText := "http://slack.com/1234/XXXX"
 
-	c, err := NewCyptor(key)
+	c, err := New(key)
 	if err != nil {
 		t.Errorf("could not create crytor, error: %v", err)
 	}
