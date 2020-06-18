@@ -1,0 +1,28 @@
+{
+    "text": "",
+    "blocks": [
+        {
+            "type": "section",
+            "block_id": "section567",
+            "text": {
+                "type": "mrkdwn",
+                "text": "<https://github.com/form3tech/github-team-approver-test/pull/87|Amazing feature> \n *repo:* paymentapi \n *branch*: `master` \n\n the feature was to add new...."
+            },
+            "accessory": {
+                "type": "image",
+                "image_url": "https://avatars3.githubusercontent.com/u/1679458?v=4",
+                "alt_text": "User image"
+            }
+        },
+        {
+            "type": "section",
+            "block_id": "section789",
+            "fields": [
+                {
+                    "type": "mrkdwn",
+                    "text": "*Average Rating*\n1.0"
+                }
+            ]
+        }
+    ]
+}
