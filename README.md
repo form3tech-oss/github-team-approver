@@ -119,7 +119,7 @@ Each item under `alert` represents a slack alert that will fire if regex is matc
 |----------------|-------------|
 | `regex` | Regular expression to match the body of the pull request against. If matched, slack alert will be fired |
 | `slack_webhook_secret` | Encrypted slack webhook, encrpyted with 256bit encryption key provided (see encryption section below) |
-| `slack_message` | Slack message that you wish to post, <PR_URL> will be replaced with a link to the merged PR |
+| `slack_message` | Slack message that you wish to post, you can use go templating on the PR event to template out your message, see `templates/merged.template` as an example |
 
 A live example of a configuration file can be seen [here](https://github.com/form3tech/application-versions/blob/develop/.github/GITHUB_TEAM_APPROVER.yaml).
 
