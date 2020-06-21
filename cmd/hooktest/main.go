@@ -21,8 +21,6 @@ func main() {
 	}
 }
 
-
-
 type event interface {
 	GetAction() string
 	GetPullRequest() *github.PullRequest
