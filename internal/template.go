@@ -5,7 +5,7 @@ import (
 	"text/template"
 )
 
-func Render(e event, t string) ([]byte, error){
+func renderTemplate(e event, t string) ([]byte, error){
 	tmpl, err := template.New("test").Parse(t)
 	if err != nil {
 		return nil, err

@@ -119,7 +119,7 @@ Each item under `alert` represents a slack alert that will fire if regex is matc
 |----------------|-------------|
 | `regex` | Regular expression to match the body of the pull request against. If matched, slack alert will be fired |
 | `slack_webhook_secret` | Encrypted slack webhook, encrpyted with 256bit encryption key provided (see encryption section below) |
-| `slack_message` | Slack message that you wish to post, you can use go templating on the PR event to template out your message, see `templates/merged.template` as an example |
+| `slack_message` | Slack webhook you wish to post, should be a json object that matches [`slack.WebhookMessage`](https://github.com/slack-go/slack/blob/b04b8521281b8e06bd4bb5b9c83a81e2a12e2141/webhooks.go#L8-L18).  Set `text` field for plain message or you can use the `blocks` field to build a [fancy message](https://api.slack.com/messaging/webhooks#advanced_message_formatting). The `slack_message` field will be put through go templating with the PR event, so you can template out anything from that payload.  For an example see template, see `examples/templates/merged.template` |
 
 A live example of a configuration file can be seen [here](https://github.com/form3tech/application-versions/blob/develop/.github/GITHUB_TEAM_APPROVER.yaml).
 

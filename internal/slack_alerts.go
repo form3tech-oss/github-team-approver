@@ -47,7 +47,7 @@ func handlePrMergeEvent(ctx context.Context, event event) error {
 				return err
 			}
 
-			bytes, err := Render(event, alert.SlackMessage); if err != nil {
+			bytes, err := renderTemplate(event, alert.SlackMessage); if err != nil {
 				return err
 			}
 
