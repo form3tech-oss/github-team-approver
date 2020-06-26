@@ -1,0 +1,30 @@
+{
+  "consumer": {
+    "name": "github-team-approver"
+  },
+  "provider": {
+    "name": "slack"
+  },
+  "interactions": [
+    {
+      "description": "Post - slack message - emergency change",
+      "request": {
+        "method": "POST",
+        "path": "/1234",
+        "body": {
+          "text": "emergency change merged https://github.com/form3tech/github-team-approver-test/pull/86"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "pactSpecification": {
+      "version": "3.0.0"
+    }
+  }
+}

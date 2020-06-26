@@ -49,12 +49,13 @@ Hence, a Kubernetes cluster is required to run `github-team-approver`.
 For local development and testing, this may correspond to a [Docker Desktop](https://www.docker.com/products/docker-desktop) or [Minikube](https://github.com/kubernetes/minikube) cluster.
 For production, a managed offering of Kubernetes such as [GKE](https://cloud.google.com/kubernetes-engine/) or [EKS](https://aws.amazon.com/eks/) is strongly recommended.
 
-Once you've got a running Kubernetes cluster, run the following command to create the required secret containing the GitHub application's private key and webhook secret token:
+Once you've got a running Kubernetes cluster, run the following command to create the required secret containing the GitHub application's private key, webhook secret token and optionally a 256 bit key if you want to use slack alerts:
 
 ```shell
 $ make secret \
     GITHUB_APP_PRIVATE_KEY_PATH=<path-to-private-key> \
     GITHUB_APP_WEBHOOK_SECRET_TOKEN_PATH=<path-to-webhook-secret-token> \
+    ENCRYPTION_KEY_PATH=<path_to_256bit_hex_key> \
     LOGZIO_TOKEN_PATH=<path-to-logzio-token>
 ```
 
@@ -96,6 +97,10 @@ pull_request_approval_rules:
     - "<label>"
     - "<label>"
     force_approval: false # or true!
+  alerts:
+   - regex: '- \[x\] Emergency\.'
+     slack_webhook_secret: "encrypted_slack_hook (see below)"
+     slack_message: "emergency change merged <PR_URL>"
 ``` 
 
 Each item under `pull_request_approval_rules` represents how approval for PRs made to specific target branches should work, according to the following table:
@@ -108,7 +113,40 @@ Each item under `pull_request_approval_rules` represents how approval for PRs ma
 | `labels`  | The set of labels to apply to the pull request. Labels are prefixed with the `github-team-approver/` prefix.  |
 | `force_approval` | Whether to automatically approve PRs matching the regular expression without waiting for review.
 
+Each item under `alert` represents a slack alert that will fire if regex is matched:
+
+| Field | Description |
+|----------------|-------------|
+| `regex` | Regular expression to match the body of the pull request against. If matched, slack alert will be fired |
+| `slack_webhook_secret` | Encrypted slack webhook, encrpyted with 256bit encryption key provided (see encryption section below) |
+| `slack_message` | Slack webhook you wish to post, should be a json object that matches [`slack.WebhookMessage`](https://github.com/slack-go/slack/blob/b04b8521281b8e06bd4bb5b9c83a81e2a12e2141/webhooks.go#L8-L18).  Set `text` field for plain message or you can use the `blocks` field to build a [fancy message](https://api.slack.com/messaging/webhooks#advanced_message_formatting). The `slack_message` field will be put through go templating with the PR event, so you can template out anything from that payload.  For an example see template, see `examples/templates/merged.template` |
+
 A live example of a configuration file can be seen [here](https://github.com/form3tech/application-versions/blob/develop/.github/GITHUB_TEAM_APPROVER.yaml).
+
+#### Encryption
+In order to send a slack alert you need to register a slack app and setup a webhook to a channel.  Upon doing this slack will generate a secret url, do not share this url as it will enable anyone to post to your slack channel.
+
+Generate a 256 bit aes key in hex for example by using: https://www.allkeysgenerator.com/Random/Security-Encryption-Key-Generator.aspx
+
+Place the key into a file and encrypt the webhook by building the `encrypt` program
+
+```
+go build ./cmd/encrypt
+```
+
+Then encrypt your webhook by:
+
+```
+./encrypt https://hooks.slack.com/services/1234/5678/9012 /home/kevin/code/src/github.com/form3tech-oss/github-team-approver/encryption.key 
+```
+
+Or you can use the Make command: 
+```
+env ENCRYPTION_KEY_PATH=/Users/kevin/code/src/github.com/form3tech-oss/github-team-approver/examples/github/test.key HOOK=https://slack.com/1234 make encrypt-hook
+
+```
+
+Place the encrypted webhook as the `slack_webhook_secret` in the yaml.
 
 #### Remarks
 

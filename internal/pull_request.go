@@ -82,6 +82,17 @@ func handleEvent(ctx context.Context, eventType string, event event) (finalStatu
 	}
 }
 
+func toBool(b *bool) bool {
+	if b == nil {
+		return false
+	}
+	return *b
+}
+
+func isPrMergeEvent(event event) bool {
+	return toBool(event.GetPullRequest().Merged) && event.GetAction() == pullRequestActionClosed
+}
+
 func isSupportedAction(eventType, action string) bool {
 	switch {
 	case eventType == eventTypePullRequest:
