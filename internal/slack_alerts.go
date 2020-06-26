@@ -9,8 +9,6 @@ import (
 	"regexp"
 )
 
-const prUrlTemplate = "<PR_URL>"
-
 func handlePrMergeEvent(ctx context.Context, event event) error {
 
 	var (
@@ -31,7 +29,7 @@ func handlePrMergeEvent(ctx context.Context, event event) error {
 		return fmt.Errorf("could not compute alerts for target branch: %s on repo: %s, err: %v", prTargetBranch, repoName, err)
 	}
 
-	// loop round all alerts checking for alerts
+	// loop round all alerts checking if alert matches PR
 	for _, alert := range alerts {
 
 		m, err := regexp.MatchString(fmt.Sprintf("(?i)%s", alert.Regex), prBody)
