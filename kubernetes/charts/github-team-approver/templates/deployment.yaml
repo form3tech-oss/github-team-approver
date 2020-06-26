@@ -44,7 +44,7 @@ spec:
             - name: GITHUB_APP_ID
               value: "{{ .Values.github.app.id }}"
             - name: GITHUB_APP_INSTALLATION_ID
-              value: "1516705"
+              value: "{{ .Values.github.app.installationId }}"
             - name: GITHUB_APP_PRIVATE_KEY_PATH
               value: "/secrets/github-app-private-key"
             - name: GITHUB_APP_WEBHOOK_SECRET_TOKEN_PATH
@@ -56,7 +56,7 @@ spec:
             - name: IGNORED_REPOSITORIES
               value: {{ .Values.ignoredRepositories }}
             - name: LOG_LEVEL
-              value: trace
+              value: {{ .Values.logLevel }}
             - name: LOGZIO_TOKEN_PATH
               value: "/secrets/logzio-token"
             - name: USE_CACHING_TRANSPORT
