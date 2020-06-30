@@ -18,11 +18,13 @@ import (
 )
 
 const (
-	stablePactHostPort = "localhost:18080"
+	stablePactHostPort  = "localhost:18080"
+	stableSlackHostPort = "localhost:18081"
 )
 
 var (
-	proxyOnce sync.Once
+	proxyOnce  sync.Once
+	proxySlack sync.Once
 )
 
 func Test_Handle(t *testing.T) {
@@ -33,7 +35,7 @@ func Test_Handle(t *testing.T) {
 		eventType      string
 		eventBody      []byte
 		eventSignature string
-		pactFileName   string
+		pacts          []pacttesting.Pact
 
 		expectedFinalStatus string
 	}{
@@ -43,7 +45,7 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequest,
 			eventBody:      readGitHubExampleFile("pull_request_opened.json"),
 			eventSignature: "sha1=f3a30cf3d5f785b779163dd04a20f87f9bce8aef",
-			pactFileName:   "pull_request_opened_pending.json",
+			pacts:          []pacttesting.Pact{"pull_request_opened_pending"},
 
 			expectedFinalStatus: statusEventStatusPending,
 		},
@@ -53,7 +55,7 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequest,
 			eventBody:      readGitHubExampleFile("pull_request_opened_no_rules_for_branch.json"),
 			eventSignature: "sha1=668a5b79988a958c5535bc7f484384f956a71799",
-			pactFileName:   "pull_request_opened_no_rules_for_branch.json",
+			pacts:          []pacttesting.Pact{"pull_request_opened_no_rules_for_branch"},
 
 			expectedFinalStatus: statusEventStatusSuccess,
 		},
@@ -63,7 +65,7 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequestReview,
 			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
 			eventSignature: "sha1=19206052dc16ae2f9a6c82df5d28fbc3b1eed0cd",
-			pactFileName:   "pull_request_review_submitted_approved.json",
+			pacts:          []pacttesting.Pact{"pull_request_review_submitted_approved"},
 
 			expectedFinalStatus: statusEventStatusSuccess,
 		},
@@ -73,7 +75,7 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequestReview,
 			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
 			eventSignature: "sha1=19206052dc16ae2f9a6c82df5d28fbc3b1eed0cd",
-			pactFileName:   "pull_request_review_submitted_pending.json",
+			pacts:          []pacttesting.Pact{"pull_request_review_submitted_pending"},
 
 			expectedFinalStatus: statusEventStatusPending,
 		},
@@ -83,7 +85,7 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequestReview,
 			eventBody:      readGitHubExampleFile("pull_request_review_submitted_force_approval.json"),
 			eventSignature: "sha1=c3850ad259e927948f20804f0128e692ae598a5a",
-			pactFileName:   "pull_request_review_submitted_force_approval.json",
+			pacts:          []pacttesting.Pact{"pull_request_review_submitted_force_approval"},
 
 			expectedFinalStatus: statusEventStatusSuccess,
 		},
@@ -93,7 +95,7 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequestReview,
 			eventBody:      readGitHubExampleFile("pull_request_review_submitted_no_regexes_matched.json"),
 			eventSignature: "sha1=da2609f8738084d21d7b9390c23bcd6dd67adb5b",
-			pactFileName:   "pull_request_review_submitted_no_regexes_matched.json",
+			pacts:          []pacttesting.Pact{"pull_request_review_submitted_no_regexes_matched"},
 
 			expectedFinalStatus: statusEventStatusPending,
 		},
@@ -103,41 +105,71 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequestReview,
 			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
 			eventSignature: "sha1=19206052dc16ae2f9a6c82df5d28fbc3b1eed0cd",
-			pactFileName:   "pull_request_review_submitted_approval_mode_require_any.json",
+			pacts:          []pacttesting.Pact{"pull_request_review_submitted_approval_mode_require_any"},
 
 			expectedFinalStatus: statusEventStatusSuccess,
+		},
+		{
+			name: `PR Merged to master (matches slack alert - alert should fire)`,
+
+			eventType:      eventTypePullRequest,
+			eventBody:      readGitHubExampleFile("pull_request_merged_to_master.json"),
+			eventSignature: "sha1=12b9d49c35c1a11673d9287cda2a5b8f2b6b1b63",
+			pacts:          []pacttesting.Pact{"pull_request_merged_single_alert", "slack_post_message_for_emergency_change"},
+		},
+		{
+			name: `PR closed (matches slack alert - alert should not fire)`,
+
+			eventType:      eventTypePullRequest,
+			eventBody:      readGitHubExampleFile("pull_request_closed.json"),
+			eventSignature: "sha1=d2b6698e162d59d7e73d75900edf22bd903af731",
+			pacts:          []pacttesting.Pact{},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pacttesting.IntegrationTest([]pacttesting.Pact{
-				tt.pactFileName,
-			}, func() {
-				// A simple proxy is used in order to make the Pact server available on a stable, well-known "host:port" combination.
-				// This is required because pacts reference this "host:port" combination.
-				// In its turn, this is required because the GitHub client's "DownloadContents" function will follow URLs returned in the responses themselves (bypassing the configured base URL).
-				// NOTE: It is possible to initialise the proxy only once because "url" won't change between successive test cases.
-				proxyOnce.Do(func() {
-					url := viper.GetString("github-api")
-					idx := strings.LastIndex(url, ":")
-					prx := tcpproxy.Proxy{}
-					prx.AddRoute(stablePactHostPort, tcpproxy.To(url[idx:]))
-					go prx.Run()
-					if err := os.Setenv(envGitHubBaseURL, url); err != nil {
-						t.Fatal(err)
+			pacttesting.IntegrationTest(
+				tt.pacts,
+				func() {
+					// A simple proxy is used in order to make the Pact server available on a stable, well-known "host:port" combination.
+					// This is required because pacts reference this "host:port" combination.
+					// In its turn, this is required because the GitHub client's "DownloadContents" function will follow URLs returned in the responses themselves (bypassing the configured base URL).
+					// NOTE: It is possible to initialise the proxy only once because "url" won't change between successive test cases.
+					proxyOnce.Do(func() {
+						url := viper.GetString("github-api")
+						idx := strings.LastIndex(url, ":")
+						prx := tcpproxy.Proxy{}
+						prx.AddRoute(stablePactHostPort, tcpproxy.To(url[idx:]))
+						go prx.Run()
+						if err := os.Setenv(envGitHubBaseURL, url); err != nil {
+							t.Fatal(err)
+						}
+					})
+
+					slackUrl := viper.GetString("slack")
+					if slackUrl != "" {
+						proxySlack.Do(func() {
+							idx := strings.LastIndex(slackUrl, ":")
+							prx := tcpproxy.Proxy{}
+							prx.AddRoute(stableSlackHostPort, tcpproxy.To(slackUrl[idx:]))
+							go prx.Run()
+						})
+					}
+
+					// Call the handler and make sure the response matches our expectations.
+					req := buildRequest(tt.eventType, tt.eventBody, tt.eventSignature)
+					res := httptest.NewRecorder()
+
+					// Act
+					Handle(res, req)
+
+					// Assertions
+					finalStatus := res.Result().Header.Get(httpHeaderXFinalStatus)
+					if finalStatus != tt.expectedFinalStatus {
+						t.Errorf("handleEvent() returned %q (expected %q)", finalStatus, tt.expectedFinalStatus)
 					}
 				})
-
-				// Call the handler and make sure the response matches our expectations.
-				req := buildRequest(tt.eventType, tt.eventBody, tt.eventSignature)
-				res := httptest.NewRecorder()
-				Handle(res, req)
-				finalStatus := res.Result().Header.Get(httpHeaderXFinalStatus)
-				if finalStatus != tt.expectedFinalStatus {
-					t.Errorf("handleEvent() returned %q (expected %q)", finalStatus, tt.expectedFinalStatus)
-				}
-			})
 		})
 	}
 }

@@ -24,6 +24,7 @@ const (
 	envIgnoredRepositories             = "IGNORED_REPOSITORIES"
 	envLogLevel                        = "LOG_LEVEL"
 	envLogzioTokenPath                 = "LOGZIO_TOKEN_PATH"
+	envEncryptionKeyPath               = "ENCRYPTION_KEY_PATH"
 	envUseCachingTransport             = "USE_CACHING_TRANSPORT"
 )
 
@@ -51,6 +52,7 @@ const (
 	pullRequestActionOpened      = "opened"
 	pullRequestActionReopened    = "reopened"
 	pullRequestActionSynchronize = "synchronize"
+	pullRequestActionClosed      = "closed"
 )
 
 const (

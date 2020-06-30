@@ -1,8 +1,10 @@
 package internal
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/form3tech-oss/github-team-approver/internal/aes"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -19,6 +21,8 @@ var (
 	githubWebhookSecretToken []byte
 	// ignoredRepositories is the list of repositories for which events will be ignored.
 	ignoredRepositories []string
+	// cryptor for secrets
+	c aes.Cryptor
 )
 
 func init() {
@@ -47,6 +51,24 @@ func init() {
 	githubWebhookSecretToken = b
 	// Parse the list of ignored repositories.
 	ignoredRepositories = strings.Split(os.Getenv(envIgnoredRepositories), ",")
+
+	// Read the encryption key for slack web hooks
+	getenv := os.Getenv(envEncryptionKeyPath)
+	k, err := ioutil.ReadFile(getenv)
+	if err != nil {
+		// Warn but do not fail, meaning we will not be able to decrypt slack hooks
+		log.Warnf("Failed to read decryption key: %v", err)
+	}
+
+	key, err := hex.DecodeString(string(k))
+	if err != nil {
+		// Warn but do not fail, meaning we will not be able to decrypt slack hooks
+		log.Warnf("Failed to read decryption key: %v", err)
+	}
+	c, err = aes.New(key)
+	if err != nil {
+		log.Warnf("Failed to create cryptor for decrypting: %v", err)
+	}
 }
 
 // Handle handles an HTTP request.
@@ -123,7 +145,18 @@ func Handle(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Handle the incoming event.
+	// handle PR merge event for alerts
+	if isPrMergeEvent(event) {
+		err := handlePrMergeEvent(ctx, event)
+		if err != nil {
+			sendHttpInternalServerErrorResponse(res, fmt.Errorf("failed to handle event: %v", err))
+			return
+		}
+		sendHttpOkResponse(res)
+		return
+	}
+
+	// Handle the incoming event PR request event
 	if r, err := handleEvent(ctx, eventType, event); err != nil {
 		if err == errNoConfigurationFile {
 			getLogger(ctx).Warnf("Ignoring event: %v", err)
@@ -135,7 +168,7 @@ func Handle(res http.ResponseWriter, req *http.Request) {
 		return
 	} else {
 		getLogger(ctx).Tracef("%q will be reported as the status", r)
-		sendHttpOkResponse(res, r)
+		sendHttpOkWithStatusResponse(res, r)
 		return
 	}
 }
@@ -145,8 +178,12 @@ func sendHttpResponse(res http.ResponseWriter, statusCode int, message string) {
 	res.Write([]byte(message))
 }
 
-func sendHttpOkResponse(res http.ResponseWriter, finalStatus string) {
+func sendHttpOkWithStatusResponse(res http.ResponseWriter, finalStatus string) {
 	res.Header().Set(httpHeaderXFinalStatus, finalStatus)
+	res.WriteHeader(http.StatusOK)
+}
+
+func sendHttpOkResponse(res http.ResponseWriter) {
 	res.WriteHeader(http.StatusOK)
 }
 

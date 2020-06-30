@@ -7,3 +7,6 @@
 /logzio-token
 /pact/
 /tmp/
+/encryption.key
+github-team-approver
+encrypt
