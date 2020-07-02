@@ -75,8 +75,12 @@ secret:
 		--dry-run \
 		-o yaml | kubectl apply -n $(NAMESPACE) -f-
 
+.PHONY: docker.login
+docker.login:
+	@docker login
+
 .PHONY: skaffold.push
-skaffold.push:
+skaffold.push: docker.login
 	@IMAGE_TAG=$(VERSION) skaffold build --profile push
 
 .PHONY: skaffold.dev
