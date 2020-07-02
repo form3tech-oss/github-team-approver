@@ -77,7 +77,7 @@ secret:
 
 .PHONY: docker.login
 docker.login:
-	@cat ./docker-password.txt | docker login --username $(DOCKER_USERNAME) --password-stdin
+	@docker login --username $(DOCKER_USERNAME) --password $(DOCKER_PASSWORD)
 
 .PHONY: skaffold.push
 skaffold.push: docker.login
