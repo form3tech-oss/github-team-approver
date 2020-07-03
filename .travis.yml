@@ -9,7 +9,6 @@ env:
   - DOCKER_BUILDKIT=1
   - secure: Nmr0MF6RxTEMRwTiFzlmdtZok8mPvNiF5GCQzrucTrzXwpAW85Bzu7M45137chP3gvsZokjel3s3diTYGpc81tPy3jf3gTE3Ba48Y4lxNiSPQC+Z4Iie9ZkPm46bTdN3Sg8c2/5tWJB/7dxYBKRhNzoE6sIt9nrTF6s1mVMmqWfe21bntiRTLoOM0zuUQQ3Y8AQSFHtfbn2GBl+wWpGGiyWLi2sYTL9KZgGwbjj1tL6QS+F9VOc1n+ARCvA5LOdhk6R1N6x1xsYy8EXMqFHxooXE5o6zdAZ+Xd9KPaKKXzlQMGJIhmnRJkAKkeCJNHYwCjiUlyptQncpxRwyRWac853LnbGAcTPLt8n2PyUikCWK/zOoCMFbdb7AX8cUxLn1U/z8XIk8RN6uuvUm3NKQLsK+F9ydc94yUfg/1JhuzqbU9gX+KhYRbtNLe6ummYoi0vknZP74dWi0ju/4iXFuo1UULDVtmn7uy91tMZ1pdnOqHjUB5CapTgPSNm4Lhhz1MFyM2GZy7TRWJ76zxFfvjEzvpEsAsV4HZCLguAqXvyX55L633M99W00nG+99RgDlSN00DkJUE/Tkrr+KNm5GZKJT5pE7oJXk11bAiNldM9FoWuAGKUuk1aR7KfZNGX+A9n0b8lJhkV3OAeorv9GClIYU6YW7z/wyrS2qg1SjNKo=
 before_install:
-- openssl aes-256-cbc -K $encrypted_0a6446eb3ae3_key -iv $encrypted_0a6446eb3ae3_iv -in docker-password.txt.enc -out docker-password.txt -d
 - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu
   $(lsb_release -cs) stable"
