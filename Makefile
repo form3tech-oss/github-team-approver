@@ -3,7 +3,11 @@ SHELL := /bin/bash
 ROOT := $(shell git rev-parse --show-toplevel)
 GO_FILES := $(shell find . -name "*.go" -not -path "./build/*" -not -path "**/vendor/*")
 
-VERSION = $(shell git describe --dirty="-dev")
+ifeq ($(TRAVIS_TAG),)
+	VERSION ?= $(shell git describe --dirty="-dev")
+else
+	VERSION = $(TRAVIS_TAG)
+endif
 
 .DEFAULT_GOAL := error
 
