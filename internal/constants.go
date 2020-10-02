@@ -23,6 +23,7 @@ const (
 	envGitHubStatusName                = "GITHUB_STATUS_NAME"
 	envIgnoredRepositories             = "IGNORED_REPOSITORIES"
 	envLogLevel                        = "LOG_LEVEL"
+	envSecretStoreType                 = "SECRET_STORE_TYPE" // Set to AWS_SSM for the ability to run in ECS using SSM. Empty, not set or anything else for default K8s secret
 	envLogzioTokenPath                 = "LOGZIO_TOKEN_PATH"
 	envEncryptionKeyPath               = "ENCRYPTION_KEY_PATH"
 	envUseCachingTransport             = "USE_CACHING_TRANSPORT"
