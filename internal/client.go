@@ -229,7 +229,7 @@ func maybeWrapInAuthenticatingTransport(baseTransport http.RoundTripper) http.Ro
 		return baseTransport
 	}
 	// Use a transport that authenticates us as an installation.
-	authenticatingTransport, err := ghinstallation.NewKeyFromFile(baseTransport, applicationId, installationId, os.Getenv(envGitHubAppPrivateKeyPath))
+	authenticatingTransport, err := ghinstallation.NewKeyFromFile(baseTransport, int64(applicationId), int64(installationId), os.Getenv(envGitHubAppPrivateKeyPath))
 	if err != nil {
 		log.Warnf("failed to create authenticating transport: %v", err)
 		return baseTransport
