@@ -5,7 +5,7 @@ go 1.13
 replace github.com/gregjones/httpcache => github.com/form3tech-oss/httpcache v0.0.0-20190708110905-85712625ba05
 
 require (
-	github.com/bradleyfalzon/ghinstallation v0.1.2
+	github.com/bradleyfalzon/ghinstallation v1.1.1
 	github.com/form3tech-oss/github-team-approver-commons v1.1.0
 	github.com/form3tech-oss/go-pact-testing v1.0.0
 	github.com/form3tech-oss/logrus-logzio-hook v1.0.0
