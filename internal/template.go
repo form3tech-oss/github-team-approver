@@ -5,7 +5,7 @@ import (
 	"text/template"
 )
 
-func renderTemplate(e event, t string) ([]byte, error){
+func renderTemplate(e event, t string) ([]byte, error) {
 	tmpl, err := template.New("test").Parse(t)
 	if err != nil {
 		return nil, err
@@ -19,4 +19,3 @@ func renderTemplate(e event, t string) ([]byte, error){
 
 	return tpl.Bytes(), nil
 }
-

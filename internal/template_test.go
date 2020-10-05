@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestTemplate(t *testing.T){
+func TestTemplate(t *testing.T) {
 
 	b := readGitHubExampleFile("pull_request_closed.json")
 
@@ -38,6 +38,5 @@ User:  kevholditch
 	if !strings.EqualFold(string(output), expected) {
 		t.Errorf("template not rendered correctly, expected: %s, got: %s", expected, output)
 	}
-
 
 }

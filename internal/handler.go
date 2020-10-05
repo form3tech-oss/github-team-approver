@@ -23,18 +23,30 @@ var (
 	ignoredRepositories []string
 	// cryptor for secrets
 	c aes.Cryptor
+	// SecretStore for reading from path or AWS SSM
+	secretStore SecretStore
 )
 
 func init() {
 	// Configure the log level.
+
+	fmt.Printf("init starting")
+
+	switch os.Getenv(envSecretStoreType) {
+	case "AWS_SSM":
+		secretStore = NewSSMStore()
+	default:
+		secretStore = NewEnvSecretStore()
+	}
+
 	if v, err := log.ParseLevel(os.Getenv(envLogLevel)); err == nil {
 		log.SetLevel(v)
 	} else {
 		log.Warnf("Failed to parse log level, falling back to %q: %v", log.GetLevel().String(), err)
 	}
 	// Configure log shipping to Logz.io.
-	if t, err := ioutil.ReadFile(os.Getenv(envLogzioTokenPath)); err != nil {
-		log.Warnf("Failed to configure the logz.io logrus hook: %v", err)
+	if t, err := secretStore.Get(envLogzioTokenPath); err != nil {
+		log.Warnf("Failed to read the logz.io token from the configured path: %v", err)
 	} else {
 		if c, err := logzio.New(string(t), logzio.SetUrl(logzioListenerURL)); err != nil {
 			log.Warnf("Failed to configure the logz.io logrus hook: %v", err)
@@ -43,7 +55,7 @@ func init() {
 		}
 	}
 	// Read the webhook secret token.
-	b, err := ioutil.ReadFile(os.Getenv(envGitHubAppWebhookSecretTokenPath))
+	b, err := secretStore.Get(envGitHubAppWebhookSecretTokenPath)
 	if err != nil {
 		// Warn but do not fail, making all requests be rejected.
 		log.Warnf("Failed to read webhook secret token: %v", err)
@@ -53,8 +65,7 @@ func init() {
 	ignoredRepositories = strings.Split(os.Getenv(envIgnoredRepositories), ",")
 
 	// Read the encryption key for slack web hooks
-	getenv := os.Getenv(envEncryptionKeyPath)
-	k, err := ioutil.ReadFile(getenv)
+	k, err := secretStore.Get(envEncryptionKeyPath)
 	if err != nil {
 		// Warn but do not fail, meaning we will not be able to decrypt slack hooks
 		log.Warnf("Failed to read decryption key: %v", err)
