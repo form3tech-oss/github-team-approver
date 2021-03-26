@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"regexp"
 	"sort"
 	"strconv"
@@ -59,17 +60,41 @@ func computeApprovalStatus(ctx context.Context, c *client, ownerLogin, repoName 
 	// Check if each required team has approved the pull request.
 	for _, rule := range rules {
 		// Check whether the pull request's body matches the aforementioned regex (ignoring case).
-		m, err := regexp.MatchString(fmt.Sprintf("(?i)%s", rule.Regex), prBody)
-		if err != nil {
-			return "", "", nil, nil, err
+		var prBodyMatch bool
+		if rule.Regex != "" {
+			prBodyMatch, err = regexp.MatchString(fmt.Sprintf("(?i)%s", rule.Regex), prBody)
+			if err != nil {
+				return "", "", nil, nil, err
+			}
 		}
-		if m {
-			getLogger(ctx).Tracef("PR matches regular expression %q", rule.Regex)
-			rulesMatched += 1
-		} else {
-			getLogger(ctx).Tracef("PR doesn't match regular expression %q", rule.Regex)
+		// check whether there is a rule on a directory and it has changed
+		var matchedDirectories []string
+		for _, directory := range rule.Directories {
+			commitFiles, err := c.getPullRequestCommitFiles(ownerLogin, repoName, prNumber)
+			if err != nil {
+				return "", "", nil, nil, fmt.Errorf("directory match: get pull request commit files: %v", err)
+			}
+			directoryMatched, err := isDirectoryChanged(directory, commitFiles)
+			if err != nil {
+				return "", "", nil, nil, fmt.Errorf("directory match: is directory changed: %v", err)
+			}
+			if directoryMatched {
+				matchedDirectories = append(matchedDirectories, directory)
+			}
+		}
+
+		if !prBodyMatch && len(matchedDirectories) == 0 {
+			getLogger(ctx).Tracef("PR doesn't match regular expression %q or directory %q", rule.Regex, rule.Directories)
 			continue
 		}
+		if prBodyMatch {
+			getLogger(ctx).Tracef("PR matches regular expression %q", rule.Regex)
+		}
+		if len(matchedDirectories) > 0 {
+			getLogger(ctx).Tracef("PR matches directory %q", strings.Join(matchedDirectories, ", "))
+		}
+		rulesMatched += 1
+
 
 		// Add the current label to the set of final labels.
 		for _, label := range rule.Labels {
@@ -149,6 +174,60 @@ func computeApprovalStatus(ctx context.Context, c *client, ownerLogin, repoName 
 		pendingTeamNames = make([]string, 0, 0)
 	}
 	return status, truncate(description, statusEventDescriptionMaxLength), finalLabels, computeReviewsToRequest(ctx, teams, pendingTeamNames), nil
+}
+
+// return true if there were any changes in the specified directory. If the directory starts with '/' match is done
+// with HasPrefix, otherwise match is done with Contains function
+func isDirectoryChanged(directory string, commitFiles []*github.CommitFile) (bool, error) {
+
+	var startsWith bool
+	directory = strings.TrimSuffix(directory, "/")
+	if strings.HasPrefix(directory, "/") {
+		startsWith = true
+		directory = strings.TrimPrefix(directory, "/")
+	}
+
+	for _, commitFile := range commitFiles {
+
+		// we are not checking changes (or additions/deletions) because this can be a new or deleted file
+		if commitFile == nil || commitFile.ContentsURL == nil {
+			return false, fmt.Errorf("commit file %+v has nil contents url, skipping", commitFile)
+		}
+
+		relPath, err := contentsUrlToRelDir(*commitFile.ContentsURL)
+		if err != nil {
+			return false, err
+		}
+
+		if startsWith {
+			if strings.HasPrefix(relPath, directory) {
+				return true, nil
+			}
+		} else {
+			if strings.Contains(relPath, directory) {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
+}
+
+// return relative directory of contents url (strips 'https://api.github.com/repos/<org>/<repo>/' and file part)
+func contentsUrlToRelDir(contentsUrl string) (string, error) {
+
+	u, err := url.Parse(contentsUrl)
+	if err != nil {
+		return "", fmt.Errorf("cannot parse contents url: %v", err)
+	}
+
+	pathParts := strings.Split(strings.Trim(u.Path, "/"), "/")
+	if len(pathParts) < 3 {
+		return "", fmt.Errorf("invalid contents url path %s, expected at least 3 parts - repos/<org>/<repo>", u.Path)
+	}
+	if pathParts[0] != "repos" {
+		return "", fmt.Errorf("invalid contents url path %s, expected path - repos/<org>/<repo>", u.Path)
+	}
+	return strings.Join(pathParts[3:len(pathParts)-1], "/"), nil
 }
 
 func computeReviewsToRequest(ctx context.Context, teams []*github.Team, pendingTeams []string) (reviewsToRequest []string) {

@@ -78,6 +78,30 @@ func (c *client) getPullRequestReviews(ownerLogin, repoName string, prNumber int
 	return reviews, nil
 }
 
+// https://docs.github.com/en/rest/reference/pulls#list-pull-requests-files
+func (c *client) getPullRequestCommitFiles(ownerLogin, repoName string, prNumber int) ([]*github.CommitFile, error) {
+
+	commitFiles, nextPage := make([]*github.CommitFile, 0, 0), 1
+	for nextPage != 0 {
+		ctx, fn := context.WithTimeout(context.Background(), defaultGitHubOperationTimeout)
+		r, res, err := c.githubClient.PullRequests.ListFiles(ctx, ownerLogin, repoName, prNumber, &github.ListOptions{
+			Page:    nextPage,
+			PerPage: defaultListOptionsPerPage,
+		})
+		if err != nil {
+			fn()
+			return nil, fmt.Errorf("error listing pull request files: %v", err)
+		}
+		if res.StatusCode >= 300 {
+			fn()
+			return nil, fmt.Errorf("error listing pull request files (status: %d): %s", res.StatusCode, readAllClose(res.Body))
+		}
+		fn()
+		commitFiles, nextPage = append(commitFiles, r...), res.NextPage
+	}
+	return commitFiles, nil
+}
+
 func (c *client) getTeams(organisation string) ([]*github.Team, error) {
 	// Grab a list of all the teams in the organization.
 	teams, nextPage := make([]*github.Team, 0, 0), 1
