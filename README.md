@@ -88,8 +88,9 @@ pull_request_approval_rules:
   - "<name>"
   rules:
   - regex: "<regex>"
+    regex_labels: "<regex>"
     directories:
-    - "<direcotry>"
+      - "<direcotry>"
     approving_team_handles:
     - "<id-or-name-or-slug>"
     - "<id-or-name-or-slug>"
@@ -110,6 +111,7 @@ Each item under `pull_request_approval_rules` represents how approval for PRs ma
 | Field | Description |
 |----------------|-------------|
 | `regex` | Regular expression to match the body of the pull request against. If matched, approval from each listed team will be required. |
+| `regex_label` | Regular expression to match label(s) of the pull request against. If matched, approval from each listed team will be required. |
 | `directories` | Optional list of relative or absolute paths to directories that should be checked for changes. If not provided, all directories are checked. |
 | `approving_team_handles` | The list of approving teams, in the form of IDs, names or slugs. |
 | `approval_mode` | One of `require_any` or `require_all`.

@@ -83,8 +83,24 @@ func computeApprovalStatus(ctx context.Context, c *client, ownerLogin, repoName 
 			}
 		}
 
-		if !prBodyMatch && len(matchedDirectories) == 0 {
-			getLogger(ctx).Tracef("PR doesn't match regular expression %q or directory %q", rule.Regex, rule.Directories)
+		// check whether there is a rule on a label and it matches
+		labels, err := c.getLabels(ownerLogin, repoName, prNumber)
+		if err != nil {
+			return "", "", nil, nil, fmt.Errorf("regex label match: get PR labels: %v", err)
+		}
+		var prLabelMatch bool
+		for _, label := range labels {
+			prLabelMatch, err = regexp.MatchString(fmt.Sprintf("(?i)%s", rule.RegexLabel), label)
+			if err != nil {
+				return "", "", nil, nil, err
+			}
+			if prLabelMatch {
+				break
+			}
+		}
+
+		if !prBodyMatch && len(matchedDirectories) == 0 && !prLabelMatch {
+			getLogger(ctx).Tracef("PR doesn't match regular expression %q, directory %q or label regular expression %q", rule.Regex, rule.Directories, rule.RegexLabel)
 			continue
 		}
 		if prBodyMatch {
@@ -92,6 +108,9 @@ func computeApprovalStatus(ctx context.Context, c *client, ownerLogin, repoName 
 		}
 		if len(matchedDirectories) > 0 {
 			getLogger(ctx).Tracef("PR matches directory %q", strings.Join(matchedDirectories, ", "))
+		}
+		if prLabelMatch {
+			getLogger(ctx).Tracef("PR matches label regular expression %q", rule.RegexLabel)
 		}
 		rulesMatched += 1
 
