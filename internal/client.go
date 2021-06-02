@@ -211,6 +211,39 @@ func (c *client) updateLabels(ownerLogin, repoName string, prNumber int, labels 
 	return nil
 }
 
+func (c *client) getLabels(ownerLogin, repoName string, prNumber int) ([]string, error) {
+
+	labels, nextPage := make([]string, 0, 0), 1
+	for nextPage != 0 {
+		ctx, fn := context.WithTimeout(context.Background(), defaultGitHubOperationTimeout)
+		m, res, err := c.githubClient.Issues.ListLabelsByIssue(ctx, ownerLogin, repoName, prNumber, nil)
+		if err != nil {
+			fn()
+			return nil, fmt.Errorf("error listing PR labels : %v", err)
+		}
+		if res.StatusCode >= 300 {
+			fn()
+			return nil, fmt.Errorf("error listing PR labels (status: %d): %s", res.StatusCode, readAllClose(res.Body))
+		}
+		fn()
+
+		labels, nextPage = append(labels, githubLabelsToLabels(m)...), res.NextPage
+	}
+	return labels, nil
+}
+
+func githubLabelsToLabels(githubLabels []*github.Label) []string {
+
+	var out []string
+	for _, githubLabel := range githubLabels {
+		if githubLabel == nil || githubLabel.Name == nil {
+			continue
+		}
+		out = append(out, *githubLabel.Name)
+	}
+	return out
+}
+
 func alwaysStale(_ http.Request, _ http.Response) httpcache.Freshness {
 	return httpcache.Stale
 }

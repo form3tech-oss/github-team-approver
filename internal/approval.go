@@ -83,8 +83,14 @@ func computeApprovalStatus(ctx context.Context, c *client, ownerLogin, repoName 
 			}
 		}
 
-		if !prBodyMatch && len(matchedDirectories) == 0 {
-			getLogger(ctx).Tracef("PR doesn't match regular expression %q or directory %q", rule.Regex, rule.Directories)
+		// check whether there is a rule on a label and it matches
+		prLabelMatch, err := isRegexLabelMatched(c, ownerLogin, repoName, prNumber, rule.RegexLabel)
+		if err != nil {
+			return "", "", nil, nil, err
+		}
+
+		if !prBodyMatch && len(matchedDirectories) == 0 && !prLabelMatch {
+			getLogger(ctx).Tracef("PR doesn't match regular expression %q, directory %q or label regular expression %q", rule.Regex, rule.Directories, rule.RegexLabel)
 			continue
 		}
 		if prBodyMatch {
@@ -92,6 +98,9 @@ func computeApprovalStatus(ctx context.Context, c *client, ownerLogin, repoName 
 		}
 		if len(matchedDirectories) > 0 {
 			getLogger(ctx).Tracef("PR matches directory %q", strings.Join(matchedDirectories, ", "))
+		}
+		if prLabelMatch {
+			getLogger(ctx).Tracef("PR matches label regular expression %q", rule.RegexLabel)
 		}
 		rulesMatched += 1
 
@@ -174,6 +183,25 @@ func computeApprovalStatus(ctx context.Context, c *client, ownerLogin, repoName 
 		pendingTeamNames = make([]string, 0, 0)
 	}
 	return status, truncate(description, statusEventDescriptionMaxLength), finalLabels, computeReviewsToRequest(ctx, teams, pendingTeamNames), nil
+}
+
+func isRegexLabelMatched(c *client, ownerLogin, repoName string, prNumber int, regexLabel string) (bool, error) {
+
+	if regexLabel == "" {
+		return false, nil
+	}
+
+	labels, err := c.getLabels(ownerLogin, repoName, prNumber)
+	if err != nil {
+		return false, fmt.Errorf("regex label match: get PR labels: %v", err)
+	}
+
+	for _, label := range labels {
+		if prLabelMatch, err := regexp.MatchString(fmt.Sprintf("(?i)%s", regexLabel), label); err != nil || prLabelMatch {
+			return prLabelMatch, err
+		}
+	}
+	return false, nil
 }
 
 // return true if there were any changes in the specified directory. If the directory starts with '/' match is done
