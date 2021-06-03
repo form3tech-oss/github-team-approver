@@ -26,8 +26,8 @@ github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/dgrijalva/jwt-go v3.2.0+incompatible h1:7qlOGliEKZXTDg6OTjfoBKDXWrumCAMpl/TFQ4/5kLM=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
 github.com/dgryski/go-sip13 v0.0.0-20181026042036-e10d5fee7954/go.mod h1:vAd38F8PWV+bWy6jNmig1y/TA+kYO4g3RSRF0IAv0no=
-github.com/form3tech-oss/github-team-approver-commons v1.2.0 h1:xXApv3eR7TBkPGOe6nysMt8sO3TnnRGkAbuoFj5/gCw=
-github.com/form3tech-oss/github-team-approver-commons v1.2.0/go.mod h1:tN5CBbfWAh7knlKuHV3Wpd87c5nfY/kI7Cmg4ens24I=
+github.com/form3tech-oss/github-team-approver-commons v1.3.0 h1:1yLdkH9Qccc0mINNnWBUwOotSqAEOcuNtXmYwpGE0qs=
+github.com/form3tech-oss/github-team-approver-commons v1.3.0/go.mod h1:tN5CBbfWAh7knlKuHV3Wpd87c5nfY/kI7Cmg4ens24I=
 github.com/form3tech-oss/go-pact-testing v1.0.0 h1:3Cx8yJ5GPv6tfvgbkxMDvyKoSVHa12Hzm+pUoV444WE=
 github.com/form3tech-oss/go-pact-testing v1.0.0/go.mod h1:/kFzOdKIwiYVnkz/9uwkvW7ffySaTvKiDCVmSdk2f1E=
 github.com/form3tech-oss/httpcache v0.0.0-20190708110905-85712625ba05 h1:PN+bT1bgaqtSUULTi2Zs3+FOXTrFORN2vJj7b59TGa8=
