@@ -20,6 +20,7 @@ before_install:
   echo '{"mtu": 1460}' | sudo tee /etc/docker/daemon.json
   sudo systemctl restart docker
 - make install-deps
+- env
 script:
 - make test
 deploy:
