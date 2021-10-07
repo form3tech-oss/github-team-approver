@@ -33,6 +33,11 @@ func computeApprovalStatus(ctx context.Context, c *client, ownerLogin, repoName 
 		return "", "", nil, nil, err
 	}
 
+	commits, err := c.getPRCommits(ownerLogin, repoName, prNumber)
+	if err != nil {
+		return "", "", nil, nil, err
+	}
+
 	// Grab the list of all the reviews for the current PR.
 	reviews, err := c.getPullRequestReviews(ownerLogin, repoName, prNumber)
 	if err != nil {
@@ -55,6 +60,9 @@ func computeApprovalStatus(ctx context.Context, c *client, ownerLogin, repoName 
 		pendingTeamNames = make([]string, 0, 0)
 		// rulesMatched will hold the total number of rules matched.
 		rulesMatched = 0
+
+		// Reviewers who have committed to the PR as well thus dismissed as allowed reviewers
+		dismissedReviewers []string
 	)
 
 	// Check if each required team has approved the pull request.
@@ -104,7 +112,6 @@ func computeApprovalStatus(ctx context.Context, c *client, ownerLogin, repoName 
 		}
 		rulesMatched += 1
 
-
 		// Add the current label to the set of final labels.
 		for _, label := range rule.Labels {
 			if label != "" {
@@ -130,8 +137,11 @@ func computeApprovalStatus(ctx context.Context, c *client, ownerLogin, repoName 
 			if err != nil {
 				return "", "", nil, nil, err
 			}
+
+			allowed, dismissed := splitMembers(members, commits)
+
 			// Check whether the current team has approved the PR.
-			if approvalCount := countApprovalsForTeam(reviews, members); approvalCount >= 1 {
+			if approvalCount := countApprovalsForTeam(reviews, allowed); approvalCount >= 1 {
 				// Add the current team to the list of approving teams.
 				getLogger(ctx).Tracef("Team %q has approved!", teamName)
 				approvingTeamNamesForRule = appendIfMissing(approvingTeamNamesForRule, teamName)
@@ -139,6 +149,7 @@ func computeApprovalStatus(ctx context.Context, c *client, ownerLogin, repoName 
 				// Add the current team to the slice of pending teams.
 				getLogger(ctx).Tracef("Team %q hasn't approved yet", teamName)
 				pendingTeamNamesForRule = appendIfMissing(pendingTeamNamesForRule, teamName)
+				dismissedReviewers = uniqueAppend(dismissedReviewers, dismissed)
 			}
 		}
 
@@ -170,6 +181,9 @@ func computeApprovalStatus(ctx context.Context, c *client, ownerLogin, repoName 
 		// At least one team must still approve the PR before it goes green.
 		description = fmt.Sprintf(statusEventDescriptionPendingFormatString, strings.Join(pendingTeamNames, "\n"))
 		status = statusEventStatusPending
+		if err := c.reportDismissedReviews(ownerLogin, repoName, prNumber, dismissedReviewers); err != nil {
+			return "", "", nil, nil, err
+		}
 	case len(pendingTeamNames) == 0 && len(approvingTeamNames) == 0:
 		// No teams have been identified as having to be requested for a review.
 		// NOTE: This should not really happen in practice.
@@ -286,11 +300,11 @@ func computeRulesForTargetBranch(c *client, ownerLogin, repoName, targetBranch s
 	return rules, nil
 }
 
-func countApprovalsForTeam(reviews []*github.PullRequestReview, teamMembers []*github.User) (approvalCount int) {
+func countApprovalsForTeam(reviews []*github.PullRequestReview, teamMembers []string) (approvalCount int) {
 	// Build a map containing the usernames of each team member.
 	isTeamMember := map[string]bool{}
-	for _, u := range teamMembers {
-		isTeamMember[u.GetLogin()] = true
+	for _, t := range teamMembers {
+		isTeamMember[t] = true
 	}
 
 	// Sort reviews for the current PR by the date they were submitted.
@@ -326,4 +340,24 @@ func getTeamNameFromTeamHandle(teams []*github.Team, v string) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("Team with name or slug %q not found", v)
+}
+
+func splitMembers(members []*github.User, commits []*github.RepositoryCommit) ([]string, []string) {
+	authors := map[string]bool{}
+	for _, c := range commits {
+		authors[c.GetCommitter().GetLogin()] = true
+	}
+
+	var allowed, dismissed []string
+
+	for _, m := range members {
+		login := m.GetLogin()
+		if _, ok := authors[m.GetLogin()]; !ok {
+			allowed = append(allowed, login)
+		} else {
+			dismissed = append(dismissed, login)
+		}
+	}
+
+	return allowed, dismissed
 }

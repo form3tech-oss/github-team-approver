@@ -42,6 +42,8 @@ const (
 	logFieldPR          = "pr"
 	logFieldRepo        = "repo"
 	logFieldServiceName = "service_name"
+	logFieldOwner       = "owner"
+	logFieldPage        = "page"
 )
 
 const (

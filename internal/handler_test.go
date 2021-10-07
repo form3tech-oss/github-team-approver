@@ -45,7 +45,10 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequest,
 			eventBody:      readGitHubExampleFile("pull_request_opened.json"),
 			eventSignature: "sha1=f3a30cf3d5f785b779163dd04a20f87f9bce8aef",
-			pacts:          []pacttesting.Pact{"pull_request_opened_pending"},
+			pacts: []pacttesting.Pact{
+				"pull_request_commits_pr_5",
+				"pull_request_opened_pending",
+			},
 
 			expectedFinalStatus: statusEventStatusPending,
 		},
@@ -65,7 +68,10 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequestReview,
 			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
 			eventSignature: "sha1=19206052dc16ae2f9a6c82df5d28fbc3b1eed0cd",
-			pacts:          []pacttesting.Pact{"pull_request_review_submitted_approved"},
+			pacts:          []pacttesting.Pact{
+				"pull_request_commits_pr_7",
+				"pull_request_review_submitted_approved",
+			},
 
 			expectedFinalStatus: statusEventStatusSuccess,
 		},
@@ -75,7 +81,10 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequestReview,
 			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
 			eventSignature: "sha1=19206052dc16ae2f9a6c82df5d28fbc3b1eed0cd",
-			pacts:          []pacttesting.Pact{"pull_request_review_submitted_pending"},
+			pacts:          []pacttesting.Pact{
+				"pull_request_commits_pr_7",
+				"pull_request_review_submitted_pending",
+			},
 
 			expectedFinalStatus: statusEventStatusPending,
 		},
@@ -85,7 +94,10 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequestReview,
 			eventBody:      readGitHubExampleFile("pull_request_review_submitted_force_approval.json"),
 			eventSignature: "sha1=c3850ad259e927948f20804f0128e692ae598a5a",
-			pacts:          []pacttesting.Pact{"pull_request_review_submitted_force_approval"},
+			pacts:          []pacttesting.Pact{
+				"pull_request_commits_pr_7",
+				"pull_request_review_submitted_force_approval",
+			},
 
 			expectedFinalStatus: statusEventStatusSuccess,
 		},
@@ -95,7 +107,10 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequestReview,
 			eventBody:      readGitHubExampleFile("pull_request_review_submitted_no_regexes_matched.json"),
 			eventSignature: "sha1=da2609f8738084d21d7b9390c23bcd6dd67adb5b",
-			pacts:          []pacttesting.Pact{"pull_request_review_submitted_no_regexes_matched"},
+			pacts:          []pacttesting.Pact{
+				"pull_request_commits_pr_7",
+				"pull_request_review_submitted_no_regexes_matched",
+			},
 
 			expectedFinalStatus: statusEventStatusPending,
 		},
@@ -105,7 +120,10 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequestReview,
 			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
 			eventSignature: "sha1=19206052dc16ae2f9a6c82df5d28fbc3b1eed0cd",
-			pacts:          []pacttesting.Pact{"pull_request_review_submitted_approval_mode_require_any"},
+			pacts:          []pacttesting.Pact{
+				"pull_request_commits_pr_7",
+				"pull_request_review_submitted_approval_mode_require_any",
+			},
 
 			expectedFinalStatus: statusEventStatusSuccess,
 		},
@@ -124,6 +142,34 @@ func Test_Handle(t *testing.T) {
 			eventBody:      readGitHubExampleFile("pull_request_closed.json"),
 			eventSignature: "sha1=d2b6698e162d59d7e73d75900edf22bd903af731",
 			pacts:          []pacttesting.Pact{},
+		},
+		{
+			name: `PR review Submitted (requires approval from CAB, however, member of CAB committed to the PR thus PR not accepted)`,
+
+			eventType:      eventTypePullRequestReview,
+			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
+			eventSignature: "sha1=19206052dc16ae2f9a6c82df5d28fbc3b1eed0cd",
+			pacts:          []pacttesting.Pact{
+				"pull_request_commits_alice_contributed",
+				"pull_request_get_comments_pr_7",
+				"pull_request_post_comment_pr_7",
+				"pull_request_review_submitted_alice_approved",
+			},
+
+			expectedFinalStatus: statusEventStatusPending,
+		},
+		{
+			name: `PR review Submitted (requires approval from CAB - FOO, alice is also an author while bob isn't thus PR accepted')`,
+
+			eventType:      eventTypePullRequestReview,
+			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
+			eventSignature: "sha1=19206052dc16ae2f9a6c82df5d28fbc3b1eed0cd",
+			pacts:          []pacttesting.Pact{
+				"pull_request_commits_alice_contributed",
+				"pull_request_review_submitted_alice_bob_approved",
+			},
+
+			expectedFinalStatus: statusEventStatusSuccess,
 		},
 	}
 

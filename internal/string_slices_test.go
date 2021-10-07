@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"github.com/stretchr/testify/require"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -99,5 +100,55 @@ func Test_indexOf(t *testing.T) {
 	}
 	for _, test := range tests {
 		assert.Equal(t, test.want, indexOf(test.s, test.v))
+	}
+}
+
+func Test_uniqueAppend(t *testing.T) {
+	tests := map[string]struct {
+		a    []string
+		b    []string
+		want []string
+	}{
+		"add unique to nil": {
+			nil,
+			[]string{"foo"},
+			[]string{"foo"},
+		},
+		"add nil to empty slice" : {
+			[]string{},
+			nil,
+			[]string{},
+		},
+		"add unique to empty slice": {
+			[]string{},
+			[]string{"foo"},
+			[]string{"foo"},
+		},
+		"add unique": {
+			[]string{"foo", "bar", "baz"},
+			[]string{"qux"},
+			[]string{"foo", "bar", "baz", "qux"},
+		},
+		"add duplicate": {
+			[]string{"foo", "bar", "baz"},
+			[]string{"bar"},
+			[]string{"foo", "bar", "baz"},
+		},
+		"add empty": {
+			[]string{"foo", "bar", "baz"},
+			[]string{},
+			[]string{"foo", "bar", "baz"},
+		},
+		"add many duplicates and a unique": {
+			[]string{"foo", "bar", "baz"},
+			[]string{"foo", "foo", "baz", "qux"},
+			[]string{"foo", "bar", "baz", "qux"},
+		},
+	}
+	for name, tt := range tests {
+		t.Run(name,
+			func(t *testing.T) {
+				require.Equal(t, uniqueAppend(tt.a, tt.b), tt.want)
+			})
 	}
 }

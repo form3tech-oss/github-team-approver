@@ -134,6 +134,77 @@ func TestContentsUrlToRelDir(t *testing.T) {
 	})
 }
 
+func TestSplitMembers(t *testing.T) {
+	tests := map[string]struct {
+		commits   []*github.RepositoryCommit
+		members   []*github.User
+		allowed   []string
+		dismissed []string
+	}{
+		"When no member is an author in PR": {
+			[]*github.RepositoryCommit{
+				{
+					Committer: &github.User{Login: github.String("foo")},
+				},
+			},
+			[]*github.User{
+				{Login: github.String("bar")},
+			},
+			[]string{"bar"},
+			nil,
+		},
+		"When only member is an author in PR": {
+			[]*github.RepositoryCommit{
+				{
+					Committer: &github.User{Login: github.String("foo")},
+				},
+			},
+			[]*github.User{
+				{Login: github.String("foo")},
+			},
+			nil,
+			[]string{"foo"},
+		},
+		"When multiple members exist without being author": {
+			[]*github.RepositoryCommit{},
+			[]*github.User{
+				{Login: github.String("foo")},
+				{Login: github.String("bar")},
+				{Login: github.String("baz")},
+			},
+			[]string{"foo", "bar", "baz"},
+			nil,
+		},
+		"When multiple members exist, some are authors": {
+			[]*github.RepositoryCommit{
+				{
+					Committer: &github.User{Login: github.String("bar")},
+				},
+				{
+					Committer: &github.User{Login: github.String("qux")},
+				},
+			},
+			[]*github.User{
+				{Login: github.String("foo")},
+				{Login: github.String("bar")},
+				{Login: github.String("baz")},
+				{Login: github.String("qux")},
+			},
+			[]string{"foo", "baz"},
+			[]string{"bar", "qux"},
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name,
+			func(t *testing.T) {
+				gotAllowed, gotDismissed := splitMembers(tt.members, tt.commits)
+				require.Equal(t, gotAllowed, tt.allowed)
+				require.Equal(t, gotDismissed, tt.dismissed)
+			})
+	}
+}
+
 // --- helper functions ---
 
 func getCommitFiles(contentUrls ...string) []*github.CommitFile {

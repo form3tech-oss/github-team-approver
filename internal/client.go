@@ -125,6 +125,42 @@ func (c *client) getTeams(organisation string) ([]*github.Team, error) {
 	return teams, nil
 }
 
+func (c *client) getPRCommits(owner, repo string, prNumber int) ([]*github.RepositoryCommit, error) {
+	var commits []*github.RepositoryCommit
+
+	nextPage := 1
+	for nextPage != 0 {
+		commitsPage, next, err := c.getPRCommitsPage(owner, repo, prNumber, nextPage)
+		if err != nil {
+			return nil, err
+		}
+		commits = append(commits, commitsPage...)
+		nextPage = next
+	}
+
+	return commits, nil
+}
+
+func (c *client) getPRCommitsPage(owner, repo string, prNumber, page int) ([]*github.RepositoryCommit, int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultGitHubOperationTimeout)
+	defer cancel()
+
+	getLogger(ctx).WithFields(log.Fields{
+		logFieldRepo:  repo,
+		logFieldPR:    prNumber,
+		logFieldOwner: owner,
+		logFieldPage:  page,
+	}).Tracef("list PR commits")
+
+	commits, resp, err := c.githubClient.PullRequests.ListCommits(
+		ctx, owner, repo, prNumber, &github.ListOptions{Page: page})
+	if err != nil {
+		return nil, 0, fmt.Errorf("getPRCommits: %s", err)
+	}
+
+	return commits, resp.NextPage, nil
+}
+
 func (c *client) getTeamMembers(teams []*github.Team, organisation, name string) ([]*github.User, error) {
 	// Return immediately if the request team is not found.
 	var (
@@ -175,6 +211,117 @@ func (c *client) reportStatus(ownerLogin, repoName, statusesURL, status, descrip
 		return fmt.Errorf("error reporting status (status: %d): %s", res.StatusCode, readAllClose(res.Body))
 	}
 	return nil
+}
+
+func (c *client) reportDismissedReviews(owner, repo string, prNumber int, reviewers []string) error {
+	if len(reviewers) == 0 {
+		return nil
+	}
+
+	title := "Following reviewers have been dismissed as they are also authors in the PR:\n"
+
+	err := c.removeOldDismissedComments(owner, repo, prNumber, title)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultGitHubOperationTimeout)
+	defer cancel()
+
+	msg := title
+	for _, r := range reviewers {
+		msg += fmt.Sprintf("- @%s\n", r)
+	}
+
+	payload := &github.IssueComment{
+		Body: github.String(msg),
+	}
+
+	// using Issues API over PullRequests as we only have an interest in commenting on the PR
+	// not commenting on a given line in a specific commit
+	_, _, err = c.githubClient.Issues.CreateComment(ctx, owner, repo, prNumber, payload)
+	if err != nil {
+		return fmt.Errorf("reportDismissedReviews: %s", err)
+	}
+
+	return nil
+}
+
+func (c *client) removeOldDismissedComments(owner, repo string, prNumber int, title string) error {
+	comments, err := c.getPRComments(owner, repo, prNumber)
+	if err != nil {
+		return err
+	}
+
+	for _, comment := range comments {
+		if strings.Contains(comment.GetBody(), title) {
+			_, err = c.deletePRComment(owner, repo, comment.GetID())
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (c *client) deletePRComment(owner, repo string, commentID int64) (*github.Response, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultGitHubOperationTimeout)
+	defer cancel()
+
+	getLogger(ctx).WithFields(log.Fields{
+		logFieldRepo:  repo,
+		logFieldOwner: owner,
+		"comment_id":  commentID,
+	}).Tracef("delete PR comment")
+
+	resp, err := c.githubClient.Issues.DeleteComment(ctx, owner, repo, commentID)
+	if err != nil {
+		return nil, fmt.Errorf("deletePRComment: %s", err)
+	}
+
+	return resp, nil
+}
+
+
+func (c *client) getPRComments(owner, repo string, prNumber int) ([]*github.IssueComment, error) {
+	var comments []*github.IssueComment
+
+	nextPage := 1
+	for nextPage != 0 {
+		commentsPage, next, err := c.getPRCommentsPage(owner, repo, prNumber, nextPage)
+		if err != nil {
+			return nil, err
+		}
+		comments = append(comments, commentsPage...)
+		nextPage = next
+	}
+
+	return comments, nil
+}
+
+func (c *client) getPRCommentsPage(owner, repo string, prNumber, page int) ([]*github.IssueComment, int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultGitHubOperationTimeout)
+	defer cancel()
+
+	listOpts := &github.IssueListCommentsOptions{
+		ListOptions: github.ListOptions{
+			Page:    page,
+			PerPage: defaultListOptionsPerPage,
+		},
+	}
+	getLogger(ctx).WithFields(log.Fields{
+		logFieldRepo:  repo,
+		logFieldPR:    prNumber,
+		logFieldOwner: owner,
+		logFieldPage:  page,
+	}).Tracef("list PR Comments")
+
+	comments, resp, err := c.githubClient.Issues.ListComments(ctx, owner, repo, prNumber, listOpts)
+	if err != nil {
+		return nil, 0, fmt.Errorf("getPRComments: %s", err)
+	}
+
+	return comments, resp.NextPage, nil
 }
 
 func (c *client) requestReviews(ownerLogin, repoName string, prNumber int, reviewsToRequest []string) error {

@@ -9,6 +9,20 @@ func appendIfMissing(s []string, v string) []string {
 	return append(s, v)
 }
 
+func uniqueAppend(a []string, b []string) []string {
+	m := map[string]bool{}
+	for _, e := range a {
+		m[e] = true
+	}
+
+	for _, e := range b {
+		if _, ok := m[e]; !ok {
+			a = append(a, e)
+		}
+	}
+	return a
+}
+
 func deleteIfExisting(s []string, v string) []string {
 	i := indexOf(s, v)
 	if i == -1 {
