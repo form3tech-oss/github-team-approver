@@ -2,8 +2,8 @@
 /build/
 /github-app-private-key
 /github-app-webhook-secret-token
-/internal/log/
-/internal/logs/
+/internal/pact
+/internal/target
 /logzio-token
 /pact/
 /tmp/
