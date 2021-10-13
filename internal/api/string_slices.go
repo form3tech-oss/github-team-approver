@@ -1,4 +1,4 @@
-package internal
+package api
 
 func appendIfMissing(s []string, v string) []string {
 	for _, e := range s {

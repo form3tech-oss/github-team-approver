@@ -1,4 +1,4 @@
-package internal
+package api
 
 const (
 	defaultAppName = "github-team-approver"

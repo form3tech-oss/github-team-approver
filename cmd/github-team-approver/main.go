@@ -2,10 +2,9 @@ package main
 
 import (
 	"flag"
+	gta "github.com/form3tech-oss/github-team-approver/internal/api"
 	"log"
 	"net/http"
-
-	gta "github.com/form3tech-oss/github-team-approver/internal"
 )
 
 func main() {

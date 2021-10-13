@@ -1,10 +1,10 @@
-package internal
+package api
 
 import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/form3tech-oss/github-team-approver/internal/aes"
+	"github.com/form3tech-oss/github-team-approver/internal/api/aes"
 	"io/ioutil"
 	"net/http"
 	"os"

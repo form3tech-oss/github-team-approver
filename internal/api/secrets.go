@@ -1,4 +1,4 @@
-package internal
+package api
 
 import (
 	"io/ioutil"
