@@ -1,3 +1,4 @@
+if: "(type IN (push, cron) AND branch = master) OR (type = pull_request) OR (tag IS present)"
 sudo: required
 language: go
 go:
