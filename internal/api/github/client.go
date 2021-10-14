@@ -1,8 +1,10 @@
-package api
+package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"github.com/form3tech-oss/github-team-approver/internal/api/secret"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -25,27 +27,36 @@ const (
 	defaultListOptionsPerPage = 100
 	// defaultGitHubOperationTimeout is the maximum duration of requests against the GitHub API.
 	defaultGitHubOperationTimeout = 15 * time.Second
+
+	envGitHubStatusName                = "GITHUB_STATUS_NAME"
+	envUseCachingTransport             = "USE_CACHING_TRANSPORT"
+	envGitHubBaseURL                   = "GITHUB_BASE_URL"
+	envGitHubAppId                     = "GITHUB_APP_ID"
+	envGitHubAppInstallationId         = "GITHUB_APP_INSTALLATION_ID"
+	envGitHubAppPrivateKeyPath         = "GITHUB_APP_PRIVATE_KEY_PATH"
 )
 
 var (
-	clientInstance *client
+	clientInstance *Client
 	once           sync.Once
+
+	ErrNoConfigurationFile = errors.New("no configuration file exists in the source repository")
 )
 
-type client struct {
+type Client struct {
 	githubClient *github.Client
 }
 
-func (c *client) getConfiguration(ownerLogin, repoName string) (*configuration.Configuration, error) {
+func (c *Client) GetConfiguration(ctx context.Context, ownerLogin, repoName string) (*configuration.Configuration, error) {
 	// Try to download the contents of the configuration file.
-	ctx, fn := context.WithTimeout(context.Background(), defaultGitHubOperationTimeout)
+	ctxTimeout, fn := context.WithTimeout(ctx, defaultGitHubOperationTimeout)
 	defer fn()
-	r, err := c.githubClient.Repositories.DownloadContents(ctx, ownerLogin, repoName, configuration.ConfigurationFilePath, nil)
+	r, err := c.githubClient.Repositories.DownloadContents(ctxTimeout, ownerLogin, repoName, configuration.ConfigurationFilePath, nil)
 	if err != nil {
 		if strings.Contains(err.Error(), "No file named") { // No better way of distinguishing between errors.
-			return nil, errNoConfigurationFile
+			return nil, ErrNoConfigurationFile
 		}
-		return nil, fmt.Errorf("error downloading configuration: %v", err)
+		return nil, fmt.Errorf("error downloading configuration: %w", err)
 	}
 	defer r.Close()
 	// Parse the configuration file.
@@ -56,17 +67,17 @@ func (c *client) getConfiguration(ownerLogin, repoName string) (*configuration.C
 	return v, nil
 }
 
-func (c *client) getPullRequestReviews(ownerLogin, repoName string, prNumber int) ([]*github.PullRequestReview, error) {
+func (c *Client) GetPullRequestReviews(ctx context.Context, ownerLogin, repoName string, prNumber int) ([]*github.PullRequestReview, error) {
 	reviews, nextPage := make([]*github.PullRequestReview, 0, 0), 1
 	for nextPage != 0 {
-		ctx, fn := context.WithTimeout(context.Background(), defaultGitHubOperationTimeout)
-		r, res, err := c.githubClient.PullRequests.ListReviews(ctx, ownerLogin, repoName, prNumber, &github.ListOptions{
+		ctxTimeout, fn := context.WithTimeout(ctx, defaultGitHubOperationTimeout)
+		r, res, err := c.githubClient.PullRequests.ListReviews(ctxTimeout, ownerLogin, repoName, prNumber, &github.ListOptions{
 			Page:    nextPage,
 			PerPage: defaultListOptionsPerPage,
 		})
 		if err != nil {
 			fn()
-			return nil, fmt.Errorf("error listing pull request reviews: %v", err)
+			return nil, fmt.Errorf("error listing pull request reviews: %w", err)
 		}
 		if res.StatusCode >= 300 {
 			fn()
@@ -79,18 +90,18 @@ func (c *client) getPullRequestReviews(ownerLogin, repoName string, prNumber int
 }
 
 // https://docs.github.com/en/rest/reference/pulls#list-pull-requests-files
-func (c *client) getPullRequestCommitFiles(ownerLogin, repoName string, prNumber int) ([]*github.CommitFile, error) {
+func (c *Client) GetPullRequestCommitFiles(ctx context.Context, ownerLogin, repoName string, prNumber int) ([]*github.CommitFile, error) {
 
 	commitFiles, nextPage := make([]*github.CommitFile, 0, 0), 1
 	for nextPage != 0 {
-		ctx, fn := context.WithTimeout(context.Background(), defaultGitHubOperationTimeout)
-		r, res, err := c.githubClient.PullRequests.ListFiles(ctx, ownerLogin, repoName, prNumber, &github.ListOptions{
+		ctxTimeout, fn := context.WithTimeout(ctx, defaultGitHubOperationTimeout)
+		r, res, err := c.githubClient.PullRequests.ListFiles(ctxTimeout, ownerLogin, repoName, prNumber, &github.ListOptions{
 			Page:    nextPage,
 			PerPage: defaultListOptionsPerPage,
 		})
 		if err != nil {
 			fn()
-			return nil, fmt.Errorf("error listing pull request files: %v", err)
+			return nil, fmt.Errorf("error listing pull request files: %w", err)
 		}
 		if res.StatusCode >= 300 {
 			fn()
@@ -102,18 +113,18 @@ func (c *client) getPullRequestCommitFiles(ownerLogin, repoName string, prNumber
 	return commitFiles, nil
 }
 
-func (c *client) getTeams(organisation string) ([]*github.Team, error) {
+func (c *Client) GetTeams(ctx context.Context, organisation string) ([]*github.Team, error) {
 	// Grab a list of all the teams in the organization.
 	teams, nextPage := make([]*github.Team, 0, 0), 1
 	for nextPage != 0 {
-		ctx, fn := context.WithTimeout(context.Background(), defaultGitHubOperationTimeout)
-		t, res, err := c.githubClient.Teams.ListTeams(ctx, organisation, &github.ListOptions{
+		ctxTimeout, fn := context.WithTimeout(ctx, defaultGitHubOperationTimeout)
+		t, res, err := c.githubClient.Teams.ListTeams(ctxTimeout, organisation, &github.ListOptions{
 			Page:    nextPage,
 			PerPage: defaultListOptionsPerPage,
 		})
 		if err != nil {
 			fn()
-			return nil, fmt.Errorf("error listing teams for organisation %q: %v", organisation, err)
+			return nil, fmt.Errorf("error listing teams for organisation %q: %w", organisation, err)
 		}
 		if res.StatusCode >= 300 {
 			fn()
@@ -125,12 +136,14 @@ func (c *client) getTeams(organisation string) ([]*github.Team, error) {
 	return teams, nil
 }
 
-func (c *client) getPRCommits(owner, repo string, prNumber int) ([]*github.RepositoryCommit, error) {
+func (c *Client) GetPRCommits(ctx context.Context, owner, repo string, prNumber int) ([]*github.RepositoryCommit, error) {
 	var commits []*github.RepositoryCommit
+	ctxTimeout, fn := context.WithTimeout(ctx, defaultGitHubOperationTimeout)
+	defer fn()
 
 	nextPage := 1
 	for nextPage != 0 {
-		commitsPage, next, err := c.getPRCommitsPage(owner, repo, prNumber, nextPage)
+		commitsPage, next, err := c.getPRCommitsPage(ctxTimeout, owner, repo, prNumber, nextPage)
 		if err != nil {
 			return nil, err
 		}
@@ -141,27 +154,20 @@ func (c *client) getPRCommits(owner, repo string, prNumber int) ([]*github.Repos
 	return commits, nil
 }
 
-func (c *client) getPRCommitsPage(owner, repo string, prNumber, page int) ([]*github.RepositoryCommit, int, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultGitHubOperationTimeout)
+func (c *Client) getPRCommitsPage(ctx context.Context, owner, repo string, prNumber, page int) ([]*github.RepositoryCommit, int, error) {
+	ctxTimeout, cancel := context.WithTimeout(ctx, defaultGitHubOperationTimeout)
 	defer cancel()
 
-	getLogger(ctx).WithFields(log.Fields{
-		logFieldRepo:  repo,
-		logFieldPR:    prNumber,
-		logFieldOwner: owner,
-		logFieldPage:  page,
-	}).Tracef("list PR commits")
-
 	commits, resp, err := c.githubClient.PullRequests.ListCommits(
-		ctx, owner, repo, prNumber, &github.ListOptions{Page: page})
+		ctxTimeout, owner, repo, prNumber, &github.ListOptions{Page: page})
 	if err != nil {
-		return nil, 0, fmt.Errorf("getPRCommits: %s", err)
+		return nil, 0, fmt.Errorf("getPRCommits: %w", err)
 	}
 
 	return commits, resp.NextPage, nil
 }
 
-func (c *client) getTeamMembers(teams []*github.Team, organisation, name string) ([]*github.User, error) {
+func (c *Client) GetTeamMembers(ctx context.Context, teams []*github.Team, organisation, name string) ([]*github.User, error) {
 	// Return immediately if the request team is not found.
 	var (
 		team *github.Team
@@ -178,11 +184,11 @@ func (c *client) getTeamMembers(teams []*github.Team, organisation, name string)
 	// Grab a list of all the users in the target team.
 	users, nextPage := make([]*github.User, 0, 0), 1
 	for nextPage != 0 {
-		ctx, fn := context.WithTimeout(context.Background(), defaultGitHubOperationTimeout)
-		m, res, err := c.githubClient.Teams.ListTeamMembers(ctx, team.GetID(), nil)
+		ctxTimeout, fn := context.WithTimeout(ctx, defaultGitHubOperationTimeout)
+		m, res, err := c.githubClient.Teams.ListTeamMembers(ctxTimeout, team.GetID(), nil)
 		if err != nil {
 			fn()
-			return nil, fmt.Errorf("error listing members for team %q in organisation %q: %v", name, organisation, err)
+			return nil, fmt.Errorf("error listing members for team %q in organisation %q: %w", name, organisation, err)
 		}
 		if res.StatusCode >= 300 {
 			fn()
@@ -194,18 +200,18 @@ func (c *client) getTeamMembers(teams []*github.Team, organisation, name string)
 	return users, nil
 }
 
-func (c *client) reportStatus(ownerLogin, repoName, statusesURL, status, description string) error {
+func (c *Client) ReportStatus(ctx context.Context, ownerLogin, repoName, statusesURL, status, description string) error {
 	n := os.Getenv(envGitHubStatusName)
 	v := &github.RepoStatus{
 		State:       &status,
 		Description: &description,
 		Context:     &n,
 	}
-	ctx, fn := context.WithTimeout(context.Background(), defaultGitHubOperationTimeout)
+	ctxTimeout, fn := context.WithTimeout(ctx, defaultGitHubOperationTimeout)
 	defer fn()
-	_, res, err := c.githubClient.Repositories.CreateStatus(ctx, ownerLogin, repoName, readStatusSHAFromStatusURL(statusesURL), v)
+	_, res, err := c.githubClient.Repositories.CreateStatus(ctxTimeout, ownerLogin, repoName, readStatusSHAFromStatusURL(statusesURL), v)
 	if err != nil {
-		return fmt.Errorf("error reporting status: %v", err)
+		return fmt.Errorf("error reporting status: %w", err)
 	}
 	if res.StatusCode >= 300 {
 		return fmt.Errorf("error reporting status (status: %d): %s", res.StatusCode, readAllClose(res.Body))
@@ -213,19 +219,19 @@ func (c *client) reportStatus(ownerLogin, repoName, statusesURL, status, descrip
 	return nil
 }
 
-func (c *client) reportDismissedReviews(owner, repo string, prNumber int, reviewers []string) error {
+func (c *Client) ReportDismissedReviews(ctx context.Context, owner, repo string, prNumber int, reviewers []string) error {
 	if len(reviewers) == 0 {
 		return nil
 	}
 
 	title := "Following reviewers have been dismissed as they are also authors in the PR:\n"
 
-	err := c.removeOldDismissedComments(owner, repo, prNumber, title)
+	err := c.removeOldDismissedComments(ctx, owner, repo, prNumber, title)
 	if err != nil {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), defaultGitHubOperationTimeout)
+	ctxTimeout, cancel := context.WithTimeout(ctx, defaultGitHubOperationTimeout)
 	defer cancel()
 
 	msg := title
@@ -239,23 +245,23 @@ func (c *client) reportDismissedReviews(owner, repo string, prNumber int, review
 
 	// using Issues API over PullRequests as we only have an interest in commenting on the PR
 	// not commenting on a given line in a specific commit
-	_, _, err = c.githubClient.Issues.CreateComment(ctx, owner, repo, prNumber, payload)
+	_, _, err = c.githubClient.Issues.CreateComment(ctxTimeout, owner, repo, prNumber, payload)
 	if err != nil {
-		return fmt.Errorf("reportDismissedReviews: %s", err)
+		return fmt.Errorf("reportDismissedReviews: %w", err)
 	}
 
 	return nil
 }
 
-func (c *client) removeOldDismissedComments(owner, repo string, prNumber int, title string) error {
-	comments, err := c.getPRComments(owner, repo, prNumber)
+func (c *Client) removeOldDismissedComments(ctx context.Context, owner, repo string, prNumber int, title string) error {
+	comments, err := c.getPRComments(ctx, owner, repo, prNumber)
 	if err != nil {
 		return err
 	}
 
 	for _, comment := range comments {
 		if strings.Contains(comment.GetBody(), title) {
-			_, err = c.deletePRComment(owner, repo, comment.GetID())
+			_, err = c.deletePRComment(ctx, owner, repo, comment.GetID())
 			if err != nil {
 				return err
 			}
@@ -264,31 +270,25 @@ func (c *client) removeOldDismissedComments(owner, repo string, prNumber int, ti
 	return nil
 }
 
-func (c *client) deletePRComment(owner, repo string, commentID int64) (*github.Response, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultGitHubOperationTimeout)
+func (c *Client) deletePRComment(ctx context.Context, owner, repo string, commentID int64) (*github.Response, error) {
+	ctxTimeout, cancel := context.WithTimeout(ctx, defaultGitHubOperationTimeout)
 	defer cancel()
 
-	getLogger(ctx).WithFields(log.Fields{
-		logFieldRepo:  repo,
-		logFieldOwner: owner,
-		"comment_id":  commentID,
-	}).Tracef("delete PR comment")
-
-	resp, err := c.githubClient.Issues.DeleteComment(ctx, owner, repo, commentID)
+	resp, err := c.githubClient.Issues.DeleteComment(ctxTimeout, owner, repo, commentID)
 	if err != nil {
-		return nil, fmt.Errorf("deletePRComment: %s", err)
+		return nil, fmt.Errorf("deletePRComment: %w", err)
 	}
 
 	return resp, nil
 }
 
 
-func (c *client) getPRComments(owner, repo string, prNumber int) ([]*github.IssueComment, error) {
+func (c *Client) getPRComments(ctx context.Context, owner, repo string, prNumber int) ([]*github.IssueComment, error) {
 	var comments []*github.IssueComment
 
 	nextPage := 1
 	for nextPage != 0 {
-		commentsPage, next, err := c.getPRCommentsPage(owner, repo, prNumber, nextPage)
+		commentsPage, next, err := c.getPRCommentsPage(ctx, owner, repo, prNumber, nextPage)
 		if err != nil {
 			return nil, err
 		}
@@ -299,8 +299,8 @@ func (c *client) getPRComments(owner, repo string, prNumber int) ([]*github.Issu
 	return comments, nil
 }
 
-func (c *client) getPRCommentsPage(owner, repo string, prNumber, page int) ([]*github.IssueComment, int, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultGitHubOperationTimeout)
+func (c *Client) getPRCommentsPage(ctx context.Context, owner, repo string, prNumber, page int) ([]*github.IssueComment, int, error) {
+	ctxTimeout, cancel := context.WithTimeout(ctx, defaultGitHubOperationTimeout)
 	defer cancel()
 
 	listOpts := &github.IssueListCommentsOptions{
@@ -309,32 +309,26 @@ func (c *client) getPRCommentsPage(owner, repo string, prNumber, page int) ([]*g
 			PerPage: defaultListOptionsPerPage,
 		},
 	}
-	getLogger(ctx).WithFields(log.Fields{
-		logFieldRepo:  repo,
-		logFieldPR:    prNumber,
-		logFieldOwner: owner,
-		logFieldPage:  page,
-	}).Tracef("list PR Comments")
 
-	comments, resp, err := c.githubClient.Issues.ListComments(ctx, owner, repo, prNumber, listOpts)
+	comments, resp, err := c.githubClient.Issues.ListComments(ctxTimeout, owner, repo, prNumber, listOpts)
 	if err != nil {
-		return nil, 0, fmt.Errorf("getPRComments: %s", err)
+		return nil, 0, fmt.Errorf("getPRComments: %w", err)
 	}
 
 	return comments, resp.NextPage, nil
 }
 
-func (c *client) requestReviews(ownerLogin, repoName string, prNumber int, reviewsToRequest []string) error {
+func (c *Client) RequestReviews(ctx context.Context, ownerLogin, repoName string, prNumber int, reviewsToRequest []string) error {
 	if len(reviewsToRequest) == 0 {
 		return nil
 	}
-	ctx, fn := context.WithTimeout(context.Background(), defaultGitHubOperationTimeout)
+	ctxTimeout, fn := context.WithTimeout(ctx, defaultGitHubOperationTimeout)
 	defer fn()
-	_, res, err := c.githubClient.PullRequests.RequestReviewers(ctx, ownerLogin, repoName, prNumber, github.ReviewersRequest{
+	_, res, err := c.githubClient.PullRequests.RequestReviewers(ctxTimeout, ownerLogin, repoName, prNumber, github.ReviewersRequest{
 		TeamReviewers: reviewsToRequest,
 	})
 	if err != nil {
-		return fmt.Errorf("error requesting reviews: %v", err)
+		return fmt.Errorf("error requesting reviews: %w", err)
 	}
 	if res.StatusCode >= 300 {
 		return fmt.Errorf("error requesting reviews (status: %d): %s", res.StatusCode, readAllClose(res.Body))
@@ -342,15 +336,15 @@ func (c *client) requestReviews(ownerLogin, repoName string, prNumber int, revie
 	return nil
 }
 
-func (c *client) updateLabels(ownerLogin, repoName string, prNumber int, labels []string) error {
+func (c *Client) UpdateLabels(ctx context.Context, ownerLogin, repoName string, prNumber int, labels []string) error {
 	if len(labels) == 0 {
 		return nil
 	}
-	ctx, fn := context.WithTimeout(context.Background(), defaultGitHubOperationTimeout)
+	ctx, fn := context.WithTimeout(ctx, defaultGitHubOperationTimeout)
 	defer fn()
 	_, res, err := c.githubClient.Issues.ReplaceLabelsForIssue(ctx, ownerLogin, repoName, prNumber, labels)
 	if err != nil {
-		return fmt.Errorf("error updating labels: %v", err)
+		return fmt.Errorf("error updating labels: %w", err)
 	}
 	if res.StatusCode >= 300 {
 		return fmt.Errorf("error updating labels (status: %d): %s", res.StatusCode, readAllClose(res.Body))
@@ -358,15 +352,15 @@ func (c *client) updateLabels(ownerLogin, repoName string, prNumber int, labels 
 	return nil
 }
 
-func (c *client) getLabels(ownerLogin, repoName string, prNumber int) ([]string, error) {
+func (c *Client) GetLabels(ctx context.Context, ownerLogin, repoName string, prNumber int) ([]string, error) {
 
 	labels, nextPage := make([]string, 0, 0), 1
 	for nextPage != 0 {
-		ctx, fn := context.WithTimeout(context.Background(), defaultGitHubOperationTimeout)
-		m, res, err := c.githubClient.Issues.ListLabelsByIssue(ctx, ownerLogin, repoName, prNumber, nil)
+		ctxTimeout, fn := context.WithTimeout(ctx, defaultGitHubOperationTimeout)
+		m, res, err := c.githubClient.Issues.ListLabelsByIssue(ctxTimeout, ownerLogin, repoName, prNumber, nil)
 		if err != nil {
 			fn()
-			return nil, fmt.Errorf("error listing PR labels : %v", err)
+			return nil, fmt.Errorf("error listing PR labels : %w", err)
 		}
 		if res.StatusCode >= 300 {
 			fn()
@@ -395,7 +389,7 @@ func alwaysStale(_ http.Request, _ http.Response) httpcache.Freshness {
 	return httpcache.Stale
 }
 
-func getClient() *client {
+func Get(store secret.Store) *Client {
 	once.Do(func() {
 		var (
 			baseTransport http.RoundTripper
@@ -407,9 +401,9 @@ func getClient() *client {
 		} else {
 			baseTransport = http.DefaultTransport
 		}
-		clientInstance = &client{
+		clientInstance = &Client{
 			githubClient: github.NewClient(&http.Client{
-				Transport: maybeWrapInAuthenticatingTransport(baseTransport),
+				Transport: maybeWrapInAuthenticatingTransport(baseTransport, store),
 			}),
 		}
 		if v := os.Getenv(envGitHubBaseURL); v != "" {
@@ -419,30 +413,28 @@ func getClient() *client {
 	return clientInstance
 }
 
-func maybeWrapInAuthenticatingTransport(baseTransport http.RoundTripper) http.RoundTripper {
+func maybeWrapInAuthenticatingTransport(baseTransport http.RoundTripper, store secret.Store) http.RoundTripper {
 	// Grab our GitHub application ID.
 	applicationId, err := strconv.Atoi(os.Getenv(envGitHubAppId))
 	if err != nil {
-		log.Warnf("failed to parse application id: %v", err)
+		log.WithError(err).Warn("failed to parse application id")
 		return baseTransport
 	}
 	// Grab our GitHub installation ID.
 	installationId, err := strconv.Atoi(os.Getenv(envGitHubAppInstallationId))
 	if err != nil {
-		log.Warnf("failed to parse installation id: %v", err)
+		log.WithError(err).Warn("failed to parse installation id")
 		return baseTransport
 	}
 	// Use a transport that authenticates us as an installation.
 
-	// Read the Secret Key
-	fmt.Printf("%v", secretStore)
-	privateKey, err := secretStore.Get(envGitHubAppPrivateKeyPath)
+	privateKey, err := store.Get(envGitHubAppPrivateKeyPath)
 	if err != nil {
-		log.Warnf("Failed to read secret key from configured path: %v", err)
+		log.WithError(err).Warn("Failed to read secret key from configured path")
 	}
 	authenticatingTransport, err := ghinstallation.New(baseTransport, int64(applicationId), int64(installationId), privateKey)
 	if err != nil {
-		log.Warnf("failed to create authenticating transport: %v", err)
+		log.WithError(err).Warn("failed to create authenticating transport")
 		return baseTransport
 	}
 	return authenticatingTransport
@@ -454,7 +446,7 @@ func mustParseURL(v string) *url.URL {
 	}
 	u, err := url.Parse(v)
 	if err != nil {
-		log.Fatalf("Failed to parse %q as a url: %v", v, err)
+		log.WithError(err).Fatalf("Failed to parse %q as a url", v)
 	}
 	return u
 }
@@ -466,11 +458,11 @@ func readAllClose(r io.ReadCloser) []byte {
 	}
 	v, err := ioutil.ReadAll(r)
 	if err != nil {
-		log.Warnf("Failed to read from ReadCloser: %v", err)
+		log.WithError(err).Warn("Failed to read from ReadCloser")
 		return []byte{}
 	}
 	if err := r.Close(); err != nil {
-		log.Warnf("Failed to close ReadCloser: %v", err)
+		log.WithError(err).Warn("Failed to close ReadCloser")
 		return v
 	}
 	return v

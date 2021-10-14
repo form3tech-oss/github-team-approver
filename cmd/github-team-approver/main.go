@@ -2,19 +2,22 @@ package main
 
 import (
 	"flag"
-	gta "github.com/form3tech-oss/github-team-approver/internal/api"
-	"log"
-	"net/http"
+	"github.com/form3tech-oss/github-team-approver/internal/api"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 func main() {
+	// buffering shutdown channel as recommended
+	// https://golang.org/pkg/os/signal/#Notify
+	// golangci-lint SA1017
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
+	ready := make(chan struct{})
+
 	bindAddress := flag.String("bind-address", ":8080", "The 'host:port' pair to bind to.")
 	flag.Parse()
 
-	m := http.NewServeMux()
-	m.HandleFunc("/events", gta.Handle)
-	m.HandleFunc("/function/github-team-approver", gta.Handle) // Keep backwards-compatibility.
-	if err := http.ListenAndServe(*bindAddress, m); err != nil && err != http.ErrServerClosed {
-		log.Fatalf("Failed to serve HTTP: %v", err)
-	}
+	api.Start(*bindAddress, shutdown, ready)
 }

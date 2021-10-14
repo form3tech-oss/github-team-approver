@@ -1,4 +1,4 @@
-package api
+package approval
 
 import (
 	"github.com/stretchr/testify/require"

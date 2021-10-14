@@ -1,187 +1,139 @@
 package api
 
 import (
-	"encoding/hex"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/form3tech-oss/github-team-approver/internal/api/aes"
+	ghclient "github.com/form3tech-oss/github-team-approver/internal/api/github"
+	"github.com/google/go-github/v28/github"
+	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
-	"os"
-	"strings"
+)
 
-	"github.com/form3tech-oss/logrus-logzio-hook/pkg/hook"
-	"github.com/google/go-github/v28/github"
-	"github.com/logzio/logzio-go"
-	log "github.com/sirupsen/logrus"
+const (
+	logFieldDeliveryID  = "delivery_id"
+	logFieldEventType   = "event_type"
+	logFieldPR          = "pr"
+	logFieldRepo        = "repo"
+	logFieldServiceName = "service_name"
+
+	httpHeaderXFinalStatus    = "X-Final-Status"
+	httpHeaderXGithubDelivery = "X-GitHub-Delivery"
+	httpHeaderXGithubEvent    = "X-GitHub-Event"
+	httpHeaderXHubSignature   = "X-Hub-Signature"
 )
 
 var (
-	// githubWebhookSecretToken contains the secret token used to validate incoming payloads.
-	githubWebhookSecretToken []byte
-	// ignoredRepositories is the list of repositories for which events will be ignored.
-	ignoredRepositories []string
-	// cryptor for secrets
-	c aes.Cryptor
-	// SecretStore for reading from path or AWS SSM
-	secretStore SecretStore
+	errIgnoredEvent = fmt.Errorf("ignoring event: unsupported type")
 )
 
-func init() {
-	// Configure the log level.
-
-	fmt.Printf("init starting")
-
-	switch os.Getenv(envSecretStoreType) {
-	case "AWS_SSM":
-		secretStore = NewSSMStore()
-	default:
-		secretStore = NewEnvSecretStore()
+func (api *Api) HandleHealth(w http.ResponseWriter, req *http.Request) {
+	sendHttpOkResponse(w)
+}
+func (api *Api) Handle(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		sendHttpMethodNotAllowedResponse(w, fmt.Errorf("unsupported method %q", req.Method))
+		return
 	}
 
-	if v, err := log.ParseLevel(os.Getenv(envLogLevel)); err == nil {
-		log.SetLevel(v)
-	} else {
-		log.Warnf("Failed to parse log level, falling back to %q: %v", log.GetLevel().String(), err)
+	eventType := req.Header.Get(httpHeaderXGithubEvent)
+	deliveryID := req.Header.Get(httpHeaderXGithubDelivery)
+
+	fields := logrus.Fields{
+		logFieldServiceName: api.AppName,
+		logFieldDeliveryID:  deliveryID,
+		logFieldEventType:   eventType,
 	}
-	// Configure log shipping to Logz.io.
-	if t, err := secretStore.Get(envLogzioTokenPath); err != nil {
-		log.Warnf("Failed to read the logz.io token from the configured path: %v", err)
-	} else {
-		if c, err := logzio.New(string(t), logzio.SetUrl(logzioListenerURL)); err != nil {
-			log.Warnf("Failed to configure the logz.io logrus hook: %v", err)
-		} else {
-			log.AddHook(hook.NewLogzioHook(c))
+
+	log := logrus.NewEntry(logrus.StandardLogger()).WithFields(fields)
+
+	body, err := ioutil.ReadAll(req.Body)
+	defer req.Body.Close()
+	if err != nil {
+		log.WithError(err).Error("Failed to validate payload")
+		sendHttpBadRequestResponse(w, fmt.Errorf("failed to validate payload: %w", err))
+		return
+	}
+	signature := req.Header.Get(httpHeaderXHubSignature)
+
+	err = api.validateSignature(signature, body)
+	if err != nil {
+		log.WithError(err).Error("Failed to validate payload")
+		sendHttpBadRequestResponse(w, err)
+		return
+	}
+
+	event, err := getSupportedEvent(eventType)
+	if err != nil {
+		log.WithError(err).Warn("not handled")
+		sendHttpNoContentResponse(w)
+		return
+	}
+
+	err = unmarshalEvent(body, event)
+	if err != nil {
+		log.WithError(err).Error("unmarshal request body")
+		sendHttpBadRequestResponse(w, fmt.Errorf("unmarshal request body: %w", err))
+	}
+
+	repoName := event.GetRepo().GetFullName()
+	log = log.WithFields(
+		logrus.Fields{
+			logFieldRepo: repoName,
+			logFieldPR:   event.GetPullRequest().GetNumber(),
+		})
+
+	if isMember(api.ignoredRepositories, repoName) {
+		log.Warn("ignoring event: ignored repository")
+		sendHttpNoContentResponse(w)
+		return
+	}
+	client := ghclient.Get(api.SecretStore)
+
+	// TODO once we switch to Gin, use ginContext
+	ctx := context.Background()
+	if isPrMergeEvent(event) {
+		mergeHandler := NewMergeEventHandler(api, log, client)
+		if err := mergeHandler.handlePrMergeEvent(ctx, event); err != nil {
+			sendHttpInternalServerErrorResponse(w, fmt.Errorf("failed to handle event: %w", err))
+			return
 		}
-	}
-	// Read the webhook secret token.
-	b, err := secretStore.Get(envGitHubAppWebhookSecretTokenPath)
-	if err != nil {
-		// Warn but do not fail, making all requests be rejected.
-		log.Warnf("Failed to read webhook secret token: %v", err)
-	}
-	githubWebhookSecretToken = b
-	// Parse the list of ignored repositories.
-	ignoredRepositories = strings.Split(os.Getenv(envIgnoredRepositories), ",")
-
-	// Read the encryption key for slack web hooks
-	k, err := secretStore.Get(envEncryptionKeyPath)
-	if err != nil {
-		// Warn but do not fail, meaning we will not be able to decrypt slack hooks
-		log.Warnf("Failed to read decryption key: %v", err)
+		sendHttpOkResponse(w)
+		return
 	}
 
-	key, err := hex.DecodeString(string(k))
-	if err != nil {
-		// Warn but do not fail, meaning we will not be able to decrypt slack hooks
-		log.Warnf("Failed to read decryption key: %v", err)
+	handler := NewPullRequestEventHandler(api, log, client)
+
+	status, err := handler.handleEvent(ctx, eventType, event)
+	if errors.Is(err, ghclient.ErrNoConfigurationFile) {
+		log.WithError(err).Warn("ignoring event")
+		sendHttpNoContentResponse(w)
+		return
 	}
-	c, err = aes.New(key)
 	if err != nil {
-		log.Warnf("Failed to create cryptor for decrypting: %v", err)
+		log.WithField("event", event).
+			WithError(err).
+			Warn("failed to handle event")
+		sendHttpInternalServerErrorResponse(w, fmt.Errorf("failed to handle event: %w", err))
 	}
+
+	sendHttpOkWithStatusResponse(w, status)
+	return
 }
 
-// Handle handles an HTTP request.
-func Handle(res http.ResponseWriter, req *http.Request) {
-	// Make sure we're dealing with a POST request.
-	if req.Method != http.MethodPost {
-		sendHttpMethodNotAllowedResponse(res, fmt.Errorf("unsupported method %q", req.Method))
-		return
+func (api *Api) validateSignature(signature string, body []byte) error {
+	if api.githubWebhookSecretToken == nil {
+		// TODO we should make this more clear, following what we had from before now
+		// see setGitHubAppSecret api comments
+		return nil
 	}
 
-	var (
-		ctx       = newRequestContext(req)
-		eventType = req.Header.Get(httpHeaderXGithubEvent)
-		event     event
-		signature = req.Header.Get(httpHeaderXHubSignature)
-	)
-
-	// Read the request's body.
-	body, err := ioutil.ReadAll(req.Body)
-	if err != nil {
-		getLogger(ctx).Errorf("Failed to validate payload: %v", err)
-		sendHttpBadRequestResponse(res, fmt.Errorf("failed to validate payload: %v", err))
-		return
+	if err := github.ValidateSignature(signature, body, api.githubWebhookSecretToken); err != nil {
+		return fmt.Errorf("failed to validate payload: %w", err)
 	}
-
-	// Validate the incoming payload if we're configured to do so.
-	if len(githubWebhookSecretToken) != 0 {
-		if err := github.ValidateSignature(signature, body, githubWebhookSecretToken); err != nil {
-			getLogger(ctx).Errorf("Failed to validate payload: %v", err)
-			sendHttpBadRequestResponse(res, fmt.Errorf("failed to validate payload: %v", err))
-			return
-		}
-	}
-
-	// Unmarshal the incoming event.
-	switch eventType {
-	case eventTypePullRequest:
-		var (
-			e github.PullRequestEvent
-		)
-
-		if err := json.Unmarshal(body, &e); err != nil {
-			getLogger(ctx).Errorf("Failed to unmarshal request into PullRequestEvent: %v", err)
-			sendHttpBadRequestResponse(res, fmt.Errorf("failed to unmarshal request into PullRequestEvent: %v", err))
-			return
-		} else {
-			event = &e
-		}
-	case eventTypePullRequestReview:
-		var (
-			e github.PullRequestReviewEvent
-		)
-		if err := json.Unmarshal(body, &e); err != nil {
-			getLogger(ctx).Errorf("Failed to unmarshal request into PullRequestReviewEvent: %v", err)
-			sendHttpBadRequestResponse(res, fmt.Errorf("failed to unmarshal request into PullRequestReviewEvent: %v", err))
-			return
-		} else {
-			event = &e
-		}
-	default:
-		getLogger(ctx).Warn("Ignoring event: unsupported type")
-		sendHttpNoContentResponse(res)
-		return
-	}
-
-	// Update the current request's context.
-	ctx = updateRequestContext(ctx, eventType, event)
-
-	// If the source repository is in the list of ignored repositories, stop processing.
-	rfn := event.GetRepo().GetFullName()
-	if indexOf(ignoredRepositories, rfn) >= 0 {
-		getLogger(ctx).Warn("Ignoring event: ignored repository")
-		sendHttpNoContentResponse(res)
-		return
-	}
-
-	// handle PR merge event for alerts
-	if isPrMergeEvent(event) {
-		err := handlePrMergeEvent(ctx, event)
-		if err != nil {
-			sendHttpInternalServerErrorResponse(res, fmt.Errorf("failed to handle event: %v", err))
-			return
-		}
-		sendHttpOkResponse(res)
-		return
-	}
-
-	// Handle the incoming event PR request event
-	if r, err := handleEvent(ctx, eventType, event); err != nil {
-		if err == errNoConfigurationFile {
-			getLogger(ctx).Warnf("Ignoring event: %v", err)
-			sendHttpNoContentResponse(res)
-			return
-		}
-		getLogger(ctx).Errorf("Failed to handle event: %v", err)
-		sendHttpInternalServerErrorResponse(res, fmt.Errorf("failed to handle event: %v", err))
-		return
-	} else {
-		getLogger(ctx).Tracef("%q will be reported as the status", r)
-		sendHttpOkWithStatusResponse(res, r)
-		return
-	}
+	return nil
 }
 
 func sendHttpResponse(res http.ResponseWriter, statusCode int, message string) {
@@ -212,4 +164,21 @@ func sendHttpMethodNotAllowedResponse(res http.ResponseWriter, err error) {
 
 func sendHttpNoContentResponse(res http.ResponseWriter) {
 	sendHttpResponse(res, http.StatusNoContent, "")
+}
+
+func unmarshalEvent(body []byte, v interface{}) error {
+	err := json.Unmarshal(body, v)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func isMember(items []string, v string) bool {
+	for _, i := range items {
+		if i == v {
+			return true
+		}
+	}
+	return false
 }

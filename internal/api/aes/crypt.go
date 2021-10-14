@@ -3,7 +3,7 @@ package aes
 import (
 	"bytes"
 	"crypto/aes"
-	"crypto/cipher"
+	cryptoCipher "crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
@@ -11,26 +11,26 @@ import (
 	"strings"
 )
 
-type cryptor struct {
-	cipher cipher.Block
+type cipher struct {
+	cipher cryptoCipher.Block
 }
 
-type Cryptor interface {
+type Cipher interface {
 	Encrypt(text string) (string, error)
 	Decrypt(text string) (string, error)
 }
 
-func New(key []byte) (Cryptor, error) {
+func NewCipher(key []byte) (Cipher, error) {
 	c, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}
-	return &cryptor{
+	return &cipher{
 		cipher: c,
 	}, nil
 }
 
-func (c *cryptor) Encrypt(text string) (string, error) {
+func (c *cipher) Encrypt(text string) (string, error) {
 
 	msg := pad([]byte(text))
 	ciphertext := make([]byte, aes.BlockSize+len(msg))
@@ -39,13 +39,13 @@ func (c *cryptor) Encrypt(text string) (string, error) {
 		return "", err
 	}
 
-	cfb := cipher.NewCFBEncrypter(c.cipher, iv)
+	cfb := cryptoCipher.NewCFBEncrypter(c.cipher, iv)
 	cfb.XORKeyStream(ciphertext[aes.BlockSize:], msg)
 	finalMsg := removeBase64Padding(base64.URLEncoding.EncodeToString(ciphertext))
 	return finalMsg, nil
 }
 
-func (c *cryptor) Decrypt(text string) (string, error) {
+func (c *cipher) Decrypt(text string) (string, error) {
 	decodedMsg, err := base64.URLEncoding.DecodeString(addBase64Padding(text))
 	if err != nil {
 		return "", err
@@ -58,7 +58,7 @@ func (c *cryptor) Decrypt(text string) (string, error) {
 	iv := decodedMsg[:aes.BlockSize]
 	msg := decodedMsg[aes.BlockSize:]
 
-	cfb := cipher.NewCFBDecrypter(c.cipher, iv)
+	cfb := cryptoCipher.NewCFBDecrypter(c.cipher, iv)
 	cfb.XORKeyStream(msg, msg)
 
 	unpadMsg, err := unpad(msg)

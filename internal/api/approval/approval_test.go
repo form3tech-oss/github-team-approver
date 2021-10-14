@@ -1,4 +1,4 @@
-package api
+package approval
 
 import (
 	"github.com/google/go-github/v28/github"

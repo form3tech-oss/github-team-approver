@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"fmt"
+	"github.com/form3tech-oss/github-team-approver/internal/api/approval"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -50,7 +51,7 @@ func Test_Handle(t *testing.T) {
 				"pull_request_opened_pending",
 			},
 
-			expectedFinalStatus: statusEventStatusPending,
+			expectedFinalStatus: approval.StatusEventStatusPending,
 		},
 		{
 			name: `PR opened (no rules for branch)`,
@@ -60,7 +61,7 @@ func Test_Handle(t *testing.T) {
 			eventSignature: "sha1=668a5b79988a958c5535bc7f484384f956a71799",
 			pacts:          []pacttesting.Pact{"pull_request_opened_no_rules_for_branch"},
 
-			expectedFinalStatus: statusEventStatusSuccess,
+			expectedFinalStatus: approval.StatusEventStatusSuccess,
 		},
 		{
 			name: `PR review Submitted (requires approval from the "CAB" and "Documentation" teams)`,
@@ -73,7 +74,7 @@ func Test_Handle(t *testing.T) {
 				"pull_request_review_submitted_approved",
 			},
 
-			expectedFinalStatus: statusEventStatusSuccess,
+			expectedFinalStatus: approval.StatusEventStatusSuccess,
 		},
 		{
 			name: `PR review Submitted (requires approval from the "CAB" and "Documentation" teams)`,
@@ -86,7 +87,7 @@ func Test_Handle(t *testing.T) {
 				"pull_request_review_submitted_pending",
 			},
 
-			expectedFinalStatus: statusEventStatusPending,
+			expectedFinalStatus: approval.StatusEventStatusPending,
 		},
 		{
 			name: `PR review Submitted (requires approval from the "CAB" and "Documentation" teams)`,
@@ -99,7 +100,7 @@ func Test_Handle(t *testing.T) {
 				"pull_request_review_submitted_force_approval",
 			},
 
-			expectedFinalStatus: statusEventStatusSuccess,
+			expectedFinalStatus: approval.StatusEventStatusSuccess,
 		},
 		{
 			name: `PR review Submitted (no regular expressions matched)`,
@@ -112,7 +113,7 @@ func Test_Handle(t *testing.T) {
 				"pull_request_review_submitted_no_regexes_matched",
 			},
 
-			expectedFinalStatus: statusEventStatusPending,
+			expectedFinalStatus: approval.StatusEventStatusPending,
 		},
 		{
 			name: `PR review Submitted (requires approval from at least one of the "CAB - Foo" and "CAB - BAR" teams, as well as from the "CAB - Documentation" team)`,
@@ -125,7 +126,7 @@ func Test_Handle(t *testing.T) {
 				"pull_request_review_submitted_approval_mode_require_any",
 			},
 
-			expectedFinalStatus: statusEventStatusSuccess,
+			expectedFinalStatus: approval.StatusEventStatusSuccess,
 		},
 		{
 			name: `PR Merged to master (matches slack alert - alert should fire)`,
@@ -156,7 +157,7 @@ func Test_Handle(t *testing.T) {
 				"pull_request_review_submitted_alice_approved",
 			},
 
-			expectedFinalStatus: statusEventStatusPending,
+			expectedFinalStatus: approval.StatusEventStatusPending,
 		},
 		{
 			name: `PR review Submitted (requires approval from CAB - FOO, alice is also an author while bob isn't thus PR accepted')`,
@@ -169,7 +170,7 @@ func Test_Handle(t *testing.T) {
 				"pull_request_review_submitted_alice_bob_approved",
 			},
 
-			expectedFinalStatus: statusEventStatusSuccess,
+			expectedFinalStatus: approval.StatusEventStatusSuccess,
 		},
 	}
 
@@ -188,7 +189,7 @@ func Test_Handle(t *testing.T) {
 						prx := tcpproxy.Proxy{}
 						prx.AddRoute(stablePactHostPort, tcpproxy.To(url[idx:]))
 						go prx.Run()
-						if err := os.Setenv(envGitHubBaseURL, url); err != nil {
+						if err := os.Setenv("GITHUB_BASE_URL", url); err != nil {
 							t.Fatal(err)
 						}
 					})
@@ -208,7 +209,11 @@ func Test_Handle(t *testing.T) {
 					res := httptest.NewRecorder()
 
 					// Act
-					Handle(res, req)
+					// the legacy tests didn't run the http server
+					// we keep the legacy as is while providing new test structure
+					api := newApi()
+					api.init()
+					api.Handle(res, req)
 
 					// Assertions
 					finalStatus := res.Result().Header.Get(httpHeaderXFinalStatus)

@@ -1,4 +1,4 @@
-package api
+package secret
 
 import (
 	"io/ioutil"
@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-type SecretStore interface {
+type Store interface {
 	Get(envVariable string) ([]byte, error)
 }
 

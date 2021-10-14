@@ -1,8 +1,9 @@
-package api
+package approval
 
 import (
 	"context"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"net/url"
 	"regexp"
 	"sort"
@@ -10,81 +11,118 @@ import (
 	"strings"
 
 	"github.com/form3tech-oss/github-team-approver-commons/pkg/configuration"
+
+	ghclient "github.com/form3tech-oss/github-team-approver/internal/api/github"
+
 	"github.com/google/go-github/v28/github"
 )
 
-func computeApprovalStatus(ctx context.Context, c *client, ownerLogin, repoName string, prNumber int, prTargetBranch string, prBody string, initialLabels []string) (status, description string, finalLabels []string, reviewsToRequest []string, err error) {
+const (
+	pullRequestReviewStateApproved  = "APPROVED"
+	pullRequestReviewStateCommented = "COMMENTED"
+	pullRequestLabelPrefix          = "github-team-approver/"
+	statusEventDescriptionNoRulesForTargetBranch = "No rules are defined for the target branch."
+	StatusEventStatusPending = "pending"
+	StatusEventStatusSuccess = "success"
+)
+
+type Approval struct {
+	log    *logrus.Entry
+	client *ghclient.Client
+}
+
+func NewApproval(log *logrus.Entry, client *ghclient.Client) *Approval {
+	return &Approval{
+		log:    log,
+		client: client,
+	}
+}
+
+type PR struct {
+	OwnerLogin    string
+	RepoName      string
+	TargetBranch  string
+	Body          string
+	Number        int
+	InitialLabels []string
+}
+
+func NewPR(ownerLogin, repoName, targetBranch, body string, number int, labels []string) *PR {
+	return &PR{
+		OwnerLogin:    ownerLogin,
+		RepoName:      repoName,
+		Number:        number,
+		TargetBranch:  targetBranch,
+		Body:          body,
+		InitialLabels: labels,
+	}
+}
+
+func (approval *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, error) {
 	// Compute the set of rules that applies to the target branch.
-	getLogger(ctx).Tracef("Computing the set of rules that applies to target branch %q", prTargetBranch)
-	rules, err := computeRulesForTargetBranch(c, ownerLogin, repoName, prTargetBranch)
+	approval.log.Tracef("Computing the set of rules that applies to target branch %q", pr.TargetBranch)
+	rules, err := approval.computeRulesForTargetBranch(ctx, pr)
 	if err != nil {
-		return "", "", nil, nil, err
+		return nil, err
 	}
 	if len(rules) > 0 {
-		getLogger(ctx).Tracef("A total of %d rules apply to target branch %q", len(rules), prTargetBranch)
+		approval.log.Tracef("A total of %d rules apply to target branch %q", len(rules), pr.TargetBranch)
 	} else {
-		getLogger(ctx).Tracef("No rules apply to target branch %q", prTargetBranch)
-		return statusEventStatusSuccess, statusEventDescriptionNoRulesForTargetBranch, nil, nil, nil
+		approval.log.Tracef("No rules apply to target branch %q", pr.TargetBranch)
+		status := &Result{
+			status:      StatusEventStatusSuccess,
+			description: statusEventDescriptionNoRulesForTargetBranch,
+		}
+
+		return status, nil
 	}
 
 	// Grab the list of teams under the current organisation.
-	teams, err := c.getTeams(ownerLogin)
+	teams, err := approval.client.GetTeams(ctx, pr.OwnerLogin)
 	if err != nil {
-		return "", "", nil, nil, err
+		return nil, err
 	}
 
-	commits, err := c.getPRCommits(ownerLogin, repoName, prNumber)
+	commits, err := approval.client.GetPRCommits(ctx, pr.OwnerLogin, pr.RepoName, pr.Number)
 	if err != nil {
-		return "", "", nil, nil, err
+		return nil, err
 	}
 
 	// Grab the list of all the reviews for the current PR.
-	reviews, err := c.getPullRequestReviews(ownerLogin, repoName, prNumber)
+	reviews, err := approval.client.GetPullRequestReviews(ctx, pr.OwnerLogin, pr.RepoName, pr.Number)
 	if err != nil {
-		return "", "", nil, nil, err
+		return nil, err
 	}
+
+	state := newState()
 
 	// Copy all labels not owned by ourselves from the "initialLabels" slice into "finalLabels" so we can update the latter with the final set of labels as we go.
-	for _, label := range initialLabels {
+	for _, label := range pr.InitialLabels {
 		if !strings.HasPrefix(label, pullRequestLabelPrefix) {
-			finalLabels = appendIfMissing(finalLabels, label)
+			state.addLabel(label)
 		}
 	}
-
-	var (
-		// approvingTeamNames will hold the names of the teams that have approved the current PR.
-		approvingTeamNames = make([]string, 0, 0)
-		// forceApproval is used to check whether we must forcibly approve the PR (as defined by at least one rule).
-		forceApproval bool
-		// pendingTeamNames will hold the names of the teams that haven't approved the current PR yet.
-		pendingTeamNames = make([]string, 0, 0)
-		// rulesMatched will hold the total number of rules matched.
-		rulesMatched = 0
-
-		// Reviewers who have committed to the PR as well thus dismissed as allowed reviewers
-		dismissedReviewers []string
-	)
 
 	// Check if each required team has approved the pull request.
 	for _, rule := range rules {
 		// Check whether the pull request's body matches the aforementioned regex (ignoring case).
 		var prBodyMatch bool
 		if rule.Regex != "" {
-			prBodyMatch, err = regexp.MatchString(fmt.Sprintf("(?i)%s", rule.Regex), prBody)
+			prBodyMatch, err = regexp.MatchString(fmt.Sprintf("(?i)%s", rule.Regex), pr.Body)
 			if err != nil {
-				return "", "", nil, nil, err
+				return nil, err
 			}
 		}
 		// check whether there is a rule on a directory and it has changed
 		var matchedDirectories []string
 		for _, directory := range rule.Directories {
-			commitFiles, err := c.getPullRequestCommitFiles(ownerLogin, repoName, prNumber)
+			commitFiles, err := approval.client.GetPullRequestCommitFiles(ctx, pr.OwnerLogin, pr.RepoName, pr.Number)
 			if err != nil {
-				return "", "", nil, nil, fmt.Errorf("directory match: get pull request commit files: %v", err)
+				return nil, fmt.Errorf("directory match: get pull request commit files: %w", err)
 			}
 			directoryMatched, err := isDirectoryChanged(directory, commitFiles)
 			if err != nil {
-				return "", "", nil, nil, fmt.Errorf("directory match: is directory changed: %v", err)
+				return nil, fmt.Errorf("directory match: is directory changed: %w", err)
 			}
 			if directoryMatched {
 				matchedDirectories = append(matchedDirectories, directory)
@@ -92,36 +130,36 @@ func computeApprovalStatus(ctx context.Context, c *client, ownerLogin, repoName 
 		}
 
 		// check whether there is a rule on a label and it matches
-		prLabelMatch, err := isRegexLabelMatched(c, ownerLogin, repoName, prNumber, rule.RegexLabel)
+		prLabelMatch, err := approval.isRegexLabelMatched(ctx, pr.OwnerLogin, pr.RepoName, pr.Number, rule.RegexLabel)
 		if err != nil {
-			return "", "", nil, nil, err
+			return nil, err
 		}
 
 		if !prBodyMatch && len(matchedDirectories) == 0 && !prLabelMatch {
-			getLogger(ctx).Tracef("PR doesn't match regular expression %q, directory %q or label regular expression %q", rule.Regex, rule.Directories, rule.RegexLabel)
+			approval.log.Tracef("PR doesn't match regular expression %q, directory %q or label regular expression %q", rule.Regex, rule.Directories, rule.RegexLabel)
 			continue
 		}
 		if prBodyMatch {
-			getLogger(ctx).Tracef("PR matches regular expression %q", rule.Regex)
+			approval.log.Tracef("PR matches regular expression %q", rule.Regex)
 		}
 		if len(matchedDirectories) > 0 {
-			getLogger(ctx).Tracef("PR matches directory %q", strings.Join(matchedDirectories, ", "))
+			approval.log.Tracef("PR matches directory %q", strings.Join(matchedDirectories, ", "))
 		}
 		if prLabelMatch {
-			getLogger(ctx).Tracef("PR matches label regular expression %q", rule.RegexLabel)
+			approval.log.Tracef("PR matches label regular expression %q", rule.RegexLabel)
 		}
-		rulesMatched += 1
+		state.incRulesMatched()
 
 		// Add the current label to the set of final labels.
 		for _, label := range rule.Labels {
 			if label != "" {
-				finalLabels = appendIfMissing(finalLabels, pullRequestLabelPrefix+label)
+				state.addLabel(fmt.Sprintf("%s%s", pullRequestLabelPrefix, label))
 			}
 		}
 
 		// Forcibly approve the PR in case the current check is configured to do so.
 		if rule.ForceApproval {
-			forceApproval = true
+			state.forceApproval = true
 		}
 
 		approvingTeamNamesForRule, pendingTeamNamesForRule := make([]string, 0, 0), make([]string, 0, 0)
@@ -130,12 +168,12 @@ func computeApprovalStatus(ctx context.Context, c *client, ownerLogin, repoName 
 		for _, handle := range rule.ApprovingTeamHandles {
 			teamName, err := getTeamNameFromTeamHandle(teams, handle)
 			if err != nil {
-				return "", "", nil, nil, err
+				return nil, err
 			}
 			// Grab the list of members on the current approving team.
-			members, err := c.getTeamMembers(teams, ownerLogin, teamName)
+			members, err := approval.client.GetTeamMembers(ctx, teams, pr.OwnerLogin, teamName)
 			if err != nil {
-				return "", "", nil, nil, err
+				return nil, err
 			}
 
 			allowed, dismissed := splitMembers(members, commits)
@@ -143,19 +181,19 @@ func computeApprovalStatus(ctx context.Context, c *client, ownerLogin, repoName 
 			// Check whether the current team has approved the PR.
 			if approvalCount := countApprovalsForTeam(reviews, allowed); approvalCount >= 1 {
 				// Add the current team to the list of approving teams.
-				getLogger(ctx).Tracef("Team %q has approved!", teamName)
+				approval.log.Tracef("Team %q has approved!", teamName)
 				approvingTeamNamesForRule = appendIfMissing(approvingTeamNamesForRule, teamName)
 			} else {
 				// Add the current team to the slice of pending teams.
-				getLogger(ctx).Tracef("Team %q hasn't approved yet", teamName)
+				approval.log.Tracef("Team %q hasn't approved yet", teamName)
 				pendingTeamNamesForRule = appendIfMissing(pendingTeamNamesForRule, teamName)
-				dismissedReviewers = uniqueAppend(dismissedReviewers, dismissed)
+				state.addDismissedReviewers(dismissed)
 			}
 		}
 
 		// Add the names of the teams that have approved to the set of approving teams.
 		for _, n := range approvingTeamNamesForRule {
-			approvingTeamNames = appendIfMissing(approvingTeamNames, n)
+			state.addApprovingTeamNames(n)
 		}
 		// If the approval mode is "require_any" and there's at least one approval, skip requesting additional reviews.
 		if rule.ApprovalMode == configuration.ApprovalModeRequireAny && len(approvingTeamNamesForRule) > 0 {
@@ -163,51 +201,32 @@ func computeApprovalStatus(ctx context.Context, c *client, ownerLogin, repoName 
 		}
 		// Add the names of the teams that haven't approved yet to the set of pending teams.
 		for _, n := range pendingTeamNamesForRule {
-			pendingTeamNames = appendIfMissing(pendingTeamNames, n)
+			state.addPendingTeamNames(n)
 		}
 	}
 
-	// Compute the final status based on whether all required approvals have been met.
-	switch {
-	case rulesMatched == 0:
-		// No rules have been matched, which represents an error.
-		description = statusEventDescriptionNoRulesMatched
-		status = statusEventStatusPending
-	case forceApproval:
-		// The PR is being forcibly approved.
-		description = statusEventDescriptionForciblyApproved
-		status = statusEventStatusSuccess
-	case len(pendingTeamNames) > 0:
-		// At least one team must still approve the PR before it goes green.
-		description = fmt.Sprintf(statusEventDescriptionPendingFormatString, strings.Join(pendingTeamNames, "\n"))
-		status = statusEventStatusPending
-		if err := c.reportDismissedReviews(ownerLogin, repoName, prNumber, dismissedReviewers); err != nil {
-			return "", "", nil, nil, err
+	result := state.result(approval.log, teams) // state should not be consumed past this point
+
+	if result.pendingReviewsWaiting() {
+		err := approval.client.ReportDismissedReviews(
+			ctx, pr.OwnerLogin, pr.RepoName, pr.Number, result.dismissedReviewers)
+		if err != nil {
+			return nil, err
 		}
-	case len(pendingTeamNames) == 0 && len(approvingTeamNames) == 0:
-		// No teams have been identified as having to be requested for a review.
-		// NOTE: This should not really happen in practice.
-		description = statusEventDescriptionNoReviewsRequested
-		status = statusEventStatusSuccess
-	default:
-		// The PR has been approved either by all or at least one of the approving teams.
-		description = fmt.Sprintf(statusEventDescriptionApprovedFormatString, strings.Join(approvingTeamNames, "\n"))
-		status = statusEventStatusSuccess
-		// Avoid requesting additional reviews.
-		pendingTeamNames = make([]string, 0, 0)
 	}
-	return status, truncate(description, statusEventDescriptionMaxLength), finalLabels, computeReviewsToRequest(ctx, teams, pendingTeamNames), nil
+
+	return result, nil
 }
 
-func isRegexLabelMatched(c *client, ownerLogin, repoName string, prNumber int, regexLabel string) (bool, error) {
+func (approval *Approval) isRegexLabelMatched(ctx context.Context, ownerLogin, repoName string, prNumber int, regexLabel string) (bool, error) {
 
 	if regexLabel == "" {
 		return false, nil
 	}
 
-	labels, err := c.getLabels(ownerLogin, repoName, prNumber)
+	labels, err := approval.client.GetLabels(ctx, ownerLogin, repoName, prNumber)
 	if err != nil {
-		return false, fmt.Errorf("regex label match: get PR labels: %v", err)
+		return false, fmt.Errorf("regex label match: get PR labels: %w", err)
 	}
 
 	for _, label := range labels {
@@ -259,7 +278,7 @@ func contentsUrlToRelDir(contentsUrl string) (string, error) {
 
 	u, err := url.Parse(contentsUrl)
 	if err != nil {
-		return "", fmt.Errorf("cannot parse contents url: %v", err)
+		return "", fmt.Errorf("cannot parse contents url: %w", err)
 	}
 
 	pathParts := strings.Split(strings.Trim(u.Path, "/"), "/")
@@ -272,28 +291,16 @@ func contentsUrlToRelDir(contentsUrl string) (string, error) {
 	return strings.Join(pathParts[3:len(pathParts)-1], "/"), nil
 }
 
-func computeReviewsToRequest(ctx context.Context, teams []*github.Team, pendingTeams []string) (reviewsToRequest []string) {
-	for _, pendingTeam := range pendingTeams {
-		for _, team := range teams {
-			if pendingTeam == team.GetName() {
-				reviewsToRequest = appendIfMissing(reviewsToRequest, team.GetSlug())
-			}
-		}
-	}
-	getLogger(ctx).Tracef("Reviews will be requested from the following teams: %v", reviewsToRequest)
-	return
-}
-
-func computeRulesForTargetBranch(c *client, ownerLogin, repoName, targetBranch string) ([]configuration.Rule, error) {
+func (approval *Approval) computeRulesForTargetBranch(ctx context.Context, pr *PR) ([]configuration.Rule, error) {
 	// Get the configuration for approvals in the current repository.
-	cfg, err := c.getConfiguration(ownerLogin, repoName)
+	cfg, err := approval.client.GetConfiguration(ctx, pr.OwnerLogin, pr.RepoName)
 	if err != nil {
 		return nil, err
 	}
 	// Compute the set of rules that applies to the target branch.
 	var rules []configuration.Rule
 	for _, prCfg := range cfg.PullRequestApprovalRules {
-		if len(prCfg.TargetBranches) == 0 || indexOf(prCfg.TargetBranches, targetBranch) >= 0 {
+		if len(prCfg.TargetBranches) == 0 || indexOf(prCfg.TargetBranches, pr.TargetBranch) >= 0 {
 			rules = append(rules, prCfg.Rules...)
 		}
 	}
@@ -352,7 +359,7 @@ func splitMembers(members []*github.User, commits []*github.RepositoryCommit) ([
 
 	for _, m := range members {
 		login := m.GetLogin()
-		if _, ok := authors[m.GetLogin()]; !ok {
+		if _, ok := authors[login]; !ok {
 			allowed = append(allowed, login)
 		} else {
 			dismissed = append(dismissed, login)
