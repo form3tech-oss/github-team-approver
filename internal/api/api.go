@@ -103,9 +103,13 @@ func (api *Api) setGitHubAppSecret() {
 }
 
 func (api *Api) setIgnoredRepositories() {
-	// Parse the list of ignored repositories.
-	// TODO handle the strip better, leaves "" element when empty
-	ignored := strings.Split(os.Getenv(envIgnoredRepositories), ",")
+	v, ok := os.LookupEnv(envIgnoredRepositories)
+	if !ok {
+		api.ignoredRepositories = []string{}
+		return
+	}
+
+	ignored := strings.Split(v, ",")
 	api.ignoredRepositories = ignored
 }
 
