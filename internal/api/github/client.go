@@ -12,7 +12,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/bradleyfalzon/ghinstallation"
@@ -28,18 +27,15 @@ const (
 	// defaultGitHubOperationTimeout is the maximum duration of requests against the GitHub API.
 	defaultGitHubOperationTimeout = 15 * time.Second
 
-	envGitHubStatusName                = "GITHUB_STATUS_NAME"
-	envUseCachingTransport             = "USE_CACHING_TRANSPORT"
-	envGitHubBaseURL                   = "GITHUB_BASE_URL"
-	envGitHubAppId                     = "GITHUB_APP_ID"
-	envGitHubAppInstallationId         = "GITHUB_APP_INSTALLATION_ID"
-	envGitHubAppPrivateKeyPath         = "GITHUB_APP_PRIVATE_KEY_PATH"
+	envGitHubStatusName        = "GITHUB_STATUS_NAME"
+	envUseCachingTransport     = "USE_CACHING_TRANSPORT"
+	envGitHubBaseURL           = "GITHUB_BASE_URL"
+	envGitHubAppId             = "GITHUB_APP_ID"
+	envGitHubAppInstallationId = "GITHUB_APP_INSTALLATION_ID"
+	envGitHubAppPrivateKeyPath = "GITHUB_APP_PRIVATE_KEY_PATH"
 )
 
 var (
-	clientInstance *Client
-	once           sync.Once
-
 	ErrNoConfigurationFile = errors.New("no configuration file exists in the source repository")
 )
 
@@ -282,7 +278,6 @@ func (c *Client) deletePRComment(ctx context.Context, owner, repo string, commen
 	return resp, nil
 }
 
-
 func (c *Client) getPRComments(ctx context.Context, owner, repo string, prNumber int) ([]*github.IssueComment, error) {
 	var comments []*github.IssueComment
 
@@ -389,28 +384,25 @@ func alwaysStale(_ http.Request, _ http.Response) httpcache.Freshness {
 	return httpcache.Stale
 }
 
-func Get(store secret.Store) *Client {
-	once.Do(func() {
-		var (
-			baseTransport http.RoundTripper
-		)
-		if v, err := strconv.ParseBool(os.Getenv(envUseCachingTransport)); err == nil && v {
-			t := httpcache.NewMemoryCacheTransport()
-			t.FreshnessFunc = alwaysStale
-			baseTransport = t
-		} else {
-			baseTransport = http.DefaultTransport
-		}
-		clientInstance = &Client{
-			githubClient: github.NewClient(&http.Client{
-				Transport: maybeWrapInAuthenticatingTransport(baseTransport, store),
-			}),
-		}
-		if v := os.Getenv(envGitHubBaseURL); v != "" {
-			clientInstance.githubClient.BaseURL = mustParseURL(v)
-		}
-	})
-	return clientInstance
+func New(store secret.Store) *Client {
+	var baseTransport http.RoundTripper
+
+	if v, err := strconv.ParseBool(os.Getenv(envUseCachingTransport)); err == nil && v {
+		t := httpcache.NewMemoryCacheTransport()
+		t.FreshnessFunc = alwaysStale
+		baseTransport = t
+	} else {
+		baseTransport = http.DefaultTransport
+	}
+	client := &Client{
+		githubClient: github.NewClient(&http.Client{
+			Transport: maybeWrapInAuthenticatingTransport(baseTransport, store),
+		}),
+	}
+	if v := os.Getenv(envGitHubBaseURL); v != "" {
+		client.githubClient.BaseURL = mustParseURL(v)
+	}
+	return client
 }
 
 func maybeWrapInAuthenticatingTransport(baseTransport http.RoundTripper, store secret.Store) http.RoundTripper {

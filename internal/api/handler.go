@@ -90,7 +90,7 @@ func (api *Api) Handle(w http.ResponseWriter, req *http.Request) {
 		sendHttpNoContentResponse(w)
 		return
 	}
-	client := ghclient.Get(api.SecretStore)
+	client := ghclient.New(api.SecretStore)
 
 	// TODO once we switch to Gin, use ginContext
 	ctx := context.Background()
