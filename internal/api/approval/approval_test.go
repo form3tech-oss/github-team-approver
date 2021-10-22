@@ -138,8 +138,8 @@ func TestSplitMembers(t *testing.T) {
 	tests := map[string]struct {
 		commits   []*github.RepositoryCommit
 		members   []*github.User
-		allowed   []string
-		dismissed []string
+		allowed []string
+		ignored []string
 	}{
 		"When no member is an author in PR": {
 			[]*github.RepositoryCommit{
@@ -198,9 +198,9 @@ func TestSplitMembers(t *testing.T) {
 	for name, tt := range tests {
 		t.Run(name,
 			func(t *testing.T) {
-				gotAllowed, gotDismissed := splitMembers(tt.members, tt.commits)
+				gotAllowed, gotIgnored := splitMembers(tt.members, tt.commits)
 				require.Equal(t, gotAllowed, tt.allowed)
-				require.Equal(t, gotDismissed, tt.dismissed)
+				require.Equal(t, gotIgnored, tt.ignored)
 			})
 	}
 }

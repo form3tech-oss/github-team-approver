@@ -19,7 +19,7 @@ const (
 	botName                = "github-team-approver"
 	httpHeaderXFinalStatus = "X-Final-Status"
 
-	dismissedMessage = "Following reviewers have been dismissed as they are also authors in the PR:"
+	ignoredReviewerMsg = "Following reviewers have been ignored as they are also authors in the PR:"
 )
 
 type ApiStage struct {
@@ -237,8 +237,8 @@ func (s *ApiStage) NoCommentsExist() *ApiStage {
 	return s
 }
 
-func (s *ApiStage) DismissedCommentsExist() *ApiStage {
-	msg := fmt.Sprintf("%s\n- @%s\n", dismissedMessage, "some user")
+func (s *ApiStage) IgnoredReviewCommentsExist() *ApiStage {
+	msg := fmt.Sprintf("%s\n- @%s\n", ignoredReviewerMsg, "some user")
 	comments := []*github.IssueComment{
 		{
 			ID:   github.Int64(1),
@@ -352,11 +352,11 @@ func (s *ApiStage) ExpectedReviewRequestsMadeForFoo() *ApiStage {
 	return s
 }
 
-func (s *ApiStage) ExpectCommentAliceDismissedAsReviewer() *ApiStage {
+func (s *ApiStage) ExpectCommentAliceIgnoredAsReviewer() *ApiStage {
 	comment := s.fakeGitHub.ReportedComment()
 	require.NotNil(s.t, comment)
 	require.NotEmpty(s.t, comment.Body)
-	require.Contains(s.t, *comment.Body, dismissedMessage)
+	require.Contains(s.t, *comment.Body, ignoredReviewerMsg)
 	require.Contains(s.t, *comment.Body, "alice")
 
 	return s
@@ -374,7 +374,7 @@ func (s *ApiStage) ExpectNoReviewRequestsMade() *ApiStage {
 	return s
 }
 
-func (s *ApiStage) ExpectPreviousDismissedCommentsDeleted() *ApiStage {
+func (s *ApiStage) ExpectPreviousIgnoredReviewCommentsDeleted() *ApiStage {
 	require.Empty(s.t, s.fakeGitHub.Comments())
 
 	return s

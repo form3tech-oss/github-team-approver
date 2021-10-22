@@ -215,14 +215,14 @@ func (c *Client) ReportStatus(ctx context.Context, ownerLogin, repoName, statuse
 	return nil
 }
 
-func (c *Client) ReportDismissedReviews(ctx context.Context, owner, repo string, prNumber int, reviewers []string) error {
+func (c *Client) ReportIgnoredReviews(ctx context.Context, owner, repo string, prNumber int, reviewers []string) error {
 	if len(reviewers) == 0 {
 		return nil
 	}
 
-	title := "Following reviewers have been dismissed as they are also authors in the PR:\n"
+	title := "Following reviewers have been ignored as they are also authors in the PR:\n"
 
-	err := c.removeOldDismissedComments(ctx, owner, repo, prNumber, title)
+	err := c.removeOldBotComments(ctx, owner, repo, prNumber, title)
 	if err != nil {
 		return err
 	}
@@ -243,13 +243,13 @@ func (c *Client) ReportDismissedReviews(ctx context.Context, owner, repo string,
 	// not commenting on a given line in a specific commit
 	_, _, err = c.githubClient.Issues.CreateComment(ctxTimeout, owner, repo, prNumber, payload)
 	if err != nil {
-		return fmt.Errorf("reportDismissedReviews: %w", err)
+		return fmt.Errorf("reportIgnoredReviews: %w", err)
 	}
 
 	return nil
 }
 
-func (c *Client) removeOldDismissedComments(ctx context.Context, owner, repo string, prNumber int, title string) error {
+func (c *Client) removeOldBotComments(ctx context.Context, owner, repo string, prNumber int, title string) error {
 	comments, err := c.getPRComments(ctx, owner, repo, prNumber)
 	if err != nil {
 		return err

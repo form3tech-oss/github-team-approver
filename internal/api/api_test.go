@@ -90,7 +90,7 @@ func TestWhenReviewApproverIsAContributor(t *testing.T) {
 	then.
 		ExpectPendingAnswerReturned().
 		ExpectStatusPendingReported().
-		ExpectCommentAliceDismissedAsReviewer().
+		ExpectCommentAliceIgnoredAsReviewer().
 		ExpectLabelsUpdated().
 		ExpectedReviewRequestsMadeForFoo()
 }
@@ -118,7 +118,7 @@ func TestWhenReviewApproverIsNotAContributor(t *testing.T) {
 		ExpectNoReviewRequestsMade()
 }
 
-func TestGitHubTeamApproverCleansUpOldDismissedComments(t *testing.T) {
+func TestGitHubTeamApproverCleansUpOldIgnoredReviewsComments(t *testing.T) {
 	given, when, then := stages.ApiTest(t)
 
 	given.
@@ -128,7 +128,7 @@ func TestGitHubTeamApproverCleansUpOldDismissedComments(t *testing.T) {
 		OrganisationWithTeamFoo().
 		RepoWithFooAsApprovingTeam().
 		PullRequestExists().
-		DismissedCommentsExist().
+		IgnoredReviewCommentsExist().
 		CommitsWithAliceAsContributor().
 		AliceApprovesPullRequest().
 		GitHubTeamApproverRunning()
@@ -137,8 +137,8 @@ func TestGitHubTeamApproverCleansUpOldDismissedComments(t *testing.T) {
 	then.
 		ExpectPendingAnswerReturned().
 		ExpectStatusPendingReported().
-		ExpectPreviousDismissedCommentsDeleted().
-		ExpectCommentAliceDismissedAsReviewer().
+		ExpectPreviousIgnoredReviewCommentsDeleted().
+		ExpectCommentAliceIgnoredAsReviewer().
 		ExpectLabelsUpdated().
 		ExpectedReviewRequestsMadeForFoo()
 }

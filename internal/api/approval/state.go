@@ -27,8 +27,8 @@ type state struct {
 	approvingTeamNames []string
 	// pendingTeamNames will hold the names of the teams that haven't approved the current PR yet.
 	pendingTeamNames []string
-	// Reviewers who have committed to the PR as well thus dismissed as allowed reviewers
-	dismissedReviewers []string
+	// Reviewers who have committed to the PR as well thus ignored as allowed reviewers
+	ignoredReviewers []string
 }
 
 func newState() *state {
@@ -51,14 +51,14 @@ func (s *state) addPendingTeamNames(name string) {
 	s.pendingTeamNames = appendIfMissing(s.pendingTeamNames, name)
 }
 
-func (s *state) addDismissedReviewers(dismissed []string) {
-	s.dismissedReviewers = uniqueAppend(s.dismissedReviewers, dismissed)
+func (s *state) addIgnoredReviewers(reviewers []string) {
+	s.ignoredReviewers = uniqueAppend(s.ignoredReviewers, reviewers)
 }
 
 func (s *state) result(log *log.Entry, teams []*github.Team) *Result {
 	result := &Result{
-		finalLabels:        s.labels,
-		dismissedReviewers: s.dismissedReviewers,
+		finalLabels:      s.labels,
+		ignoredReviewers: s.ignoredReviewers,
 	}
 
 	// Compute the final status based on whether all required approvals have been met.

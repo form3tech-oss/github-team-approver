@@ -176,7 +176,7 @@ func (approval *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*R
 				return nil, err
 			}
 
-			allowed, dismissed := splitMembers(members, commits)
+			allowed, ignored := splitMembers(members, commits)
 
 			// Check whether the current team has approved the PR.
 			if approvalCount := countApprovalsForTeam(reviews, allowed); approvalCount >= 1 {
@@ -187,7 +187,7 @@ func (approval *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*R
 				// Add the current team to the slice of pending teams.
 				approval.log.Tracef("Team %q hasn't approved yet", teamName)
 				pendingTeamNamesForRule = appendIfMissing(pendingTeamNamesForRule, teamName)
-				state.addDismissedReviewers(dismissed)
+				state.addIgnoredReviewers(ignored)
 			}
 		}
 
@@ -208,8 +208,8 @@ func (approval *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*R
 	result := state.result(approval.log, teams) // state should not be consumed past this point
 
 	if result.pendingReviewsWaiting() {
-		err := approval.client.ReportDismissedReviews(
-			ctx, pr.OwnerLogin, pr.RepoName, pr.Number, result.dismissedReviewers)
+		err := approval.client.ReportIgnoredReviews(
+			ctx, pr.OwnerLogin, pr.RepoName, pr.Number, result.ignoredReviewers)
 		if err != nil {
 			return nil, err
 		}
@@ -355,16 +355,16 @@ func splitMembers(members []*github.User, commits []*github.RepositoryCommit) ([
 		authors[c.GetCommitter().GetLogin()] = true
 	}
 
-	var allowed, dismissed []string
+	var allowed, ignored []string
 
 	for _, m := range members {
 		login := m.GetLogin()
 		if _, ok := authors[login]; !ok {
 			allowed = append(allowed, login)
 		} else {
-			dismissed = append(dismissed, login)
+			ignored = append(ignored, login)
 		}
 	}
 
-	return allowed, dismissed
+	return allowed, ignored
 }

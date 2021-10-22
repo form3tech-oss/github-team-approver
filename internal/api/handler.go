@@ -92,7 +92,6 @@ func (api *Api) Handle(w http.ResponseWriter, req *http.Request) {
 	}
 	client := ghclient.New(api.SecretStore)
 
-	// TODO once we switch to Gin, use ginContext
 	ctx := context.Background()
 	if isPrMergeEvent(event) {
 		mergeHandler := NewMergeEventHandler(api, log, client)

@@ -13,7 +13,7 @@ import (
 
 func (f *FakeGitHub) commentsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
-		f.reportDismissedHandler(w, r)
+		f.postCommentHandler(w, r)
 		return
 	}
 
@@ -30,7 +30,7 @@ func (f *FakeGitHub) commentsHandler(w http.ResponseWriter, r *http.Request) {
 	require.NoError(f.t, err)
 }
 
-func (f *FakeGitHub) reportDismissedHandler(w http.ResponseWriter, r *http.Request) {
+func (f *FakeGitHub) postCommentHandler(w http.ResponseWriter, r *http.Request) {
 	var comment *github.IssueComment
 	payload, err := ioutil.ReadAll(r.Body)
 	require.NoError(f.t, err)
