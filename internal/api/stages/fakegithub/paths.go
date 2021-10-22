@@ -2,7 +2,7 @@ package fakegithub
 
 import "fmt"
 
-func (f *FakeGitHub) repoURL() string {
+func (f *FakeGitHub) RepoURL() string {
 	return fmt.Sprintf("%s/%s", f.URL(), f.repoFullName())
 }
 

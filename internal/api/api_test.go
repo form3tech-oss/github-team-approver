@@ -30,6 +30,25 @@ func TestWhenSendingUnsupportedEvent(t *testing.T) {
 		StatusNoContentReturned()
 }
 
+func TestWhenRepoLacksConfigurationFile(t *testing.T) {
+	given, when, then := stages.ApiTest(t)
+
+	given.
+		EncryptionKeyExists().
+		GitHubWebHookTokenExists().
+		FakeGHRunning().
+		OrganisationWithTeamFoo().
+		RepoWithoutConfigurationFile().
+		PullRequestExists().
+		GitHubTeamApproverRunning()
+	when.
+		SendingApprovedPRReviewSubmittedEvent()
+	then.
+		StatusNoContentReturned().
+		ExpectNoReviewRequestsMade().
+		ExpectNoCommentsMade()
+}
+
 func TestWhenEventIsForIgnoredRepository(t *testing.T) {
 	given, when, then := stages.ApiTest(t)
 

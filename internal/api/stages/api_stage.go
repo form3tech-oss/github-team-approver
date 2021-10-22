@@ -114,6 +114,24 @@ func (s *ApiStage) RepoWithFooAsApprovingTeam() *ApiStage {
 		},
 	}
 	s.fakeGitHub.SetRepo(repo)
+	s.fakeGitHub.SetRepoContents([]*github.RepositoryContent{
+		{
+			Name:        github.String("GITHUB_TEAM_APPROVER.yaml"),
+			DownloadURL: github.String(fmt.Sprintf("%s/master/%s", s.fakeGitHub.RepoURL(), approverCfg.ConfigurationFilePath)),
+		},
+	})
+
+	return s
+}
+
+func (s *ApiStage) RepoWithoutConfigurationFile() *ApiStage {
+	require.NotNil(s.t, s.fakeGitHub.Org())
+
+	repo := &fakegithub.Repo{
+		Name: "some-service",
+	}
+	s.fakeGitHub.SetRepo(repo)
+	s.fakeGitHub.SetRepoContents([]*github.RepositoryContent{})
 
 	return s
 }
@@ -166,8 +184,8 @@ func (s *ApiStage) ExpectSuccessAnswerReturned() *ApiStage {
 
 func (s *ApiStage) setupEnv(k, v string) {
 	s.t.Cleanup(func() {
-			err := os.Unsetenv(k)
-			require.NoError(s.t, err)
+		err := os.Unsetenv(k)
+		require.NoError(s.t, err)
 	})
 	err := os.Setenv(k, v)
 	require.NoError(s.t, err)

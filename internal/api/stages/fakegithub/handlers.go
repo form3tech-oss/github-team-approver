@@ -2,8 +2,6 @@ package fakegithub
 
 import (
 	"encoding/json"
-	"fmt"
-	approverCfg "github.com/form3tech-oss/github-team-approver-commons/pkg/configuration"
 	"github.com/google/go-github/v28/github"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/require"
@@ -17,14 +15,8 @@ func (f *FakeGitHub) contentsHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	list := []*github.RepositoryContent{
-		{
-			Name:        github.String("GITHUB_TEAM_APPROVER.yaml"),
-			DownloadURL: github.String(fmt.Sprintf("%s/master/%s", f.repoURL(), approverCfg.ConfigurationFilePath)),
-		},
-	}
 
-	payload, err := json.Marshal(list)
+	payload, err := json.Marshal(f.repoContents)
 	require.NoError(f.t, err)
 
 	w.Header().Set("Content-Type", "application/json")
