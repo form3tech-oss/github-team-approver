@@ -58,17 +58,17 @@ func NewPR(ownerLogin, repoName, targetBranch, body string, number int, labels [
 	}
 }
 
-func (approval *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, error) {
+func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, error) {
 	// Compute the set of rules that applies to the target branch.
-	approval.log.Tracef("Computing the set of rules that applies to target branch %q", pr.TargetBranch)
-	rules, err := approval.computeRulesForTargetBranch(ctx, pr)
+	a.log.Tracef("Computing the set of rules that applies to target branch %q", pr.TargetBranch)
+	rules, err := a.computeRulesForTargetBranch(ctx, pr)
 	if err != nil {
 		return nil, err
 	}
 	if len(rules) > 0 {
-		approval.log.Tracef("A total of %d rules apply to target branch %q", len(rules), pr.TargetBranch)
+		a.log.Tracef("A total of %d rules apply to target branch %q", len(rules), pr.TargetBranch)
 	} else {
-		approval.log.Tracef("No rules apply to target branch %q", pr.TargetBranch)
+		a.log.Tracef("No rules apply to target branch %q", pr.TargetBranch)
 		status := &Result{
 			status:      StatusEventStatusSuccess,
 			description: statusEventDescriptionNoRulesForTargetBranch,
@@ -78,18 +78,18 @@ func (approval *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*R
 	}
 
 	// Grab the list of teams under the current organisation.
-	teams, err := approval.client.GetTeams(ctx, pr.OwnerLogin)
+	teams, err := a.client.GetTeams(ctx, pr.OwnerLogin)
 	if err != nil {
 		return nil, err
 	}
 
-	commits, err := approval.client.GetPRCommits(ctx, pr.OwnerLogin, pr.RepoName, pr.Number)
+	commits, err := a.client.GetPRCommits(ctx, pr.OwnerLogin, pr.RepoName, pr.Number)
 	if err != nil {
 		return nil, err
 	}
 
 	// Grab the list of all the reviews for the current PR.
-	reviews, err := approval.client.GetPullRequestReviews(ctx, pr.OwnerLogin, pr.RepoName, pr.Number)
+	reviews, err := a.client.GetPullRequestReviews(ctx, pr.OwnerLogin, pr.RepoName, pr.Number)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func (approval *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*R
 		// check whether there is a rule on a directory and it has changed
 		var matchedDirectories []string
 		for _, directory := range rule.Directories {
-			commitFiles, err := approval.client.GetPullRequestCommitFiles(ctx, pr.OwnerLogin, pr.RepoName, pr.Number)
+			commitFiles, err := a.client.GetPullRequestCommitFiles(ctx, pr.OwnerLogin, pr.RepoName, pr.Number)
 			if err != nil {
 				return nil, fmt.Errorf("directory match: get pull request commit files: %w", err)
 			}
@@ -130,23 +130,23 @@ func (approval *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*R
 		}
 
 		// check whether there is a rule on a label and it matches
-		prLabelMatch, err := approval.isRegexLabelMatched(ctx, pr.OwnerLogin, pr.RepoName, pr.Number, rule.RegexLabel)
+		prLabelMatch, err := a.isRegexLabelMatched(ctx, pr.OwnerLogin, pr.RepoName, pr.Number, rule.RegexLabel)
 		if err != nil {
 			return nil, err
 		}
 
 		if !prBodyMatch && len(matchedDirectories) == 0 && !prLabelMatch {
-			approval.log.Tracef("PR doesn't match regular expression %q, directory %q or label regular expression %q", rule.Regex, rule.Directories, rule.RegexLabel)
+			a.log.Tracef("PR doesn't match regular expression %q, directory %q or label regular expression %q", rule.Regex, rule.Directories, rule.RegexLabel)
 			continue
 		}
 		if prBodyMatch {
-			approval.log.Tracef("PR matches regular expression %q", rule.Regex)
+			a.log.Tracef("PR matches regular expression %q", rule.Regex)
 		}
 		if len(matchedDirectories) > 0 {
-			approval.log.Tracef("PR matches directory %q", strings.Join(matchedDirectories, ", "))
+			a.log.Tracef("PR matches directory %q", strings.Join(matchedDirectories, ", "))
 		}
 		if prLabelMatch {
-			approval.log.Tracef("PR matches label regular expression %q", rule.RegexLabel)
+			a.log.Tracef("PR matches label regular expression %q", rule.RegexLabel)
 		}
 		state.incRulesMatched()
 
@@ -171,7 +171,7 @@ func (approval *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*R
 				return nil, err
 			}
 			// Grab the list of members on the current approving team.
-			members, err := approval.client.GetTeamMembers(ctx, teams, pr.OwnerLogin, teamName)
+			members, err := a.client.GetTeamMembers(ctx, teams, pr.OwnerLogin, teamName)
 			if err != nil {
 				return nil, err
 			}
@@ -181,11 +181,11 @@ func (approval *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*R
 			// Check whether the current team has approved the PR.
 			if approvalCount := countApprovalsForTeam(reviews, allowed); approvalCount >= 1 {
 				// Add the current team to the list of approving teams.
-				approval.log.Tracef("Team %q has approved!", teamName)
+				a.log.Tracef("Team %q has approved!", teamName)
 				approvingTeamNamesForRule = appendIfMissing(approvingTeamNamesForRule, teamName)
 			} else {
 				// Add the current team to the slice of pending teams.
-				approval.log.Tracef("Team %q hasn't approved yet", teamName)
+				a.log.Tracef("Team %q hasn't approved yet", teamName)
 				pendingTeamNamesForRule = appendIfMissing(pendingTeamNamesForRule, teamName)
 				state.addIgnoredReviewers(ignored)
 			}
@@ -205,10 +205,10 @@ func (approval *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*R
 		}
 	}
 
-	result := state.result(approval.log, teams) // state should not be consumed past this point
+	result := state.result(a.log, teams) // state should not be consumed past this point
 
 	if result.pendingReviewsWaiting() {
-		err := approval.client.ReportIgnoredReviews(
+		err := a.client.ReportIgnoredReviews(
 			ctx, pr.OwnerLogin, pr.RepoName, pr.Number, result.ignoredReviewers)
 		if err != nil {
 			return nil, err
@@ -218,13 +218,13 @@ func (approval *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*R
 	return result, nil
 }
 
-func (approval *Approval) isRegexLabelMatched(ctx context.Context, ownerLogin, repoName string, prNumber int, regexLabel string) (bool, error) {
+func (a *Approval) isRegexLabelMatched(ctx context.Context, ownerLogin, repoName string, prNumber int, regexLabel string) (bool, error) {
 
 	if regexLabel == "" {
 		return false, nil
 	}
 
-	labels, err := approval.client.GetLabels(ctx, ownerLogin, repoName, prNumber)
+	labels, err := a.client.GetLabels(ctx, ownerLogin, repoName, prNumber)
 	if err != nil {
 		return false, fmt.Errorf("regex label match: get PR labels: %w", err)
 	}
@@ -291,9 +291,9 @@ func contentsUrlToRelDir(contentsUrl string) (string, error) {
 	return strings.Join(pathParts[3:len(pathParts)-1], "/"), nil
 }
 
-func (approval *Approval) computeRulesForTargetBranch(ctx context.Context, pr *PR) ([]configuration.Rule, error) {
+func (a *Approval) computeRulesForTargetBranch(ctx context.Context, pr *PR) ([]configuration.Rule, error) {
 	// Get the configuration for approvals in the current repository.
-	cfg, err := approval.client.GetConfiguration(ctx, pr.OwnerLogin, pr.RepoName)
+	cfg, err := a.client.GetConfiguration(ctx, pr.OwnerLogin, pr.RepoName)
 	if err != nil {
 		return nil, err
 	}
