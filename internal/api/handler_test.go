@@ -145,7 +145,7 @@ func Test_Handle(t *testing.T) {
 			pacts:          []pacttesting.Pact{},
 		},
 		{
-			name: `PR review Submitted (requires approval from CAB, however, member of CAB committed to the PR thus PR not accepted)`,
+			name: `PR review Submitted (requires approval from CAB - FOO, a member of CAB - FOO contributed to the PR thus PR review isn't accepted)`,
 
 			eventType:      eventTypePullRequestReview,
 			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
@@ -160,7 +160,7 @@ func Test_Handle(t *testing.T) {
 			expectedFinalStatus: approval.StatusEventStatusPending,
 		},
 		{
-			name: `PR review Submitted (requires approval from CAB - FOO, alice is also an author while bob isn't thus PR accepted')`,
+			name: `PR review Submitted (requires approval from CAB - FOO, Alice and Bob are members of CAB - FOO, Alice is a contributor to PR, her review is ignored. Bob's review is accepted.')`,
 
 			eventType:      eventTypePullRequestReview,
 			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),

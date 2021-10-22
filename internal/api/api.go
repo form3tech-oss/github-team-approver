@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/form3tech-oss/github-team-approver/internal/api/aes"
+	"github.com/form3tech-oss/github-team-approver/internal/api/github"
 	"github.com/form3tech-oss/github-team-approver/internal/api/secret"
 	"github.com/form3tech-oss/logrus-logzio-hook/pkg/hook"
 	"github.com/logzio/logzio-go"
@@ -12,7 +13,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
 )
 
 const (
@@ -161,7 +161,7 @@ func (api *Api) startServer(address string, shutdown <-chan os.Signal, ready cha
 
 	<-shutdown
 	log.Infof("SIGINT or SIGTERM received, shutting server down")
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), github.DefaultGitHubOperationTimeout)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
 		log.WithError(err).Fatal("context forced to shutdown")

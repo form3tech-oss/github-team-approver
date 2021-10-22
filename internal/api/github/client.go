@@ -22,10 +22,12 @@ import (
 )
 
 const (
+	// DefaultGitHubOperationTimeout is the maximum duration of requests against the GitHub API.
+	DefaultGitHubOperationTimeout = 15 * time.Second
+
+
 	// defaultListOptionsPerPage is the number of items per page that we request by default from the GitHub API.
 	defaultListOptionsPerPage = 100
-	// defaultGitHubOperationTimeout is the maximum duration of requests against the GitHub API.
-	defaultGitHubOperationTimeout = 15 * time.Second
 
 	envGitHubStatusName        = "GITHUB_STATUS_NAME"
 	envUseCachingTransport     = "USE_CACHING_TRANSPORT"
@@ -45,7 +47,7 @@ type Client struct {
 
 func (c *Client) GetConfiguration(ctx context.Context, ownerLogin, repoName string) (*configuration.Configuration, error) {
 	// Try to download the contents of the configuration file.
-	ctxTimeout, fn := context.WithTimeout(ctx, defaultGitHubOperationTimeout)
+	ctxTimeout, fn := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
 	defer fn()
 	r, err := c.githubClient.Repositories.DownloadContents(ctxTimeout, ownerLogin, repoName, configuration.ConfigurationFilePath, nil)
 	if err != nil {
@@ -66,7 +68,7 @@ func (c *Client) GetConfiguration(ctx context.Context, ownerLogin, repoName stri
 func (c *Client) GetPullRequestReviews(ctx context.Context, ownerLogin, repoName string, prNumber int) ([]*github.PullRequestReview, error) {
 	reviews, nextPage := make([]*github.PullRequestReview, 0, 0), 1
 	for nextPage != 0 {
-		ctxTimeout, fn := context.WithTimeout(ctx, defaultGitHubOperationTimeout)
+		ctxTimeout, fn := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
 		r, res, err := c.githubClient.PullRequests.ListReviews(ctxTimeout, ownerLogin, repoName, prNumber, &github.ListOptions{
 			Page:    nextPage,
 			PerPage: defaultListOptionsPerPage,
@@ -90,7 +92,7 @@ func (c *Client) GetPullRequestCommitFiles(ctx context.Context, ownerLogin, repo
 
 	commitFiles, nextPage := make([]*github.CommitFile, 0, 0), 1
 	for nextPage != 0 {
-		ctxTimeout, fn := context.WithTimeout(ctx, defaultGitHubOperationTimeout)
+		ctxTimeout, fn := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
 		r, res, err := c.githubClient.PullRequests.ListFiles(ctxTimeout, ownerLogin, repoName, prNumber, &github.ListOptions{
 			Page:    nextPage,
 			PerPage: defaultListOptionsPerPage,
@@ -113,7 +115,7 @@ func (c *Client) GetTeams(ctx context.Context, organisation string) ([]*github.T
 	// Grab a list of all the teams in the organization.
 	teams, nextPage := make([]*github.Team, 0, 0), 1
 	for nextPage != 0 {
-		ctxTimeout, fn := context.WithTimeout(ctx, defaultGitHubOperationTimeout)
+		ctxTimeout, fn := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
 		t, res, err := c.githubClient.Teams.ListTeams(ctxTimeout, organisation, &github.ListOptions{
 			Page:    nextPage,
 			PerPage: defaultListOptionsPerPage,
@@ -134,7 +136,7 @@ func (c *Client) GetTeams(ctx context.Context, organisation string) ([]*github.T
 
 func (c *Client) GetPRCommits(ctx context.Context, owner, repo string, prNumber int) ([]*github.RepositoryCommit, error) {
 	var commits []*github.RepositoryCommit
-	ctxTimeout, fn := context.WithTimeout(ctx, defaultGitHubOperationTimeout)
+	ctxTimeout, fn := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
 	defer fn()
 
 	nextPage := 1
@@ -151,7 +153,7 @@ func (c *Client) GetPRCommits(ctx context.Context, owner, repo string, prNumber 
 }
 
 func (c *Client) getPRCommitsPage(ctx context.Context, owner, repo string, prNumber, page int) ([]*github.RepositoryCommit, int, error) {
-	ctxTimeout, cancel := context.WithTimeout(ctx, defaultGitHubOperationTimeout)
+	ctxTimeout, cancel := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
 	defer cancel()
 
 	commits, resp, err := c.githubClient.PullRequests.ListCommits(
@@ -180,7 +182,7 @@ func (c *Client) GetTeamMembers(ctx context.Context, teams []*github.Team, organ
 	// Grab a list of all the users in the target team.
 	users, nextPage := make([]*github.User, 0, 0), 1
 	for nextPage != 0 {
-		ctxTimeout, fn := context.WithTimeout(ctx, defaultGitHubOperationTimeout)
+		ctxTimeout, fn := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
 		m, res, err := c.githubClient.Teams.ListTeamMembers(ctxTimeout, team.GetID(), nil)
 		if err != nil {
 			fn()
@@ -203,7 +205,7 @@ func (c *Client) ReportStatus(ctx context.Context, ownerLogin, repoName, statuse
 		Description: &description,
 		Context:     &n,
 	}
-	ctxTimeout, fn := context.WithTimeout(ctx, defaultGitHubOperationTimeout)
+	ctxTimeout, fn := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
 	defer fn()
 	_, res, err := c.githubClient.Repositories.CreateStatus(ctxTimeout, ownerLogin, repoName, readStatusSHAFromStatusURL(statusesURL), v)
 	if err != nil {
@@ -227,7 +229,7 @@ func (c *Client) ReportIgnoredReviews(ctx context.Context, owner, repo string, p
 		return err
 	}
 
-	ctxTimeout, cancel := context.WithTimeout(ctx, defaultGitHubOperationTimeout)
+	ctxTimeout, cancel := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
 	defer cancel()
 
 	msg := title
@@ -267,7 +269,7 @@ func (c *Client) removeOldBotComments(ctx context.Context, owner, repo string, p
 }
 
 func (c *Client) deletePRComment(ctx context.Context, owner, repo string, commentID int64) (*github.Response, error) {
-	ctxTimeout, cancel := context.WithTimeout(ctx, defaultGitHubOperationTimeout)
+	ctxTimeout, cancel := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
 	defer cancel()
 
 	resp, err := c.githubClient.Issues.DeleteComment(ctxTimeout, owner, repo, commentID)
@@ -295,7 +297,7 @@ func (c *Client) getPRComments(ctx context.Context, owner, repo string, prNumber
 }
 
 func (c *Client) getPRCommentsPage(ctx context.Context, owner, repo string, prNumber, page int) ([]*github.IssueComment, int, error) {
-	ctxTimeout, cancel := context.WithTimeout(ctx, defaultGitHubOperationTimeout)
+	ctxTimeout, cancel := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
 	defer cancel()
 
 	listOpts := &github.IssueListCommentsOptions{
@@ -317,7 +319,7 @@ func (c *Client) RequestReviews(ctx context.Context, ownerLogin, repoName string
 	if len(reviewsToRequest) == 0 {
 		return nil
 	}
-	ctxTimeout, fn := context.WithTimeout(ctx, defaultGitHubOperationTimeout)
+	ctxTimeout, fn := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
 	defer fn()
 	_, res, err := c.githubClient.PullRequests.RequestReviewers(ctxTimeout, ownerLogin, repoName, prNumber, github.ReviewersRequest{
 		TeamReviewers: reviewsToRequest,
@@ -335,7 +337,7 @@ func (c *Client) UpdateLabels(ctx context.Context, ownerLogin, repoName string, 
 	if len(labels) == 0 {
 		return nil
 	}
-	ctx, fn := context.WithTimeout(ctx, defaultGitHubOperationTimeout)
+	ctx, fn := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
 	defer fn()
 	_, res, err := c.githubClient.Issues.ReplaceLabelsForIssue(ctx, ownerLogin, repoName, prNumber, labels)
 	if err != nil {
@@ -351,7 +353,7 @@ func (c *Client) GetLabels(ctx context.Context, ownerLogin, repoName string, prN
 
 	labels, nextPage := make([]string, 0, 0), 1
 	for nextPage != 0 {
-		ctxTimeout, fn := context.WithTimeout(ctx, defaultGitHubOperationTimeout)
+		ctxTimeout, fn := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
 		m, res, err := c.githubClient.Issues.ListLabelsByIssue(ctxTimeout, ownerLogin, repoName, prNumber, nil)
 		if err != nil {
 			fn()
