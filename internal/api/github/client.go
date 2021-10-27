@@ -259,7 +259,7 @@ func (c *Client) removeOldBotComments(ctx context.Context, owner, repo string, p
 
 	for _, comment := range comments {
 		if strings.Contains(comment.GetBody(), title) {
-			_, err = c.deletePRComment(ctx, owner, repo, comment.GetID())
+			_, err = c.DeletePRComment(ctx, owner, repo, comment.GetID())
 			if err != nil {
 				return err
 			}
@@ -268,13 +268,18 @@ func (c *Client) removeOldBotComments(ctx context.Context, owner, repo string, p
 	return nil
 }
 
-func (c *Client) deletePRComment(ctx context.Context, owner, repo string, commentID int64) (*github.Response, error) {
+func (c *Client) DeletePRComment(ctx context.Context, owner, repo string, commentID int64) (*github.Response, error) {
 	ctxTimeout, cancel := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
 	defer cancel()
 
 	resp, err := c.githubClient.Issues.DeleteComment(ctxTimeout, owner, repo, commentID)
 	if err != nil {
-		return nil, fmt.Errorf("deletePRComment: %w", err)
+		// we treat 404 as successful, as the comment no longer exists
+		if resp.StatusCode == http.StatusNotFound {
+			return resp, nil
+		}
+
+		return nil, fmt.Errorf("DeletePRComment: %w", err)
 	}
 
 	return resp, nil

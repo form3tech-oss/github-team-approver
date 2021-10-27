@@ -40,8 +40,8 @@ type FakeGitHub struct {
 
 	repoContents []*github.RepositoryContent
 	commits      []*github.RepositoryCommit
-	reviews  []*github.PullRequestReview
-	comments []*github.IssueComment
+	reviews       []*github.PullRequestReview
+	issueComments []*github.IssueComment
 
 	reportedStatus         *github.RepoStatus
 	reportedComment        *github.IssueComment
@@ -114,8 +114,8 @@ func (f *FakeGitHub) SetReviews(r []*github.PullRequestReview) {
 	f.mux.HandleFunc(f.reviewsURL(), f.reviewsHandler)
 }
 
-func (f *FakeGitHub) SetComments(c []*github.IssueComment) {
-	f.comments = c
+func (f *FakeGitHub) SetIssueComments(c []*github.IssueComment) {
+	f.issueComments = c
 
 	// only expose handlers when expected data is there
 	f.mux.HandleFunc(f.commentsURL(), f.commentsHandler)
@@ -130,7 +130,7 @@ func (f *FakeGitHub) ReportedLabels() []string              { return f.reportedL
 func (f *FakeGitHub) ReportedStatus() *github.RepoStatus    { return f.reportedStatus }
 func (f *FakeGitHub) ReportedComment() *github.IssueComment { return f.reportedComment }
 func (f *FakeGitHub) RequestedTeamReviews() []string        { return f.requestedTeamReviewers }
-func (f *FakeGitHub) Comments() []*github.IssueComment      { return f.comments }
+func (f *FakeGitHub) Comments() []*github.IssueComment      { return f.issueComments }
 
 func (f *FakeGitHub) URL() string {
 	return fmt.Sprintf("%s", f.ts.URL)

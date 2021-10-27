@@ -233,7 +233,7 @@ func (s *ApiStage) CommitsWithAliceAsContributor() *ApiStage {
 }
 
 func (s *ApiStage) NoCommentsExist() *ApiStage {
-	s.fakeGitHub.SetComments([]*github.IssueComment{})
+	s.fakeGitHub.SetIssueComments([]*github.IssueComment{})
 	return s
 }
 
@@ -249,7 +249,7 @@ func (s *ApiStage) IgnoredReviewCommentsExist() *ApiStage {
 			Body: github.String(msg),
 		},
 	}
-	s.fakeGitHub.SetComments(comments)
+	s.fakeGitHub.SetIssueComments(comments)
 
 	return s
 }
