@@ -209,7 +209,6 @@ func Test_Handle(t *testing.T) {
 					res := httptest.NewRecorder()
 
 					// Act
-					// the legacy tests didn't run the http server
 					// we keep the legacy as is while providing new test structure
 					api := newApi()
 					api.init()

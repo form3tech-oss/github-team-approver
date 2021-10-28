@@ -41,7 +41,7 @@ func (c *ClientStage) Organisation() *ClientStage {
 	c.fakeGitHub.SetOrg(&fakegithub.Org{
 		OwnerName: "form3tech",
 	})
-	
+
 	return c
 }
 
@@ -60,7 +60,6 @@ func (c *ClientStage) PR() *ClientStage {
 
 	return c
 }
-
 
 func (c *ClientStage) setupEnv(k, v string) {
 	c.t.Cleanup(func() {
