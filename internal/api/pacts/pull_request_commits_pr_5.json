@@ -1,0 +1,56 @@
+{
+  "provider": {
+    "name": "github-api"
+  },
+  "consumer": {
+    "name": "github-team-approver"
+  },
+  "interactions": [
+    {
+      "description": "Get commits (#5)",
+      "request": {
+        "method": "GET",
+        "path": "/repos/form3tech/github-team-approver-test/pulls/5/commits"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8"
+        },
+        "body": [
+          {
+            "sha": "1958a56447cda88f90cf98a353f506507a3954de",
+            "commit": {
+              "author": {
+                "name": "author a",
+                "email": "author-a@some.test",
+                "date": "2021-09-06T09:18:21Z"
+              },
+              "committer": {
+                "name": "author a",
+                "email": "author-a@some.test",
+                "date": "2021-09-06T09:18:21Z"
+              },
+              "message": "Some commit message"
+            },
+            "author": {
+              "login": "author-a"
+            },
+            "committer": {
+              "login": "author-a"
+            },
+            "parents": []
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "pact-specification": {
+      "version": "3.0.0"
+    },
+    "pact-jvm": {
+      "version": "3.0.0"
+    }
+  }
+}

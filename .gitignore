@@ -1,11 +1,14 @@
+# pact
+/internal/api/pact
+/internal/api/target
+/internal/api/log
+/pact
+
 /.idea/
 /build/
 /github-app-private-key
 /github-app-webhook-secret-token
-/internal/log/
-/internal/logs/
 /logzio-token
-/pact/
 /tmp/
 /encryption.key
 github-team-approver

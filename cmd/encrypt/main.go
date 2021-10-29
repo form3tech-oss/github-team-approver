@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/form3tech-oss/github-team-approver/internal/aes"
+	"github.com/form3tech-oss/github-team-approver/internal/api/aes"
 	"io/ioutil"
 	"os"
 )
@@ -37,7 +37,7 @@ func encrypt(args []string) error {
 		return fmt.Errorf("could not decode string from hex, error: %v", err)
 	}
 
-	c, err := aes.New(key)
+	c, err := aes.NewCipher(key)
 	if err != nil {
 		return fmt.Errorf("failed to create cryptor for encrypting: %v", err)
 	}

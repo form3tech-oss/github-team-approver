@@ -1,7 +1,8 @@
+if: "(type IN (push, cron) AND branch = master) OR (type = pull_request) OR (tag IS present)"
 sudo: required
 language: go
 go:
-- '1.14'
+- '1.17.2'
 services:
 - docker
 env:

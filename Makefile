@@ -29,7 +29,7 @@ else
 endif
 
 .PHONY: install-deps
-install-deps: install-goimports install-pact install-skaffold
+install-deps: install-goimports install-skaffold
 
 .PHONY: install-goimports
 install-goimports:
@@ -41,8 +41,7 @@ install-skaffold:
 	@chmod +x skaffold-bin
 	@sudo mv skaffold-bin /usr/local/bin/skaffold
 
-.PHONY: install-pact
-install-pact:
+pact:
 	curl -LO https://github.com/pact-foundation/pact-ruby-standalone/releases/download/v${pact_version}/${pact_filename}
 	tar xzf ${pact_filename}
 	rm ${pact_filename}
@@ -95,9 +94,10 @@ skaffold.dev:
 	@GITHUB_APP_ID=$(GITHUB_APP_ID) GITHUB_APP_INSTALLATION_ID=$(GITHUB_APP_INSTALLATION_ID) NAMESPACE=$(NAMESPACE) $(ROOT)/hack/helm-pre-skaffold-template.sh
 	@skaffold dev
 
+
 .PHONY: test
 test: EXAMPLES_DIR := $(ROOT)/examples/github
-test:
+test: pact
 	EXAMPLES_DIR=$(EXAMPLES_DIR) \
 	GITHUB_APP_WEBHOOK_SECRET_TOKEN_PATH=$(EXAMPLES_DIR)/token.txt \
 	ENCRYPTION_KEY_PATH=$(EXAMPLES_DIR)/test.key \
