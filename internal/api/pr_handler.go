@@ -26,12 +26,12 @@ const (
 )
 
 type PullRequestEventHandler struct {
-	api    *Api
+	api    *API
 	log    *logrus.Entry
 	client *ghclient.Client
 }
 
-func NewPullRequestEventHandler(api *Api, log *logrus.Entry, client *ghclient.Client) *PullRequestEventHandler {
+func NewPullRequestEventHandler(api *API, log *logrus.Entry, client *ghclient.Client) *PullRequestEventHandler {
 	return &PullRequestEventHandler{
 		api:    api,
 		log:    log,

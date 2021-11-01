@@ -29,10 +29,10 @@ var (
 	errIgnoredEvent = fmt.Errorf("ignoring event: unsupported type")
 )
 
-func (api *Api) HandleHealth(w http.ResponseWriter, req *http.Request) {
+func (api *API) HandleHealth(w http.ResponseWriter, req *http.Request) {
 	sendHttpOkResponse(w)
 }
-func (api *Api) Handle(w http.ResponseWriter, req *http.Request) {
+func (api *API) Handle(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		sendHttpMethodNotAllowedResponse(w, fmt.Errorf("unsupported method %q", req.Method))
 		return
@@ -116,13 +116,14 @@ func (api *Api) Handle(w http.ResponseWriter, req *http.Request) {
 			WithError(err).
 			Warn("failed to handle event")
 		sendHttpInternalServerErrorResponse(w, fmt.Errorf("failed to handle event: %w", err))
+		return
 	}
 
 	sendHttpOkWithStatusResponse(w, status)
 	return
 }
 
-func (api *Api) validateSignature(signature string, body []byte) error {
+func (api *API) validateSignature(signature string, body []byte) error {
 	if api.githubWebhookSecretToken == nil {
 		// TODO we should make this more clear, following what we had from before now
 		// see setGitHubAppSecret api comments
