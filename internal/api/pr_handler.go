@@ -46,6 +46,7 @@ func (handler *PullRequestEventHandler) handleEvent(ctx context.Context, eventTy
 		ownerLogin = event.GetRepo().GetOwner().GetLogin()
 		repoName   = event.GetRepo().GetName()
 		prNumber   = event.GetPullRequest().GetNumber()
+		prAuthor   = event.GetPullRequest().GetUser()
 	)
 
 	// Make sure the combination of event type and action is supported.
@@ -59,7 +60,7 @@ func (handler *PullRequestEventHandler) handleEvent(ctx context.Context, eventTy
 	prBody := event.GetPullRequest().GetBody()
 	prLabels := getLabelNames(event.GetPullRequest().Labels)
 
-	pr := approval.NewPR(ownerLogin, repoName, prTargetBranch, prBody, prNumber, prLabels)
+	pr := approval.NewPR(ownerLogin, repoName, prTargetBranch, prBody, prNumber, prLabels, prAuthor)
 	app := approval.NewApproval(handler.log, handler.client)
 	result, err := app.ComputeApprovalStatus(ctx, pr)
 	if errors.Is(err, ghclient.ErrNoConfigurationFile) {

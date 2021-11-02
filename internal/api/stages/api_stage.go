@@ -196,6 +196,7 @@ func (s *ApiStage) ExpectBadRequestReturned() {
 	require.Equal(s.t, http.StatusBadRequest, s.resp.StatusCode)
 }
 
+
 func (s *ApiStage) CommitsWithBobAsContributor() *ApiStage {
 	commits := []*github.RepositoryCommit{
 		{
@@ -206,6 +207,42 @@ func (s *ApiStage) CommitsWithBobAsContributor() *ApiStage {
 			},
 			Committer: &github.User{
 				Login: github.String("bob"),
+			},
+		},
+	}
+	s.fakeGitHub.SetCommits(commits)
+
+	return s
+}
+
+func (s *ApiStage) CommitsWithCharlieAsContributor() *ApiStage {
+	commits := []*github.RepositoryCommit{
+		{
+			SHA: github.String("some-sha-1"),
+
+			Author: &github.User{
+				Login: github.String("charlie"),
+			},
+			Committer: &github.User{
+				Login: github.String("charlie"),
+			},
+		},
+	}
+	s.fakeGitHub.SetCommits(commits)
+
+	return s
+}
+
+func (s *ApiStage) CommitsWithBobandEveAsContributor() *ApiStage {
+	commits := []*github.RepositoryCommit{
+		{
+			SHA: github.String("some-sha-1"),
+
+			Author: &github.User{
+				Login: github.String("bob"),
+			},
+			Committer: &github.User{
+				Login: github.String("eve"),
 			},
 		},
 	}
@@ -268,6 +305,30 @@ func (s *ApiStage) AliceApprovesPullRequest() *ApiStage {
 
 	return s
 }
+
+func (s *ApiStage) CharlieApprovesPullRequest() *ApiStage {
+	reviews := []*github.PullRequestReview{
+		{
+			State: github.String("APPROVED"),
+			User: &github.User{
+				Login: github.String("charlie"),
+			},
+		},
+	}
+
+	s.fakeGitHub.SetReviews(reviews)
+
+	return s
+}
+
+func (s *ApiStage) PullRequestHasNoReviews() *ApiStage {
+	var reviews []*github.PullRequestReview
+	s.fakeGitHub.SetReviews(reviews)
+
+	return s
+}
+
+
 
 func (s *ApiStage) PullRequestExists() *ApiStage {
 

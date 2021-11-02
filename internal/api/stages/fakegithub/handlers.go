@@ -91,8 +91,6 @@ func (f *FakeGitHub) reviewsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	require.NotEmpty(f.t, f.reviews)
-
 	w.Header().Set("Content-Type", "application/json")
 	payload, err := json.Marshal(f.reviews)
 	require.NoError(f.t, err)

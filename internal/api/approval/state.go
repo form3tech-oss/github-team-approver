@@ -27,6 +27,8 @@ type state struct {
 	approvingTeamNames []string
 	// pendingTeamNames will hold the names of the teams that haven't approved the current PR yet.
 	pendingTeamNames []string
+	// approvingReviewers tracks users who have approved the pull request
+	approvingReviewers map[string]bool
 	// Reviewers who have committed to the PR as well thus ignored as allowed reviewers
 	ignoredReviewers []string
 }
@@ -51,8 +53,29 @@ func (s *state) addPendingTeamNames(name string) {
 	s.pendingTeamNames = appendIfMissing(s.pendingTeamNames, name)
 }
 
-func (s *state) addIgnoredReviewers(reviewers []string) {
-	s.ignoredReviewers = uniqueAppend(s.ignoredReviewers, reviewers)
+func (s *state) setApprovingReviewers(reviews []*github.PullRequestReview) {
+	 approving := map[string]bool{}
+
+	for _, review := range reviews {
+		if *review.State == pullRequestReviewStateApproved {
+			approving[review.GetUser().GetLogin()] = true
+		}
+	}
+	s.approvingReviewers = approving
+}
+// The members that will be mentioned in the bot comment when it publishes ignored PR reviewers comment.
+// We only mention reviewers who approved a PR and also contributed to the PR thus being ignored as valid reviewers.
+// Without this filtering, we would be mentioning all contributing authors even if they didn't review the PR.
+func (s *state) addIgnoredReviewers(ignoredTeamMembers []string) {
+	var ignoredReviewers []string
+
+	for _, r := range ignoredTeamMembers {
+		if _, ok := s.approvingReviewers[r]; ok {
+			ignoredReviewers = append(ignoredReviewers, r)
+		}
+	}
+
+	s.ignoredReviewers = uniqueAppend(s.ignoredReviewers, ignoredReviewers)
 }
 
 func (s *state) result(log *log.Entry, teams []*github.Team) *Result {
