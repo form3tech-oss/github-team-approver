@@ -118,6 +118,29 @@ func TestWhenReviewApproverIsNotAContributor(t *testing.T) {
 		ExpectNoReviewRequestsMade()
 }
 
+func TestForciblyApprovedPRWithoutAnyReviewsIsPassed(t *testing.T) {
+	given, when, then := stages.ApiTest(t)
+
+	given.
+		EncryptionKeyExists().
+		GitHubWebHookTokenExists().
+		FakeGHRunning().
+		OrganisationWithTeamFoo().
+		RepoWithFooAsApprovingTeamWithEmergencyRule().
+		PullRequestExists().
+		PullRequestHasNoReviews().
+		CommitsWithBobAsContributor().
+		GitHubTeamApproverRunning()
+	when.
+		SendingPRReviewSubmittedEventWithForceApproval()
+	then.
+		ExpectSuccessAnswerReturned().
+		ExpectStatusSuccessReported().
+		ExpectNoCommentsMade().
+		ExpectLabelsUpdated().
+		ExpectNoReviewRequestsMade()
+}
+
 func TestWhenPRHasNoReviewsAndAuthorIsPartOfTeam(t *testing.T) {
 	given, when, then := stages.ApiTest(t)
 
@@ -176,7 +199,7 @@ func TestWhenPRReviewedByNonTeamMemberAndAuthorsArePartOfTeam(t *testing.T) {
 		OrganisationWithTeamFoo().
 		RepoWithFooAsApprovingTeam().
 		PullRequestExists().
-		CommitsWithBobandEveAsContributor().
+		CommitsWithBobAndEveAsContributor().
 		CharlieApprovesPullRequest().
 		NoCommentsExist().
 		GitHubTeamApproverRunning()

@@ -124,6 +124,47 @@ func (s *ApiStage) RepoWithFooAsApprovingTeam() *ApiStage {
 	return s
 }
 
+func (s *ApiStage) RepoWithFooAsApprovingTeamWithEmergencyRule() *ApiStage {
+	require.NotNil(s.t, s.fakeGitHub.Org())
+	approvingTeam := *s.fakeGitHub.Org().Teams[0].Name
+
+	repo := &fakegithub.Repo{
+		Name: "some-service",
+
+		ApproverCfg: &approverCfg.Configuration{
+			PullRequestApprovalRules: []approverCfg.PullRequestApprovalRule{
+				{
+					TargetBranches: []string{"master"},
+					Rules: []approverCfg.Rule{
+						{
+							ApprovalMode:         approverCfg.ApprovalModeRequireAny,
+							Regex:                `- \[x\] Yes - this change impacts customers`,
+							ApprovingTeamHandles: []string{approvingTeam},
+							Labels:               []string{},
+						},
+						{
+							ApprovalMode:         approverCfg.ApprovalModeRequireAny,
+							Regex:                `- \[x\] Yes - Emergency`,
+							ApprovingTeamHandles: []string{"CAB - Foo"},
+							Labels:               []string{},
+							ForceApproval:        true,
+						},
+					},
+				},
+			},
+		},
+	}
+	s.fakeGitHub.SetRepo(repo)
+	s.fakeGitHub.SetRepoContents([]*github.RepositoryContent{
+		{
+			Name:        github.String("GITHUB_TEAM_APPROVER.yaml"),
+			DownloadURL: github.String(fmt.Sprintf("%s/master/%s", s.fakeGitHub.RepoURL(), approverCfg.ConfigurationFilePath)),
+		},
+	})
+
+	return s
+}
+
 func (s *ApiStage) RepoWithoutConfigurationFile() *ApiStage {
 	require.NotNil(s.t, s.fakeGitHub.Org())
 
@@ -196,7 +237,6 @@ func (s *ApiStage) ExpectBadRequestReturned() {
 	require.Equal(s.t, http.StatusBadRequest, s.resp.StatusCode)
 }
 
-
 func (s *ApiStage) CommitsWithBobAsContributor() *ApiStage {
 	commits := []*github.RepositoryCommit{
 		{
@@ -233,7 +273,7 @@ func (s *ApiStage) CommitsWithCharlieAsContributor() *ApiStage {
 	return s
 }
 
-func (s *ApiStage) CommitsWithBobandEveAsContributor() *ApiStage {
+func (s *ApiStage) CommitsWithBobAndEveAsContributor() *ApiStage {
 	commits := []*github.RepositoryCommit{
 		{
 			SHA: github.String("some-sha-1"),
@@ -328,8 +368,6 @@ func (s *ApiStage) PullRequestHasNoReviews() *ApiStage {
 	return s
 }
 
-
-
 func (s *ApiStage) PullRequestExists() *ApiStage {
 
 	s.fakeGitHub.SetPR(&fakegithub.PR{
@@ -368,6 +406,49 @@ func (s *ApiStage) SendingApprovedPRReviewSubmittedEvent() *ApiStage {
 							Regex:                `- [x] Yes - this change impacts customers`,
 							ApprovingTeamHandles: []string{"CAB - Foo"},
 							Labels:               []string{},
+						},
+					},
+				},
+			},
+		},
+	}
+	payload := r.Create(s.t)
+
+	c := newClient(s.t, s.app.URL(), s.WebHookSecret)
+	s.resp = c.sendEvent(payload, "pull_request_review")
+
+	return s
+}
+
+func (s *ApiStage) SendingPRReviewSubmittedEventWithForceApproval() *ApiStage {
+	require.NotNil(s.t, s.fakeGitHub.Org())
+	require.NotNil(s.t, s.fakeGitHub.Repo())
+	require.NotNil(s.t, s.fakeGitHub.PR())
+
+	targetBranch := "master"
+	s.labels = []string{"foo", "bar", "needs-cab-approval"}
+
+	r := fakegithub.ReviewEvent{
+		OwnerLogin: s.fakeGitHub.Org().OwnerName,
+		RepoName:   s.fakeGitHub.Repo().Name,
+		PRNumber:   s.fakeGitHub.PR().PRNumber,
+
+		Action:         "submitted",
+		CommitSHA:      s.fakeGitHub.PR().PRCommit,
+		LabelNames:     s.labels,
+		PRMerged:       false,
+		PRTargetBranch: targetBranch,
+		PRCfg: &approverCfg.Configuration{
+			PullRequestApprovalRules: []approverCfg.PullRequestApprovalRule{
+				{
+					TargetBranches: []string{targetBranch},
+					Rules: []approverCfg.Rule{
+						{
+							ApprovalMode:         approverCfg.ApprovalModeRequireAny,
+							Regex:                `- [x] Yes - Emergency`,
+							ApprovingTeamHandles: []string{"CAB - Foo"},
+							Labels:               []string{"needs-cab-approval"},
+							ForceApproval:        true,
 						},
 					},
 				},
