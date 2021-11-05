@@ -118,6 +118,101 @@ func TestWhenReviewApproverIsNotAContributor(t *testing.T) {
 		ExpectNoReviewRequestsMade()
 }
 
+func TestForciblyApprovedPRWithoutAnyReviewsIsPassed(t *testing.T) {
+	given, when, then := stages.ApiTest(t)
+
+	given.
+		EncryptionKeyExists().
+		GitHubWebHookTokenExists().
+		FakeGHRunning().
+		OrganisationWithTeamFoo().
+		RepoWithFooAsApprovingTeamWithEmergencyRule().
+		PullRequestExists().
+		PullRequestHasNoReviews().
+		CommitsWithBobAsContributor().
+		GitHubTeamApproverRunning()
+	when.
+		SendingPRReviewSubmittedEventWithForceApproval()
+	then.
+		ExpectSuccessAnswerReturned().
+		ExpectStatusSuccessReported().
+		ExpectNoCommentsMade().
+		ExpectLabelsUpdated().
+		ExpectNoReviewRequestsMade()
+}
+
+func TestWhenPRHasNoReviewsAndAuthorIsPartOfTeam(t *testing.T) {
+	given, when, then := stages.ApiTest(t)
+
+	given.
+		EncryptionKeyExists().
+		GitHubWebHookTokenExists().
+		FakeGHRunning().
+		OrganisationWithTeamFoo().
+		RepoWithFooAsApprovingTeam().
+		PullRequestExists().
+		CommitsWithBobAsContributor().
+		PullRequestHasNoReviews().
+		NoCommentsExist().
+		GitHubTeamApproverRunning()
+	when.
+		SendingApprovedPRReviewSubmittedEvent()
+	then.
+		ExpectPendingAnswerReturned().
+		ExpectStatusPendingReported().
+		ExpectNoCommentsMade().
+		ExpectLabelsUpdated().
+		ExpectNoReviewRequestsMade()
+}
+
+func TestWhenPRReviewedByAuthorNotPartOfTeam(t *testing.T) {
+	given, when, then := stages.ApiTest(t)
+
+	given.
+		EncryptionKeyExists().
+		GitHubWebHookTokenExists().
+		FakeGHRunning().
+		OrganisationWithTeamFoo().
+		RepoWithFooAsApprovingTeam().
+		PullRequestExists().
+		CommitsWithCharlieAsContributor().
+		AliceApprovesPullRequest().
+		NoCommentsExist().
+		GitHubTeamApproverRunning()
+	when.
+		SendingApprovedPRReviewSubmittedEvent()
+	then.
+		ExpectSuccessAnswerReturned().
+		ExpectStatusSuccessReported().
+		ExpectNoCommentsMade().
+		ExpectLabelsUpdated().
+		ExpectNoReviewRequestsMade()
+}
+
+func TestWhenPRReviewedByNonTeamMemberAndAuthorsArePartOfTeam(t *testing.T) {
+	given, when, then := stages.ApiTest(t)
+
+	given.
+		EncryptionKeyExists().
+		GitHubWebHookTokenExists().
+		FakeGHRunning().
+		OrganisationWithTeamFoo().
+		RepoWithFooAsApprovingTeam().
+		PullRequestExists().
+		CommitsWithBobAndEveAsContributor().
+		CharlieApprovesPullRequest().
+		NoCommentsExist().
+		GitHubTeamApproverRunning()
+	when.
+		SendingApprovedPRReviewSubmittedEvent()
+	then.
+		ExpectPendingAnswerReturned().
+		ExpectStatusPendingReported().
+		ExpectNoCommentsMade().
+		ExpectLabelsUpdated().
+		ExpectNoReviewRequestsMade()
+}
+
 func TestGitHubTeamApproverCleansUpOldIgnoredReviewsComments(t *testing.T) {
 	given, when, then := stages.ApiTest(t)
 

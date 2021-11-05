@@ -29,7 +29,7 @@ const (
 	envEncryptionKeyPath               = "ENCRYPTION_KEY_PATH"
 )
 
-type Api struct {
+type API struct {
 	AppName                  string
 	SecretStore              secret.Store
 	cipher                   aes.Cipher
@@ -37,8 +37,8 @@ type Api struct {
 	ignoredRepositories      []string
 }
 
-func newApi() *Api {
-	return &Api{}
+func newApi() *API {
+	return &API{}
 }
 
 func Start(address string, shutdown <-chan os.Signal, ready chan<- struct{}) {
@@ -48,7 +48,7 @@ func Start(address string, shutdown <-chan os.Signal, ready chan<- struct{}) {
 	api.startServer(address, shutdown, ready)
 }
 
-func (api *Api) init() {
+func (api *API) init() {
 	api.setAppName()
 	api.initSecretStore(os.Getenv(envSecretStoreType))
 	api.configureLogger()
@@ -57,15 +57,16 @@ func (api *Api) init() {
 	api.initAES()
 }
 
-func (api *Api) setAppName() {
+func (api *API) setAppName() {
 	api.AppName = getAppNameOrDefault()
 }
 
-func (api *Api) initSecretStore(env string) {
+func (api *API) initSecretStore(env string) {
 	api.SecretStore = getSecretStore(env)
+	log.WithField("env", env).Info("Configured Secret Store")
 }
 
-func (api *Api) configureLogger() {
+func (api *API) configureLogger() {
 	if v, err := log.ParseLevel(os.Getenv(envLogLevel)); err == nil {
 		log.SetLevel(v)
 		log.WithField("log_level", v).
@@ -84,9 +85,10 @@ func (api *Api) configureLogger() {
 			log.AddHook(hook.NewLogzioHook(c))
 		}
 	}
+	log.Info("Configured logger")
 }
 
-func (api *Api) setGitHubAppSecret() {
+func (api *API) setGitHubAppSecret() {
 	// Read the webhook secret token.
 	token, err := api.SecretStore.Get(envGitHubAppWebhookSecretTokenPath)
 	if err != nil {
@@ -100,9 +102,10 @@ func (api *Api) setGitHubAppSecret() {
 		return
 	}
 	api.githubWebhookSecretToken = token
+	log.Info("Configured GitHub App Secret")
 }
 
-func (api *Api) setIgnoredRepositories() {
+func (api *API) setIgnoredRepositories() {
 	v, ok := os.LookupEnv(envIgnoredRepositories)
 	if !ok {
 		api.ignoredRepositories = []string{}
@@ -111,9 +114,10 @@ func (api *Api) setIgnoredRepositories() {
 
 	ignored := strings.Split(v, ",")
 	api.ignoredRepositories = ignored
+	log.Info("Configured Ignored repositories")
 }
 
-func (api *Api) initAES() {
+func (api *API) initAES() {
 	// Read the encryption key for slack web hooks
 	k, err := api.SecretStore.Get(envEncryptionKeyPath)
 	if err != nil {
@@ -133,16 +137,17 @@ func (api *Api) initAES() {
 		return
 	}
 	api.cipher = cipher
+	log.Info("Configured cipher")
 }
 
-func (api *Api) GetCipher() (aes.Cipher, error) {
+func (api *API) GetCipher() (aes.Cipher, error) {
 	if api.cipher == nil {
 		return nil, fmt.Errorf("AES cipher not initialized")
 	}
 	return api.cipher, nil
 }
 
-func (api *Api) startServer(address string, shutdown <-chan os.Signal, ready chan<- struct{}) {
+func (api *API) startServer(address string, shutdown <-chan os.Signal, ready chan<- struct{}) {
 
 	m := http.NewServeMux()
 	m.HandleFunc("/health", api.HandleHealth)

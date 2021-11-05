@@ -12,12 +12,12 @@ import (
 )
 
 type MergeEventHandler struct {
-	api *Api
+	api *API
 	log *logrus.Entry
 	client *github.Client
 }
 
-func NewMergeEventHandler(api *Api, log *logrus.Entry, client *github.Client) *MergeEventHandler {
+func NewMergeEventHandler(api *API, log *logrus.Entry, client *github.Client) *MergeEventHandler {
 	return &MergeEventHandler{
 		api: api,
 		log: log,

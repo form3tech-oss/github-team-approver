@@ -18,12 +18,12 @@ import (
 )
 
 const (
-	pullRequestReviewStateApproved  = "APPROVED"
-	pullRequestReviewStateCommented = "COMMENTED"
-	pullRequestLabelPrefix          = "github-team-approver/"
+	pullRequestReviewStateApproved               = "APPROVED"
+	pullRequestReviewStateCommented              = "COMMENTED"
+	pullRequestLabelPrefix                       = "github-team-approver/"
 	statusEventDescriptionNoRulesForTargetBranch = "No rules are defined for the target branch."
-	StatusEventStatusPending = "pending"
-	StatusEventStatusSuccess = "success"
+	StatusEventStatusPending                     = "pending"
+	StatusEventStatusSuccess                     = "success"
 )
 
 type Approval struct {
@@ -45,9 +45,10 @@ type PR struct {
 	Body          string
 	Number        int
 	InitialLabels []string
+	Author        *github.User
 }
 
-func NewPR(ownerLogin, repoName, targetBranch, body string, number int, labels []string) *PR {
+func NewPR(ownerLogin, repoName, targetBranch, body string, number int, labels []string, author *github.User) *PR {
 	return &PR{
 		OwnerLogin:    ownerLogin,
 		RepoName:      repoName,
@@ -55,6 +56,7 @@ func NewPR(ownerLogin, repoName, targetBranch, body string, number int, labels [
 		TargetBranch:  targetBranch,
 		Body:          body,
 		InitialLabels: labels,
+		Author:        author,
 	}
 }
 
@@ -95,6 +97,7 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 	}
 
 	state := newState()
+	state.setApprovingReviewers(reviews)
 
 	// Copy all labels not owned by ourselves from the "initialLabels" slice into "finalLabels" so we can update the latter with the final set of labels as we go.
 	for _, label := range pr.InitialLabels {
@@ -177,7 +180,6 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 			}
 
 			allowed, ignored := splitMembers(members, commits)
-
 			// Check whether the current team has approved the PR.
 			if approvalCount := countApprovalsForTeam(reviews, allowed); approvalCount >= 1 {
 				// Add the current team to the list of approving teams.
@@ -209,7 +211,7 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 
 	if result.pendingReviewsWaiting() {
 		err := a.client.ReportIgnoredReviews(
-			ctx, pr.OwnerLogin, pr.RepoName, pr.Number, result.ignoredReviewers)
+			ctx, pr.OwnerLogin, pr.RepoName, pr.Number, result.IgnoredReviewers())
 		if err != nil {
 			return nil, err
 		}
