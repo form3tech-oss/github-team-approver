@@ -89,11 +89,6 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 		return nil, err
 	}
 
-	commits, err := a.client.GetPRCommits(ctx, pr.OwnerLogin, pr.RepoName, pr.Number)
-	if err != nil {
-		return nil, err
-	}
-
 	// Grab the list of all the reviews for the current PR.
 	reviews, err := a.client.GetPullRequestReviews(ctx, pr.OwnerLogin, pr.RepoName, pr.Number)
 	if err != nil {
@@ -183,15 +178,9 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 				return nil, err
 			}
 
-			var allowed, ignored []string
-			if cfg.DisableContributorReview {
-				allowed, ignored = splitMembers(members, commits)
-			} else  {
-				var allowedMembers []string
-				for _, m := range members {
-					allowedMembers = append(allowedMembers, m.GetLogin())
-				}
-				allowed, ignored = allowedMembers, []string{}
+			allowed, ignored, err := a.allowedAndIgnoreReviewers(ctx, pr, members, cfg.DisableContributorReview)
+			if err != nil {
+				return nil, err
 			}
 
 			// Check whether the current team has approved the PR.
@@ -362,7 +351,20 @@ func getTeamNameFromTeamHandle(teams []*github.Team, v string) (string, error) {
 	return "", fmt.Errorf("Team with name or slug %q not found", v)
 }
 
-func splitMembers(members []*github.User, commits []*github.RepositoryCommit) ([]string, []string) {
+func (a *Approval) allowedAndIgnoreReviewers(ctx context.Context, pr *PR, members []*github.User, ignoreContributors bool) ([]string, []string, error) {
+	if !ignoreContributors {
+		var allowedMembers []string
+		for _, m := range members {
+			allowedMembers = append(allowedMembers, m.GetLogin())
+		}
+		return allowedMembers, []string{}, nil
+	}
+
+	commits, err := a.client.GetPRCommits(ctx, pr.OwnerLogin, pr.RepoName, pr.Number)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	authors := map[string]bool{}
 	for _, c := range commits {
 		authors[c.GetCommitter().GetLogin()] = true
@@ -379,5 +381,5 @@ func splitMembers(members []*github.User, commits []*github.RepositoryCommit) ([
 		}
 	}
 
-	return allowed, ignored
+	return allowed, ignored, nil
 }
