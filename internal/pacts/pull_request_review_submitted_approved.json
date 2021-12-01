@@ -89,12 +89,12 @@
         },
         "body": [
           {
-            "id": 1,
+            "id": 111,
             "name": "CAB - Foo",
             "slug": "cab-foo"
           },
           {
-            "id": 3,
+            "id": 333,
             "name": "CAB - Documentation",
             "slug": "documentation-baz"
           }
@@ -107,7 +107,7 @@
       ],
       "request": {
         "method": "GET",
-        "path": "/teams/1/members"
+        "path": "/teams/111/members"
       },
       "response": {
         "status": 200,
@@ -130,7 +130,7 @@
       ],
       "request": {
         "method": "GET",
-        "path": "/teams/3/members"
+        "path": "/teams/333/members"
       },
       "response": {
         "status": 200,

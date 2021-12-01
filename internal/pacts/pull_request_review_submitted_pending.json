@@ -96,17 +96,17 @@
         },
         "body": [
           {
-            "id": 1,
+            "id": 11111,
             "name": "CAB - Foo",
             "slug": "cab-foo"
           },
           {
-            "id": 2,
+            "id": 22222,
             "name": "CAB - Bar",
             "slug": "cab-bar"
           },
           {
-            "id": 3,
+            "id": 33333,
             "name": "CAB - Documentation",
             "slug": "documentation-baz"
           }
@@ -119,7 +119,7 @@
       ],
       "request": {
         "method": "GET",
-        "path": "/teams/1/members"
+        "path": "/teams/11111/members"
       },
       "response": {
         "status": 200,
@@ -142,7 +142,7 @@
       ],
       "request": {
         "method": "GET",
-        "path": "/teams/2/members"
+        "path": "/teams/22222/members"
       },
       "response": {
         "status": 200,
@@ -162,7 +162,7 @@
       ],
       "request": {
         "method": "GET",
-        "path": "/teams/3/members"
+        "path": "/teams/33333/members"
       },
       "response": {
         "status": 200,
