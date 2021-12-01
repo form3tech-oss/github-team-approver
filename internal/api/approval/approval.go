@@ -61,9 +61,13 @@ func NewPR(ownerLogin, repoName, targetBranch, body string, number int, labels [
 }
 
 func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, error) {
-	// Compute the set of rules that applies to the target branch.
-	a.log.Tracef("Computing the set of rules that applies to target branch %q", pr.TargetBranch)
-	rules, err := a.computeRulesForTargetBranch(ctx, pr)
+	// Get the configuration for approvals in the current repository.
+	cfg, err := a.client.GetConfiguration(ctx, pr.OwnerLogin, pr.RepoName)
+	if err != nil {
+		return nil, err
+	}
+
+	rules, err := a.computeRulesForTargetBranch(cfg, pr)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +183,17 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 				return nil, err
 			}
 
-			allowed, ignored := splitMembers(members, commits)
+			var allowed, ignored []string
+			if cfg.DisableContributorReview {
+				allowed, ignored = splitMembers(members, commits)
+			} else  {
+				var allowedMembers []string
+				for _, m := range members {
+					allowedMembers = append(allowedMembers, m.GetLogin())
+				}
+				allowed, ignored = allowedMembers, []string{}
+			}
+
 			// Check whether the current team has approved the PR.
 			if approvalCount := countApprovalsForTeam(reviews, allowed); approvalCount >= 1 {
 				// Add the current team to the list of approving teams.
@@ -293,13 +307,10 @@ func contentsUrlToRelDir(contentsUrl string) (string, error) {
 	return strings.Join(pathParts[3:len(pathParts)-1], "/"), nil
 }
 
-func (a *Approval) computeRulesForTargetBranch(ctx context.Context, pr *PR) ([]configuration.Rule, error) {
-	// Get the configuration for approvals in the current repository.
-	cfg, err := a.client.GetConfiguration(ctx, pr.OwnerLogin, pr.RepoName)
-	if err != nil {
-		return nil, err
-	}
-	// Compute the set of rules that applies to the target branch.
+// computeRulesForTargetBranch computes the set of rules that applies to the target branch.
+func (a *Approval) computeRulesForTargetBranch(cfg *configuration.Configuration, pr *PR) ([]configuration.Rule, error) {
+	a.log.Tracef("Computing the set of rules that applies to target branch %q", pr.TargetBranch)
+
 	var rules []configuration.Rule
 	for _, prCfg := range cfg.PullRequestApprovalRules {
 		if len(prCfg.TargetBranches) == 0 || indexOf(prCfg.TargetBranches, pr.TargetBranch) >= 0 {
