@@ -126,7 +126,7 @@ func computeApprovalStatus(ctx context.Context, c *client, ownerLogin, repoName 
 				return "", "", nil, nil, err
 			}
 			// Grab the list of members on the current approving team.
-			members, err := c.getTeamMembers(teams, ownerLogin, teamName)
+			members, err := c.getTeamMembers(ctx, teams, ownerLogin, teamName)
 			if err != nil {
 				return "", "", nil, nil, err
 			}

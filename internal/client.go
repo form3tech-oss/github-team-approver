@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 	"fmt"
+	"github.com/patrickmn/go-cache"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -34,6 +35,7 @@ var (
 
 type client struct {
 	githubClient *github.Client
+	cache *cache.Cache
 }
 
 func (c *client) getConfiguration(ownerLogin, repoName string) (*configuration.Configuration, error) {
@@ -125,7 +127,7 @@ func (c *client) getTeams(organisation string) ([]*github.Team, error) {
 	return teams, nil
 }
 
-func (c *client) getTeamMembers(teams []*github.Team, organisation, name string) ([]*github.User, error) {
+func (c *client) getTeamMembers(ctx context.Context, teams []*github.Team, organisation, name string) ([]*github.User, error) {
 	// Return immediately if the request team is not found.
 	var (
 		team *github.Team
@@ -139,6 +141,18 @@ func (c *client) getTeamMembers(teams []*github.Team, organisation, name string)
 	if team == nil {
 		return nil, fmt.Errorf("could not find team %q in organisation %q", name, organisation)
 	}
+
+	cacheKey := strconv.FormatInt(team.GetID(), 10)
+	members, found := c.cache.Get(cacheKey)
+	if found {
+		castedMembers, ok := members.([]*github.User)
+		if ok {
+			return castedMembers, nil
+		}
+
+		getLogger(ctx).Errorf("unexpected type in the cache, expecting []*github.User while %T given (%+v)", members, members)
+	}
+
 	// Grab a list of all the users in the target team.
 	users, nextPage := make([]*github.User, 0, 0), 1
 	for nextPage != 0 {
@@ -155,6 +169,9 @@ func (c *client) getTeamMembers(teams []*github.Team, organisation, name string)
 		fn()
 		users, nextPage = append(users, m...), res.NextPage
 	}
+
+	c.cache.Set(cacheKey, users, cache.DefaultExpiration)
+
 	return users, nil
 }
 
@@ -264,6 +281,8 @@ func getClient() *client {
 			githubClient: github.NewClient(&http.Client{
 				Transport: maybeWrapInAuthenticatingTransport(baseTransport),
 			}),
+			//TODO: make it configurable
+			cache: cache.New(5*time.Minute, 10*time.Minute),
 		}
 		if v := os.Getenv(envGitHubBaseURL); v != "" {
 			clientInstance.githubClient.BaseURL = mustParseURL(v)
