@@ -124,6 +124,41 @@ func (s *ApiStage) RepoWithFooAsApprovingTeam() *ApiStage {
 	return s
 }
 
+func (s *ApiStage) RepoWithNoContributorReviewEnabledAndFooAsApprovingTeam() *ApiStage {
+	require.NotNil(s.t, s.fakeGitHub.Org())
+	approvingTeam := *s.fakeGitHub.Org().Teams[0].Name
+
+	repo := &fakegithub.Repo{
+		Name: "some-service",
+
+		ApproverCfg: &approverCfg.Configuration{
+			DisableContributorReview: true,
+			PullRequestApprovalRules: []approverCfg.PullRequestApprovalRule{
+				{
+					TargetBranches: []string{"master"},
+					Rules: []approverCfg.Rule{
+						{
+							ApprovalMode:         approverCfg.ApprovalModeRequireAny,
+							Regex:                `- \[x\] Yes - this change impacts customers`,
+							ApprovingTeamHandles: []string{approvingTeam},
+							Labels:               []string{},
+						},
+					},
+				},
+			},
+		},
+	}
+	s.fakeGitHub.SetRepo(repo)
+	s.fakeGitHub.SetRepoContents([]*github.RepositoryContent{
+		{
+			Name:        github.String("GITHUB_TEAM_APPROVER.yaml"),
+			DownloadURL: github.String(fmt.Sprintf("%s/master/%s", s.fakeGitHub.RepoURL(), approverCfg.ConfigurationFilePath)),
+		},
+	})
+
+	return s
+}
+
 func (s *ApiStage) RepoWithFooAsApprovingTeamWithEmergencyRule() *ApiStage {
 	require.NotNil(s.t, s.fakeGitHub.Org())
 	approvingTeam := *s.fakeGitHub.Org().Teams[0].Name
