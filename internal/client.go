@@ -140,10 +140,17 @@ func (c *client) getTeamMembers(teams []*github.Team, organisation, name string)
 		return nil, fmt.Errorf("could not find team %q in organisation %q", name, organisation)
 	}
 	// Grab a list of all the users in the target team.
-	users, nextPage := make([]*github.User, 0, 0), 1
-	for nextPage != 0 {
+	users := make([]*github.User, 0, 0)
+
+	opts := &github.TeamListTeamMembersOptions{
+		ListOptions: github.ListOptions{
+			PerPage: 100,
+		},
+	}
+
+	for {
 		ctx, fn := context.WithTimeout(context.Background(), defaultGitHubOperationTimeout)
-		m, res, err := c.githubClient.Teams.ListTeamMembers(ctx, team.GetID(), nil)
+		m, res, err := c.githubClient.Teams.ListTeamMembers(ctx, team.GetID(), opts)
 		if err != nil {
 			fn()
 			return nil, fmt.Errorf("error listing members for team %q in organisation %q: %v", name, organisation, err)
@@ -153,7 +160,12 @@ func (c *client) getTeamMembers(teams []*github.Team, organisation, name string)
 			return nil, fmt.Errorf("error listing members for team %q in organisation %q (status: %d): %s", name, organisation, res.StatusCode, readAllClose(res.Body))
 		}
 		fn()
-		users, nextPage = append(users, m...), res.NextPage
+
+		users = append(users, m...)
+		if res.NextPage == 0 {
+			break
+		}
+		opts.Page = res.NextPage
 	}
 	return users, nil
 }
