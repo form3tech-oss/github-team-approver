@@ -365,6 +365,11 @@ func (a *Approval) allowedAndIgnoreReviewers(ctx context.Context, pr *PR, member
 		return nil, nil, err
 	}
 
+	allowed, ignored := filterAuthorsFromAllowedReviewers(members, commits)
+	return allowed, ignored, nil
+}
+
+func filterAuthorsFromAllowedReviewers(members []*github.User, commits []*github.RepositoryCommit) ([]string, []string) {
 	authors := map[string]bool{}
 	for _, c := range commits {
 		authors[c.GetCommitter().GetLogin()] = true
@@ -381,5 +386,6 @@ func (a *Approval) allowedAndIgnoreReviewers(ctx context.Context, pr *PR, member
 		}
 	}
 
-	return allowed, ignored, nil
+	return allowed, ignored
 }
+
