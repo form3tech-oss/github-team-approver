@@ -178,7 +178,7 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 				return nil, err
 			}
 
-			allowed, ignored, err := a.allowedAndIgnoreReviewers(ctx, pr, members, cfg.DisableContributorReview)
+			allowed, ignored, err := a.allowedAndIgnoreReviewers(ctx, pr, members, cfg.IgnoreContributorApproval)
 			if err != nil {
 				return nil, err
 			}

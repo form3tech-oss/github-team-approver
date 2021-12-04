@@ -49,6 +49,8 @@ github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
 github.com/form3tech-oss/github-team-approver-commons v1.3.0 h1:1yLdkH9Qccc0mINNnWBUwOotSqAEOcuNtXmYwpGE0qs=
 github.com/form3tech-oss/github-team-approver-commons v1.3.0/go.mod h1:tN5CBbfWAh7knlKuHV3Wpd87c5nfY/kI7Cmg4ens24I=
+github.com/form3tech-oss/github-team-approver-commons v1.3.1 h1:+Lr6WCl4dvKW0HMsDEPCu+4PG5M5/mV67gzEbY3+Ph4=
+github.com/form3tech-oss/github-team-approver-commons v1.3.1/go.mod h1:tN5CBbfWAh7knlKuHV3Wpd87c5nfY/kI7Cmg4ens24I=
 github.com/form3tech-oss/go-pact-testing v1.4.1 h1:5NK9kY8E4/3EZGpolXn+Z/CtAQ86cc8WY0LfAWO38Ag=
 github.com/form3tech-oss/go-pact-testing v1.4.1/go.mod h1:VjimdqPBJuHFjcvCoz8s3AMGncetFKQV8dT556zUQjk=
 github.com/form3tech-oss/httpcache v0.0.0-20190708110905-85712625ba05 h1:PN+bT1bgaqtSUULTi2Zs3+FOXTrFORN2vJj7b59TGa8=

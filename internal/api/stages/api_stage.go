@@ -132,7 +132,7 @@ func (s *ApiStage) RepoWithNoContributorReviewEnabledAndFooAsApprovingTeam() *Ap
 		Name: "some-service",
 
 		ApproverCfg: &approverCfg.Configuration{
-			DisableContributorReview: true,
+			IgnoreContributorApproval: true,
 			PullRequestApprovalRules: []approverCfg.PullRequestApprovalRule{
 				{
 					TargetBranches: []string{"master"},
