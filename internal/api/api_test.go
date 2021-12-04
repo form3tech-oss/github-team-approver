@@ -245,7 +245,7 @@ func TestGitHubTeamApproverCleansUpOldIgnoredReviewsComments(t *testing.T) {
 		GitHubWebHookTokenExists().
 		FakeGHRunning().
 		OrganisationWithTeamFoo().
-		RepoWithFooAsApprovingTeam().
+		RepoWithNoContributorReviewEnabledAndFooAsApprovingTeam().
 		PullRequestExists().
 		IgnoredReviewCommentsExist().
 		CommitsWithAliceAsContributor().
