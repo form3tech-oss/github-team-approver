@@ -65,13 +65,15 @@ func (c *Client) GetConfiguration(ctx context.Context, ownerLogin, repoName stri
 }
 
 func (c *Client) GetPullRequestReviews(ctx context.Context, ownerLogin, repoName string, prNumber int) ([]*github.PullRequestReview, error) {
-	reviews, nextPage := make([]*github.PullRequestReview, 0, 0), 1
-	for nextPage != 0 {
+	reviews := make([]*github.PullRequestReview, 0, 0)
+
+	opts := &github.ListOptions{
+		PerPage: defaultListOptionsPerPage,
+	}
+
+	for {
 		ctxTimeout, fn := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
-		r, res, err := c.githubClient.PullRequests.ListReviews(ctxTimeout, ownerLogin, repoName, prNumber, &github.ListOptions{
-			Page:    nextPage,
-			PerPage: defaultListOptionsPerPage,
-		})
+		r, res, err := c.githubClient.PullRequests.ListReviews(ctxTimeout, ownerLogin, repoName, prNumber, opts)
 		if err != nil {
 			fn()
 			return nil, fmt.Errorf("error listing pull request reviews: %w", err)
@@ -81,7 +83,11 @@ func (c *Client) GetPullRequestReviews(ctx context.Context, ownerLogin, repoName
 			return nil, fmt.Errorf("error listing pull request reviews (status: %d): %s", res.StatusCode, readAllClose(res.Body))
 		}
 		fn()
-		reviews, nextPage = append(reviews, r...), res.NextPage
+		reviews = append(reviews, r...)
+		if res.NextPage == 0 {
+			break
+		}
+		opts.Page = res.NextPage
 	}
 	return reviews, nil
 }
@@ -89,13 +95,15 @@ func (c *Client) GetPullRequestReviews(ctx context.Context, ownerLogin, repoName
 // https://docs.github.com/en/rest/reference/pulls#list-pull-requests-files
 func (c *Client) GetPullRequestCommitFiles(ctx context.Context, ownerLogin, repoName string, prNumber int) ([]*github.CommitFile, error) {
 
-	commitFiles, nextPage := make([]*github.CommitFile, 0, 0), 1
-	for nextPage != 0 {
+	commitFiles := make([]*github.CommitFile, 0, 0)
+
+	opts := &github.ListOptions{
+		PerPage: defaultListOptionsPerPage,
+	}
+
+	for {
 		ctxTimeout, fn := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
-		r, res, err := c.githubClient.PullRequests.ListFiles(ctxTimeout, ownerLogin, repoName, prNumber, &github.ListOptions{
-			Page:    nextPage,
-			PerPage: defaultListOptionsPerPage,
-		})
+		r, res, err := c.githubClient.PullRequests.ListFiles(ctxTimeout, ownerLogin, repoName, prNumber, opts)
 		if err != nil {
 			fn()
 			return nil, fmt.Errorf("error listing pull request files: %w", err)
@@ -105,20 +113,26 @@ func (c *Client) GetPullRequestCommitFiles(ctx context.Context, ownerLogin, repo
 			return nil, fmt.Errorf("error listing pull request files (status: %d): %s", res.StatusCode, readAllClose(res.Body))
 		}
 		fn()
-		commitFiles, nextPage = append(commitFiles, r...), res.NextPage
+		commitFiles = append(commitFiles, r...)
+		if res.NextPage == 0 {
+			break
+		}
+		opts.Page = res.NextPage
 	}
 	return commitFiles, nil
 }
 
 func (c *Client) GetTeams(ctx context.Context, organisation string) ([]*github.Team, error) {
 	// Grab a list of all the teams in the organization.
-	teams, nextPage := make([]*github.Team, 0, 0), 1
-	for nextPage != 0 {
+	teams := make([]*github.Team, 0, 0)
+
+	opts := &github.ListOptions{
+		PerPage: defaultListOptionsPerPage,
+	}
+
+	for {
 		ctxTimeout, fn := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
-		t, res, err := c.githubClient.Teams.ListTeams(ctxTimeout, organisation, &github.ListOptions{
-			Page:    nextPage,
-			PerPage: defaultListOptionsPerPage,
-		})
+		t, res, err := c.githubClient.Teams.ListTeams(ctxTimeout, organisation, opts)
 		if err != nil {
 			fn()
 			return nil, fmt.Errorf("error listing teams for organisation %q: %w", organisation, err)
@@ -128,7 +142,11 @@ func (c *Client) GetTeams(ctx context.Context, organisation string) ([]*github.T
 			return nil, fmt.Errorf("error listing teams for organisation %q (status: %d): %s", organisation, res.StatusCode, readAllClose(res.Body))
 		}
 		fn()
-		teams, nextPage = append(teams, t...), res.NextPage
+		teams = append(teams, t...)
+		if res.NextPage == 0 {
+			break
+		}
+		opts.Page = res.NextPage
 	}
 	return teams, nil
 }
@@ -369,10 +387,14 @@ func (c *Client) UpdateLabels(ctx context.Context, ownerLogin, repoName string, 
 
 func (c *Client) GetLabels(ctx context.Context, ownerLogin, repoName string, prNumber int) ([]string, error) {
 
-	labels, nextPage := make([]string, 0, 0), 1
-	for nextPage != 0 {
+	labels := make([]string, 0, 0)
+	opts := &github.ListOptions{
+		PerPage: defaultListOptionsPerPage,
+	}
+
+	for {
 		ctxTimeout, fn := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
-		m, res, err := c.githubClient.Issues.ListLabelsByIssue(ctxTimeout, ownerLogin, repoName, prNumber, nil)
+		m, res, err := c.githubClient.Issues.ListLabelsByIssue(ctxTimeout, ownerLogin, repoName, prNumber, opts)
 		if err != nil {
 			fn()
 			return nil, fmt.Errorf("error listing PR labels : %w", err)
@@ -383,7 +405,11 @@ func (c *Client) GetLabels(ctx context.Context, ownerLogin, repoName string, prN
 		}
 		fn()
 
-		labels, nextPage = append(labels, githubLabelsToLabels(m)...), res.NextPage
+		labels = append(labels, githubLabelsToLabels(m)...)
+		if res.NextPage == 0 {
+			break
+		}
+		opts.Page = res.NextPage
 	}
 	return labels, nil
 }
