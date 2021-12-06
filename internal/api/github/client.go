@@ -25,7 +25,6 @@ const (
 	// DefaultGitHubOperationTimeout is the maximum duration of requests against the GitHub API.
 	DefaultGitHubOperationTimeout = 15 * time.Second
 
-
 	// defaultListOptionsPerPage is the number of items per page that we request by default from the GitHub API.
 	defaultListOptionsPerPage = 100
 
@@ -157,7 +156,10 @@ func (c *Client) getPRCommitsPage(ctx context.Context, owner, repo string, prNum
 	defer cancel()
 
 	commits, resp, err := c.githubClient.PullRequests.ListCommits(
-		ctxTimeout, owner, repo, prNumber, &github.ListOptions{Page: page})
+		ctxTimeout, owner, repo, prNumber, &github.ListOptions{
+			Page:    page,
+			PerPage: defaultListOptionsPerPage,
+		})
 	if err != nil {
 		return nil, 0, fmt.Errorf("getPRCommits: %w", err)
 	}
@@ -180,10 +182,17 @@ func (c *Client) GetTeamMembers(ctx context.Context, teams []*github.Team, organ
 		return nil, fmt.Errorf("could not find team %q in organisation %q", name, organisation)
 	}
 	// Grab a list of all the users in the target team.
-	users, nextPage := make([]*github.User, 0, 0), 1
-	for nextPage != 0 {
+	users := make([]*github.User, 0, 0)
+
+	opts := &github.TeamListTeamMembersOptions{
+		ListOptions: github.ListOptions{
+			PerPage: defaultListOptionsPerPage,
+		},
+	}
+
+	for {
 		ctxTimeout, fn := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
-		m, res, err := c.githubClient.Teams.ListTeamMembers(ctxTimeout, team.GetID(), nil)
+		m, res, err := c.githubClient.Teams.ListTeamMembers(ctxTimeout, team.GetID(), opts)
 		if err != nil {
 			fn()
 			return nil, fmt.Errorf("error listing members for team %q in organisation %q: %w", name, organisation, err)
@@ -193,7 +202,11 @@ func (c *Client) GetTeamMembers(ctx context.Context, teams []*github.Team, organ
 			return nil, fmt.Errorf("error listing members for team %q in organisation %q (status: %d): %s", name, organisation, res.StatusCode, readAllClose(res.Body))
 		}
 		fn()
-		users, nextPage = append(users, m...), res.NextPage
+		users = append(users, m...)
+		if res.NextPage == 0 {
+			break
+		}
+		opts.Page = res.NextPage
 	}
 	return users, nil
 }
