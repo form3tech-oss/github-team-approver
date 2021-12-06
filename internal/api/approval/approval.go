@@ -61,9 +61,13 @@ func NewPR(ownerLogin, repoName, targetBranch, body string, number int, labels [
 }
 
 func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, error) {
-	// Compute the set of rules that applies to the target branch.
-	a.log.Tracef("Computing the set of rules that applies to target branch %q", pr.TargetBranch)
-	rules, err := a.computeRulesForTargetBranch(ctx, pr)
+	// Get the configuration for approvals in the current repository.
+	cfg, err := a.client.GetConfiguration(ctx, pr.OwnerLogin, pr.RepoName)
+	if err != nil {
+		return nil, err
+	}
+
+	rules, err := a.computeRulesForTargetBranch(cfg, pr)
 	if err != nil {
 		return nil, err
 	}
@@ -81,11 +85,6 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 
 	// Grab the list of teams under the current organisation.
 	teams, err := a.client.GetTeams(ctx, pr.OwnerLogin)
-	if err != nil {
-		return nil, err
-	}
-
-	commits, err := a.client.GetPRCommits(ctx, pr.OwnerLogin, pr.RepoName, pr.Number)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +178,11 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 				return nil, err
 			}
 
-			allowed, ignored := splitMembers(members, commits)
+			allowed, ignored, err := a.allowedAndIgnoreReviewers(ctx, pr, members, cfg.IgnoreContributorApproval)
+			if err != nil {
+				return nil, err
+			}
+
 			// Check whether the current team has approved the PR.
 			if approvalCount := countApprovalsForTeam(reviews, allowed); approvalCount >= 1 {
 				// Add the current team to the list of approving teams.
@@ -293,13 +296,10 @@ func contentsUrlToRelDir(contentsUrl string) (string, error) {
 	return strings.Join(pathParts[3:len(pathParts)-1], "/"), nil
 }
 
-func (a *Approval) computeRulesForTargetBranch(ctx context.Context, pr *PR) ([]configuration.Rule, error) {
-	// Get the configuration for approvals in the current repository.
-	cfg, err := a.client.GetConfiguration(ctx, pr.OwnerLogin, pr.RepoName)
-	if err != nil {
-		return nil, err
-	}
-	// Compute the set of rules that applies to the target branch.
+// computeRulesForTargetBranch computes the set of rules that applies to the target branch.
+func (a *Approval) computeRulesForTargetBranch(cfg *configuration.Configuration, pr *PR) ([]configuration.Rule, error) {
+	a.log.Tracef("Computing the set of rules that applies to target branch %q", pr.TargetBranch)
+
 	var rules []configuration.Rule
 	for _, prCfg := range cfg.PullRequestApprovalRules {
 		if len(prCfg.TargetBranches) == 0 || indexOf(prCfg.TargetBranches, pr.TargetBranch) >= 0 {
@@ -351,7 +351,25 @@ func getTeamNameFromTeamHandle(teams []*github.Team, v string) (string, error) {
 	return "", fmt.Errorf("Team with name or slug %q not found", v)
 }
 
-func splitMembers(members []*github.User, commits []*github.RepositoryCommit) ([]string, []string) {
+func (a *Approval) allowedAndIgnoreReviewers(ctx context.Context, pr *PR, members []*github.User, ignoreContributors bool) ([]string, []string, error) {
+	if !ignoreContributors {
+		var allowedMembers []string
+		for _, m := range members {
+			allowedMembers = append(allowedMembers, m.GetLogin())
+		}
+		return allowedMembers, []string{}, nil
+	}
+
+	commits, err := a.client.GetPRCommits(ctx, pr.OwnerLogin, pr.RepoName, pr.Number)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	allowed, ignored := filterAllowedAndIgnoreReviewers(members, commits)
+	return allowed, ignored, nil
+}
+
+func filterAllowedAndIgnoreReviewers(members []*github.User, commits []*github.RepositoryCommit) ([]string, []string) {
 	authors := map[string]bool{}
 	for _, c := range commits {
 		authors[c.GetCommitter().GetLogin()] = true
@@ -370,3 +388,4 @@ func splitMembers(members []*github.User, commits []*github.RepositoryCommit) ([
 
 	return allowed, ignored
 }
+

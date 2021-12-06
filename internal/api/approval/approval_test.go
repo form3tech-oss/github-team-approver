@@ -134,7 +134,7 @@ func TestContentsUrlToRelDir(t *testing.T) {
 	})
 }
 
-func TestSplitMembers(t *testing.T) {
+func TestFilterAllowedAndIgnoreReviewers(t *testing.T) {
 	tests := map[string]struct {
 		commits   []*github.RepositoryCommit
 		members   []*github.User
@@ -198,7 +198,7 @@ func TestSplitMembers(t *testing.T) {
 	for name, tt := range tests {
 		t.Run(name,
 			func(t *testing.T) {
-				gotAllowed, gotIgnored := splitMembers(tt.members, tt.commits)
+				gotAllowed, gotIgnored := filterAllowedAndIgnoreReviewers(tt.members, tt.commits)
 				require.Equal(t, gotAllowed, tt.allowed)
 				require.Equal(t, gotIgnored, tt.ignored)
 			})

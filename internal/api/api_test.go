@@ -71,7 +71,7 @@ func TestWhenEventIsForIgnoredRepository(t *testing.T) {
 		ExpectNoCommentsMade()
 }
 
-func TestWhenReviewApproverIsAContributor(t *testing.T) {
+func TestWhenNoContributorReviewIsUnsetAndReviewApproverIsAContributor(t *testing.T) {
 	given, when, then := stages.ApiTest(t)
 
 	given.
@@ -80,6 +80,30 @@ func TestWhenReviewApproverIsAContributor(t *testing.T) {
 		FakeGHRunning().
 		OrganisationWithTeamFoo().
 		RepoWithFooAsApprovingTeam().
+		PullRequestExists().
+		NoCommentsExist().
+		CommitsWithAliceAsContributor().
+		AliceApprovesPullRequest().
+		GitHubTeamApproverRunning()
+	when.
+		SendingApprovedPRReviewSubmittedEvent()
+	then.
+		ExpectSuccessAnswerReturned().
+		ExpectStatusSuccessReported().
+		ExpectNoCommentsMade().
+		ExpectLabelsUpdated().
+		ExpectNoReviewRequestsMade()
+}
+
+func TestWhenNoContributorReviewIsEnabledAndReviewApproverIsAContributor(t *testing.T) {
+	given, when, then := stages.ApiTest(t)
+
+	given.
+		EncryptionKeyExists().
+		GitHubWebHookTokenExists().
+		FakeGHRunning().
+		OrganisationWithTeamFoo().
+		RepoWithNoContributorReviewEnabledAndFooAsApprovingTeam().
 		PullRequestExists().
 		NoCommentsExist().
 		CommitsWithAliceAsContributor().
@@ -221,7 +245,7 @@ func TestGitHubTeamApproverCleansUpOldIgnoredReviewsComments(t *testing.T) {
 		GitHubWebHookTokenExists().
 		FakeGHRunning().
 		OrganisationWithTeamFoo().
-		RepoWithFooAsApprovingTeam().
+		RepoWithNoContributorReviewEnabledAndFooAsApprovingTeam().
 		PullRequestExists().
 		IgnoredReviewCommentsExist().
 		CommitsWithAliceAsContributor().

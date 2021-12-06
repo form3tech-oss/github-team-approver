@@ -103,4 +103,4 @@ test: pact
 	ENCRYPTION_KEY_PATH=$(EXAMPLES_DIR)/test.key \
 	GITHUB_STATUS_NAME=github-team-approver \
 	RUN_PACT_TESTS=1 \
-	go test ./internal/... -count 1 -cover
+	go test ./internal/... -count 1 -cover -v

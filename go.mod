@@ -6,7 +6,7 @@ replace github.com/gregjones/httpcache => github.com/form3tech-oss/httpcache v0.
 
 require (
 	github.com/bradleyfalzon/ghinstallation v1.1.1
-	github.com/form3tech-oss/github-team-approver-commons v1.3.0
+	github.com/form3tech-oss/github-team-approver-commons v1.3.2
 	github.com/form3tech-oss/go-pact-testing v1.4.1
 	github.com/form3tech-oss/logrus-logzio-hook v1.0.0
 	github.com/golang/snappy v0.0.1 // indirect
