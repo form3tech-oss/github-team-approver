@@ -71,7 +71,17 @@ func (c *Client) GetPullRequestReviews(ctx context.Context, ownerLogin, repoName
 		PerPage: defaultListOptionsPerPage,
 	}
 
+	logger := log.WithFields(
+		log.Fields{
+			"pr":       prNumber,
+			"repo":     fmt.Sprintf("%s/%s", ownerLogin, repoName),
+			"api":      "PullRequests.ListReviews",
+			"per_page": opts.PerPage,
+		})
+
 	for {
+		logger.WithFields(log.Fields{"page": opts.Page}).Tracef("requesting")
+
 		ctxTimeout, fn := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
 		r, res, err := c.githubClient.PullRequests.ListReviews(ctxTimeout, ownerLogin, repoName, prNumber, opts)
 		if err != nil {
@@ -101,7 +111,17 @@ func (c *Client) GetPullRequestCommitFiles(ctx context.Context, ownerLogin, repo
 		PerPage: defaultListOptionsPerPage,
 	}
 
+	logger := log.WithFields(
+		log.Fields{
+			"pr":       prNumber,
+			"repo":     fmt.Sprintf("%s/%s", ownerLogin, repoName),
+			"api":      "PullRequests.ListFiles",
+			"per_page": opts.PerPage,
+		})
+
 	for {
+		logger.WithFields(log.Fields{"page": opts.Page}).Tracef("requesting")
+
 		ctxTimeout, fn := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
 		r, res, err := c.githubClient.PullRequests.ListFiles(ctxTimeout, ownerLogin, repoName, prNumber, opts)
 		if err != nil {
@@ -130,7 +150,16 @@ func (c *Client) GetTeams(ctx context.Context, organisation string) ([]*github.T
 		PerPage: defaultListOptionsPerPage,
 	}
 
+	logger := log.WithFields(
+		log.Fields{
+			"org":      organisation,
+			"api":      "Teams.ListTeams",
+			"per_page": opts.PerPage,
+		})
+
 	for {
+		logger.WithFields(log.Fields{"page": opts.Page}).Tracef("requesting")
+
 		ctxTimeout, fn := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
 		t, res, err := c.githubClient.Teams.ListTeams(ctxTimeout, organisation, opts)
 		if err != nil {
@@ -173,11 +202,22 @@ func (c *Client) getPRCommitsPage(ctx context.Context, owner, repo string, prNum
 	ctxTimeout, cancel := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
 	defer cancel()
 
+	opts := &github.ListOptions{
+		Page:    page,
+		PerPage: defaultListOptionsPerPage,
+	}
+
+	log.WithFields(
+		log.Fields{
+			"pr":       prNumber,
+			"repo":     fmt.Sprintf("%s/%s", owner, repo),
+			"api":      "PullRequests.ListCommits",
+			"per_page": opts.PerPage,
+			"page":     opts.Page,
+		}).Tracef("requesting")
+
 	commits, resp, err := c.githubClient.PullRequests.ListCommits(
-		ctxTimeout, owner, repo, prNumber, &github.ListOptions{
-			Page:    page,
-			PerPage: defaultListOptionsPerPage,
-		})
+		ctxTimeout, owner, repo, prNumber, opts)
 	if err != nil {
 		return nil, 0, fmt.Errorf("getPRCommits: %w", err)
 	}
@@ -208,7 +248,17 @@ func (c *Client) GetTeamMembers(ctx context.Context, teams []*github.Team, organ
 		},
 	}
 
+	logger := log.WithFields(
+		log.Fields{
+			"org":      organisation,
+			"name":     name,
+			"api":      "Teams.ListTeamMembers",
+			"per_page": opts.PerPage,
+		})
+
 	for {
+		logger.WithFields(log.Fields{"page": opts.Page}).Tracef("requesting")
+
 		ctxTimeout, fn := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
 		m, res, err := c.githubClient.Teams.ListTeamMembers(ctxTimeout, team.GetID(), opts)
 		if err != nil {
@@ -336,14 +386,23 @@ func (c *Client) getPRCommentsPage(ctx context.Context, owner, repo string, prNu
 	ctxTimeout, cancel := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
 	defer cancel()
 
-	listOpts := &github.IssueListCommentsOptions{
+	opts := &github.IssueListCommentsOptions{
 		ListOptions: github.ListOptions{
 			Page:    page,
 			PerPage: defaultListOptionsPerPage,
 		},
 	}
 
-	comments, resp, err := c.githubClient.Issues.ListComments(ctxTimeout, owner, repo, prNumber, listOpts)
+	log.WithFields(
+		log.Fields{
+			"pr":       prNumber,
+			"repo":     fmt.Sprintf("%s/%s", owner, repo),
+			"api":      "Issues.ListComments",
+			"per_page": opts.PerPage,
+			"page":     opts.Page,
+		}).Tracef("requesting")
+
+	comments, resp, err := c.githubClient.Issues.ListComments(ctxTimeout, owner, repo, prNumber, opts)
 	if err != nil {
 		return nil, 0, fmt.Errorf("getPRComments: %w", err)
 	}
@@ -392,7 +451,17 @@ func (c *Client) GetLabels(ctx context.Context, ownerLogin, repoName string, prN
 		PerPage: defaultListOptionsPerPage,
 	}
 
+	logger := log.WithFields(
+		log.Fields{
+			"pr":       prNumber,
+			"repo":     fmt.Sprintf("%s/%s", ownerLogin, repoName),
+			"api":      "Issues.ListLabelsByIssue",
+			"per_page": opts.PerPage,
+		})
+
 	for {
+		logger.WithFields(log.Fields{"page": opts.Page}).Tracef("requesting")
+
 		ctxTimeout, fn := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
 		m, res, err := c.githubClient.Issues.ListLabelsByIssue(ctxTimeout, ownerLogin, repoName, prNumber, opts)
 		if err != nil {
