@@ -68,6 +68,7 @@ func (c *Client) GetPullRequestReviews(ctx context.Context, ownerLogin, repoName
 	reviews := make([]*github.PullRequestReview, 0, 0)
 
 	opts := &github.ListOptions{
+		Page: 1,
 		PerPage: defaultListOptionsPerPage,
 	}
 
@@ -108,6 +109,7 @@ func (c *Client) GetPullRequestCommitFiles(ctx context.Context, ownerLogin, repo
 	commitFiles := make([]*github.CommitFile, 0, 0)
 
 	opts := &github.ListOptions{
+		Page: 1,
 		PerPage: defaultListOptionsPerPage,
 	}
 
@@ -147,6 +149,7 @@ func (c *Client) GetTeams(ctx context.Context, organisation string) ([]*github.T
 	teams := make([]*github.Team, 0, 0)
 
 	opts := &github.ListOptions{
+		Page: 1,
 		PerPage: defaultListOptionsPerPage,
 	}
 
@@ -244,6 +247,7 @@ func (c *Client) GetTeamMembers(ctx context.Context, teams []*github.Team, organ
 
 	opts := &github.TeamListTeamMembersOptions{
 		ListOptions: github.ListOptions{
+			Page: 1,
 			PerPage: defaultListOptionsPerPage,
 		},
 	}
@@ -448,6 +452,7 @@ func (c *Client) GetLabels(ctx context.Context, ownerLogin, repoName string, prN
 
 	labels := make([]string, 0, 0)
 	opts := &github.ListOptions{
+		Page: 1,
 		PerPage: defaultListOptionsPerPage,
 	}
 
