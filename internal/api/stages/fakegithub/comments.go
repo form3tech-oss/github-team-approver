@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/google/go-github/v28/github"
+	"github.com/google/go-github/v42/github"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/require"
 	"io/ioutil"
@@ -58,7 +58,6 @@ func (f *FakeGitHub) deleteCommentHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-
 	vars := mux.Vars(r)
 	val, ok := vars["id"]
 	require.True(f.t, ok, "go-github sent incorrect comment ID. URL: %s", r.URL.String())
@@ -77,7 +76,7 @@ func (f *FakeGitHub) deleteCommentHandler(w http.ResponseWriter, r *http.Request
 
 func (f *FakeGitHub) notFoundResp(w http.ResponseWriter) {
 	payload, err := json.Marshal(github.ErrorResponse{
-		Message: "Not Found",
+		Message:          "Not Found",
 		DocumentationURL: "https://docs.github.com/rest/reference/issues#delete-an-issue-comment",
 	})
 	require.NoError(f.t, err)

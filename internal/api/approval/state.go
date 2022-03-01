@@ -2,17 +2,17 @@ package approval
 
 import (
 	"fmt"
-	"github.com/google/go-github/v28/github"
+	"github.com/google/go-github/v42/github"
 	log "github.com/sirupsen/logrus"
 	"strings"
 )
 
 const (
-	statusEventDescriptionApprovedFormatString   = "Approved by:\n%s"
-	statusEventDescriptionForciblyApproved       = "Forcibly approved."
-	statusEventDescriptionNoReviewsRequested     = "No teams have been identified as having to be requested for a review."
-	statusEventDescriptionNoRulesMatched         = "The PR's body doesn't meet the requirements."
-	statusEventDescriptionPendingFormatString    = "Needs approval from:\n%s"
+	statusEventDescriptionApprovedFormatString = "Approved by:\n%s"
+	statusEventDescriptionForciblyApproved     = "Forcibly approved."
+	statusEventDescriptionNoReviewsRequested   = "No teams have been identified as having to be requested for a review."
+	statusEventDescriptionNoRulesMatched       = "The PR's body doesn't meet the requirements."
+	statusEventDescriptionPendingFormatString  = "Needs approval from:\n%s"
 )
 
 type state struct {
@@ -54,7 +54,7 @@ func (s *state) addPendingTeamNames(name string) {
 }
 
 func (s *state) setApprovingReviewers(reviews []*github.PullRequestReview) {
-	 approving := map[string]bool{}
+	approving := map[string]bool{}
 
 	for _, review := range reviews {
 		if *review.State == pullRequestReviewStateApproved {
@@ -63,6 +63,7 @@ func (s *state) setApprovingReviewers(reviews []*github.PullRequestReview) {
 	}
 	s.approvingReviewers = approving
 }
+
 // The members that will be mentioned in the bot comment when it publishes ignored PR reviewers comment.
 // We only mention reviewers who approved a PR and also contributed to the PR thus being ignored as valid reviewers.
 // Without this filtering, we would be mentioning all contributing authors even if they didn't review the PR.

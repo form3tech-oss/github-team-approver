@@ -5,7 +5,7 @@ import (
 	ghclient "github.com/form3tech-oss/github-team-approver/internal/api/github"
 	"github.com/form3tech-oss/github-team-approver/internal/api/secret"
 	"github.com/form3tech-oss/github-team-approver/internal/api/stages/fakegithub"
-	"github.com/google/go-github/v28/github"
+	"github.com/google/go-github/v42/github"
 	"github.com/stretchr/testify/require"
 	"os"
 	"testing"

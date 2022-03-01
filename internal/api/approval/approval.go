@@ -14,7 +14,7 @@ import (
 
 	ghclient "github.com/form3tech-oss/github-team-approver/internal/api/github"
 
-	"github.com/google/go-github/v28/github"
+	"github.com/google/go-github/v42/github"
 )
 
 const (
@@ -388,4 +388,3 @@ func filterAllowedAndIgnoreReviewers(members []*github.User, commits []*github.R
 
 	return allowed, ignored
 }
-
