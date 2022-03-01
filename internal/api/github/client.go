@@ -16,7 +16,7 @@ import (
 
 	"github.com/bradleyfalzon/ghinstallation"
 	"github.com/form3tech-oss/github-team-approver-commons/pkg/configuration"
-	"github.com/google/go-github/v28/github"
+	"github.com/google/go-github/v42/github"
 	"github.com/gregjones/httpcache"
 	log "github.com/sirupsen/logrus"
 )
@@ -48,13 +48,14 @@ func (c *Client) GetConfiguration(ctx context.Context, ownerLogin, repoName stri
 	// Try to download the contents of the configuration file.
 	ctxTimeout, fn := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
 	defer fn()
-	r, err := c.githubClient.Repositories.DownloadContents(ctxTimeout, ownerLogin, repoName, configuration.ConfigurationFilePath, nil)
+	r, res, err := c.githubClient.Repositories.DownloadContents(ctxTimeout, ownerLogin, repoName, configuration.ConfigurationFilePath, nil)
 	if err != nil {
-		if strings.Contains(err.Error(), "No file named") { // No better way of distinguishing between errors.
+		if strings.Contains(strings.ToLower(err.Error()), "no file named") { // fixme: look at status code instead of body
 			return nil, ErrNoConfigurationFile
 		}
 		return nil, fmt.Errorf("error downloading configuration: %w", err)
 	}
+	defer res.Body.Close()
 	defer r.Close()
 	// Parse the configuration file.
 	v, err := configuration.ReadConfiguration(r)
@@ -68,7 +69,7 @@ func (c *Client) GetPullRequestReviews(ctx context.Context, ownerLogin, repoName
 	reviews := make([]*github.PullRequestReview, 0, 0)
 
 	opts := &github.ListOptions{
-		Page: 1,
+		Page:    1,
 		PerPage: defaultListOptionsPerPage,
 	}
 
@@ -109,7 +110,7 @@ func (c *Client) GetPullRequestCommitFiles(ctx context.Context, ownerLogin, repo
 	commitFiles := make([]*github.CommitFile, 0, 0)
 
 	opts := &github.ListOptions{
-		Page: 1,
+		Page:    1,
 		PerPage: defaultListOptionsPerPage,
 	}
 
@@ -149,7 +150,7 @@ func (c *Client) GetTeams(ctx context.Context, organisation string) ([]*github.T
 	teams := make([]*github.Team, 0, 0)
 
 	opts := &github.ListOptions{
-		Page: 1,
+		Page:    1,
 		PerPage: defaultListOptionsPerPage,
 	}
 
@@ -247,7 +248,7 @@ func (c *Client) GetTeamMembers(ctx context.Context, teams []*github.Team, organ
 
 	opts := &github.TeamListTeamMembersOptions{
 		ListOptions: github.ListOptions{
-			Page: 1,
+			Page:    1,
 			PerPage: defaultListOptionsPerPage,
 		},
 	}
@@ -264,21 +265,36 @@ func (c *Client) GetTeamMembers(ctx context.Context, teams []*github.Team, organ
 		logger.WithFields(log.Fields{"page": opts.Page}).Tracef("requesting")
 
 		ctxTimeout, fn := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
-		m, res, err := c.githubClient.Teams.ListTeamMembers(ctxTimeout, team.GetID(), opts)
+		org, resorg, err := c.githubClient.Organizations.Get(ctx, organisation)
+		if err != nil {
+			fn()
+			return nil, fmt.Errorf("error getting an organisation %q: %w", organisation, err)
+		}
+		if resorg.StatusCode >= 300 {
+			fn()
+			return nil, fmt.Errorf("error getting an organisation organisation %q (status: %d): %s", organisation, resorg.StatusCode, readAllClose(resorg.Body))
+		}
+		fn()
+		defer resorg.Body.Close()
+
+		ctxTimeout, fn = context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
+		m, resteam, err := c.githubClient.Teams.ListTeamMembersByID(ctxTimeout, org.GetID(), team.GetID(), opts)
 		if err != nil {
 			fn()
 			return nil, fmt.Errorf("error listing members for team %q in organisation %q: %w", name, organisation, err)
 		}
-		if res.StatusCode >= 300 {
+		if resteam.StatusCode >= 300 {
 			fn()
-			return nil, fmt.Errorf("error listing members for team %q in organisation %q (status: %d): %s", name, organisation, res.StatusCode, readAllClose(res.Body))
+			return nil, fmt.Errorf("error listing members for team %q in organisation %q (status: %d): %s", name, organisation, resteam.StatusCode, readAllClose(resteam.Body))
 		}
 		fn()
+		defer resteam.Body.Close()
+
 		users = append(users, m...)
-		if res.NextPage == 0 {
+		if resteam.NextPage == 0 {
 			break
 		}
-		opts.Page = res.NextPage
+		opts.Page = resteam.NextPage
 	}
 	return users, nil
 }
@@ -452,7 +468,7 @@ func (c *Client) GetLabels(ctx context.Context, ownerLogin, repoName string, prN
 
 	labels := make([]string, 0, 0)
 	opts := &github.ListOptions{
-		Page: 1,
+		Page:    1,
 		PerPage: defaultListOptionsPerPage,
 	}
 

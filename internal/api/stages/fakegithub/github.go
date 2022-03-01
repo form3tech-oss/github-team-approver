@@ -3,7 +3,7 @@ package fakegithub
 import (
 	"fmt"
 	approverCfg "github.com/form3tech-oss/github-team-approver-commons/pkg/configuration"
-	"github.com/google/go-github/v28/github"
+	"github.com/google/go-github/v42/github"
 	"net/http/httptest"
 	"testing"
 
@@ -14,6 +14,7 @@ type Team map[int64][]*github.User
 
 type Org struct {
 	// Teams present for the organisation
+	OrgDetails  *github.Organization
 	Teams       []*github.Team
 	TeamMembers Team
 	OwnerName   string
@@ -38,8 +39,8 @@ type FakeGitHub struct {
 	repo *Repo
 	pr   *PR
 
-	repoContents []*github.RepositoryContent
-	commits      []*github.RepositoryCommit
+	repoContents  []*github.RepositoryContent
+	commits       []*github.RepositoryCommit
 	reviews       []*github.PullRequestReview
 	issueComments []*github.IssueComment
 
@@ -71,7 +72,8 @@ func (f *FakeGitHub) SetOrg(o *Org) {
 
 	// only expose handlers when expected data is there
 	f.mux.HandleFunc(f.teamsURL(), f.teamsHandler)
-	f.mux.HandleFunc("/teams/{id:[0-9]+}/members", f.teamsMemberHandler)
+	f.mux.HandleFunc("/orgs/{org:.*}", f.orgsHandler)
+	f.mux.HandleFunc("/organizations/{orgid:[0-9]+}/team/{id:[0-9]+}/members", f.teamsMemberHandler)
 
 }
 

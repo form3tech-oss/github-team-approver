@@ -2,7 +2,7 @@ package fakegithub
 
 import (
 	"encoding/json"
-	"github.com/google/go-github/v28/github"
+	"github.com/google/go-github/v42/github"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/require"
 	"io/ioutil"
@@ -44,6 +44,19 @@ func (f *FakeGitHub) teamsHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	payload, err := json.Marshal(f.org.Teams)
+	require.NoError(f.t, err)
+	_, err = w.Write(payload)
+	require.NoError(f.t, err)
+}
+
+func (f *FakeGitHub) orgsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	payload, err := json.Marshal(f.org.OrgDetails)
 	require.NoError(f.t, err)
 	_, err = w.Write(payload)
 	require.NoError(f.t, err)
