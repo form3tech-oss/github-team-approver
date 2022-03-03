@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/form3tech-oss/github-team-approver-commons/pkg/configuration"
-	"github.com/google/go-github/v28/github"
+	"github.com/google/go-github/v42/github"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -21,7 +21,7 @@ type ReviewEvent struct {
 	PRTargetBranch string
 
 	// GitHubTeam Approver template filled by author
-	PRCfg  *configuration.Configuration
+	PRCfg *configuration.Configuration
 }
 
 func (r *ReviewEvent) Create(t *testing.T) *github.PullRequestReviewEvent {
@@ -64,4 +64,3 @@ func cfgString(t *testing.T, cfg *configuration.Configuration) string {
 
 	return buffer.String()
 }
-

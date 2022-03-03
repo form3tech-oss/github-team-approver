@@ -2,7 +2,7 @@ package api
 
 import (
 	"encoding/json"
-	"github.com/google/go-github/v28/github"
+	"github.com/google/go-github/v42/github"
 	"strings"
 	"testing"
 )

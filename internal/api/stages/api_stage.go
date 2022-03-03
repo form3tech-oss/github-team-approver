@@ -5,7 +5,7 @@ import (
 	approverCfg "github.com/form3tech-oss/github-team-approver-commons/pkg/configuration"
 	"github.com/form3tech-oss/github-team-approver/internal/api/approval"
 	"github.com/form3tech-oss/github-team-approver/internal/api/stages/fakegithub"
-	"github.com/google/go-github/v28/github"
+	"github.com/google/go-github/v42/github"
 	"github.com/stretchr/testify/require"
 	"net/http"
 	"os"

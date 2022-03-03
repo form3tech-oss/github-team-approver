@@ -1,7 +1,7 @@
 package approval
 
 import (
-	"github.com/google/go-github/v28/github"
+	"github.com/google/go-github/v42/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -136,8 +136,8 @@ func TestContentsUrlToRelDir(t *testing.T) {
 
 func TestFilterAllowedAndIgnoreReviewers(t *testing.T) {
 	tests := map[string]struct {
-		commits   []*github.RepositoryCommit
-		members   []*github.User
+		commits []*github.RepositoryCommit
+		members []*github.User
 		allowed []string
 		ignored []string
 	}{

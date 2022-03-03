@@ -2,10 +2,11 @@ package api
 
 import (
 	"fmt"
-	"github.com/google/go-github/v28/github"
+	"github.com/google/go-github/v42/github"
 )
+
 const (
-	pullRequestActionClosed      = "closed"
+	pullRequestActionClosed = "closed"
 )
 
 type event interface {
