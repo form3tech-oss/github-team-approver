@@ -20,7 +20,7 @@ require (
 	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
 	github.com/sirupsen/logrus v1.8.1
-	github.com/slack-go/slack v0.6.5
+	github.com/slack-go/slack v0.10.2
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/viper v1.7.1
