@@ -26,7 +26,7 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
-      - run: make build
+      - run: make install-deps
       - run: make skaffold.push
         env:
           TRAVIS_TAG: "${{ steps.tag.outputs.tag }}"
