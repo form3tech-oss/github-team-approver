@@ -9,7 +9,6 @@ require (
 	github.com/form3tech-oss/github-team-approver-commons v1.3.2
 	github.com/form3tech-oss/go-pact-testing v1.4.1
 	github.com/form3tech-oss/logrus-logzio-hook v1.0.0
-	github.com/golang/snappy v0.0.1 // indirect
 	github.com/google/go-github/v42 v42.0.0
 	github.com/google/tcpproxy v0.0.0-20180808230851-dfa16c61dad2
 	github.com/google/uuid v1.3.0
@@ -17,12 +16,9 @@ require (
 	github.com/gregjones/httpcache v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/go-version v1.2.1-0.20190424083514-192140e6f3e6 // indirect
 	github.com/logzio/logzio-go v0.0.0-20190916115104-4cd568a9b6d6
-	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
 	github.com/sirupsen/logrus v1.8.1
 	github.com/slack-go/slack v0.10.2
-	github.com/spf13/afero v1.2.2 // indirect
-	github.com/spf13/jwalterweatherman v1.1.0 // indirect
-	github.com/spf13/viper v1.7.1
+	github.com/spf13/viper v1.10.1
 	github.com/stretchr/testify v1.7.0
 )
