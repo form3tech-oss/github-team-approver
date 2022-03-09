@@ -75,10 +75,10 @@ func (c *Client) GetPullRequestReviews(ctx context.Context, ownerLogin, repoName
 
 	logger := log.WithFields(
 		log.Fields{
-			"pr":       prNumber,
-			"repo":     fmt.Sprintf("%s/%s", ownerLogin, repoName),
-			"api":      "PullRequests.ListReviews",
-			"per_page": opts.PerPage,
+			"pr":         prNumber,
+			"repository": fmt.Sprintf("%s/%s", ownerLogin, repoName),
+			"api":        "PullRequests.ListReviews",
+			"per_page":   opts.PerPage,
 		})
 
 	for {
@@ -116,10 +116,10 @@ func (c *Client) GetPullRequestCommitFiles(ctx context.Context, ownerLogin, repo
 
 	logger := log.WithFields(
 		log.Fields{
-			"pr":       prNumber,
-			"repo":     fmt.Sprintf("%s/%s", ownerLogin, repoName),
-			"api":      "PullRequests.ListFiles",
-			"per_page": opts.PerPage,
+			"pr":         prNumber,
+			"repository": fmt.Sprintf("%s/%s", ownerLogin, repoName),
+			"api":        "PullRequests.ListFiles",
+			"per_page":   opts.PerPage,
 		})
 
 	for {
@@ -213,11 +213,11 @@ func (c *Client) getPRCommitsPage(ctx context.Context, owner, repo string, prNum
 
 	log.WithFields(
 		log.Fields{
-			"pr":       prNumber,
-			"repo":     fmt.Sprintf("%s/%s", owner, repo),
-			"api":      "PullRequests.ListCommits",
-			"per_page": opts.PerPage,
-			"page":     opts.Page,
+			"pr":         prNumber,
+			"repository": fmt.Sprintf("%s/%s", owner, repo),
+			"api":        "PullRequests.ListCommits",
+			"per_page":   opts.PerPage,
+			"page":       opts.Page,
 		}).Tracef("requesting")
 
 	commits, resp, err := c.githubClient.PullRequests.ListCommits(
@@ -415,11 +415,11 @@ func (c *Client) getPRCommentsPage(ctx context.Context, owner, repo string, prNu
 
 	log.WithFields(
 		log.Fields{
-			"pr":       prNumber,
-			"repo":     fmt.Sprintf("%s/%s", owner, repo),
-			"api":      "Issues.ListComments",
-			"per_page": opts.PerPage,
-			"page":     opts.Page,
+			"pr":         prNumber,
+			"repository": fmt.Sprintf("%s/%s", owner, repo),
+			"api":        "Issues.ListComments",
+			"per_page":   opts.PerPage,
+			"page":       opts.Page,
 		}).Tracef("requesting")
 
 	comments, resp, err := c.githubClient.Issues.ListComments(ctxTimeout, owner, repo, prNumber, opts)
@@ -474,10 +474,10 @@ func (c *Client) GetLabels(ctx context.Context, ownerLogin, repoName string, prN
 
 	logger := log.WithFields(
 		log.Fields{
-			"pr":       prNumber,
-			"repo":     fmt.Sprintf("%s/%s", ownerLogin, repoName),
-			"api":      "Issues.ListLabelsByIssue",
-			"per_page": opts.PerPage,
+			"pr":         prNumber,
+			"repository": fmt.Sprintf("%s/%s", ownerLogin, repoName),
+			"api":        "Issues.ListLabelsByIssue",
+			"per_page":   opts.PerPage,
 		})
 
 	for {

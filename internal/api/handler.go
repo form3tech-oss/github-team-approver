@@ -16,7 +16,7 @@ const (
 	logFieldDeliveryID  = "delivery_id"
 	logFieldEventType   = "event_type"
 	logFieldPR          = "pr"
-	logFieldRepo        = "repo"
+	logFieldRepo        = "repository"
 	logFieldServiceName = "service_name"
 
 	httpHeaderXFinalStatus    = "X-Final-Status"
