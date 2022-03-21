@@ -2,16 +2,17 @@ package stages
 
 import (
 	"fmt"
-	approverCfg "github.com/form3tech-oss/github-team-approver-commons/pkg/configuration"
-	"github.com/form3tech-oss/github-team-approver/internal/api/approval"
-	"github.com/form3tech-oss/github-team-approver/internal/api/stages/fakegithub"
-	"github.com/google/go-github/v42/github"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
 	"testing"
+
+	approverCfg "github.com/form3tech-oss/github-team-approver-commons/pkg/configuration"
+	"github.com/form3tech-oss/github-team-approver/internal/api/approval"
+	"github.com/form3tech-oss/github-team-approver/internal/api/stages/fakegithub"
+	"github.com/google/go-github/v42/github"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -212,6 +213,47 @@ func (s *ApiStage) RepoWithoutConfigurationFile() *ApiStage {
 	return s
 }
 
+func (s *ApiStage) RepoWithConfigurationReferencingInvalidTeamHandles() *ApiStage {
+	require.NotNil(s.t, s.fakeGitHub.Org())
+	approvingTeam := *s.fakeGitHub.Org().Teams[0].Name
+
+	repo := &fakegithub.Repo{
+		Name: "some-service",
+
+		ApproverCfg: &approverCfg.Configuration{
+			PullRequestApprovalRules: []approverCfg.PullRequestApprovalRule{
+				{
+					TargetBranches: []string{"master"},
+					Rules: []approverCfg.Rule{
+						{
+							ApprovalMode:         approverCfg.ApprovalModeRequireAny,
+							Regex:                `- \[x\] Yes - this change impacts customers`,
+							ApprovingTeamHandles: []string{approvingTeam},
+							Labels:               []string{},
+						},
+						{
+							ApprovalMode:         approverCfg.ApprovalModeRequireAny,
+							Regex:                `- \[x\] Yes - Emergency`,
+							ApprovingTeamHandles: []string{"CRAB - Foo"},
+							Labels:               []string{},
+							ForceApproval:        true,
+						},
+					},
+				},
+			},
+		},
+	}
+	s.fakeGitHub.SetRepo(repo)
+	s.fakeGitHub.SetRepoContents([]*github.RepositoryContent{
+		{
+			Name:        github.String("GITHUB_TEAM_APPROVER.yaml"),
+			DownloadURL: github.String(fmt.Sprintf("%s/master/%s", s.fakeGitHub.RepoURL(), approverCfg.ConfigurationFilePath)),
+		},
+	})
+
+	return s
+}
+
 func (s *ApiStage) GitHubTeamApproverRunning() *ApiStage {
 	s.t.Cleanup(s.app.Shutdown)
 	s.setupEnv("LOG_LEVEL", "TRACE")
@@ -349,6 +391,11 @@ func (s *ApiStage) NoCommentsExist() *ApiStage {
 	return s
 }
 
+func (s *ApiStage) NoReviewsExist() *ApiStage {
+	s.fakeGitHub.SetReviews([]*github.PullRequestReview{})
+	return s
+}
+
 func (s *ApiStage) IgnoredReviewCommentsExist() *ApiStage {
 	msg := fmt.Sprintf("%s\n- @%s\n", ignoredReviewerMsg, "some user")
 	comments := []*github.IssueComment{
@@ -413,6 +460,55 @@ func (s *ApiStage) PullRequestExists() *ApiStage {
 	return s
 }
 
+func (s *ApiStage) SendingPREvent() *ApiStage {
+	require.NotNil(s.t, s.fakeGitHub.Org())
+	require.NotNil(s.t, s.fakeGitHub.Repo())
+
+	approvingTeam := *s.fakeGitHub.Org().Teams[0].Name
+	targetBranch := "master"
+	s.labels = []string{"foo", "bar", "needs-cab-approval"}
+
+	r := fakegithub.Event{
+		OwnerLogin: s.fakeGitHub.Org().OwnerName,
+		RepoName:   s.fakeGitHub.Repo().Name,
+		PRNumber:   s.fakeGitHub.PR().PRNumber,
+
+		Action:         "opened",
+		CommitSHA:      s.fakeGitHub.PR().PRCommit,
+		LabelNames:     s.labels,
+		PRMerged:       false,
+		PRTargetBranch: targetBranch,
+		PRCfg: &approverCfg.Configuration{
+			PullRequestApprovalRules: []approverCfg.PullRequestApprovalRule{
+				{
+					TargetBranches: []string{targetBranch},
+					Rules: []approverCfg.Rule{
+						{
+							ApprovalMode:         approverCfg.ApprovalModeRequireAny,
+							Regex:                `- [x] Yes - this change impacts customers`,
+							ApprovingTeamHandles: []string{approvingTeam},
+							Labels:               []string{},
+						},
+						{
+							ApprovalMode:         approverCfg.ApprovalModeRequireAny,
+							Regex:                `- [x] Yes - Emergency`,
+							ApprovingTeamHandles: []string{"CRAB - Foo"},
+							Labels:               []string{"needs-cab-approval"},
+							ForceApproval:        true,
+						},
+					},
+				},
+			},
+		},
+	}
+	payload := r.CreatePullRequestEvent(s.t)
+
+	c := newClient(s.t, s.app.URL(), s.WebHookSecret)
+	s.resp = c.sendEvent(payload, "pull_request")
+
+	return s
+}
+
 func (s *ApiStage) SendingApprovedPRReviewSubmittedEvent() *ApiStage {
 	require.NotNil(s.t, s.fakeGitHub.Org())
 	require.NotNil(s.t, s.fakeGitHub.Repo())
@@ -421,7 +517,7 @@ func (s *ApiStage) SendingApprovedPRReviewSubmittedEvent() *ApiStage {
 	targetBranch := "master"
 	s.labels = []string{"foo", "bar"}
 
-	r := fakegithub.ReviewEvent{
+	r := fakegithub.Event{
 		OwnerLogin: s.fakeGitHub.Org().OwnerName,
 		RepoName:   s.fakeGitHub.Repo().Name,
 		PRNumber:   s.fakeGitHub.PR().PRNumber,
@@ -447,7 +543,7 @@ func (s *ApiStage) SendingApprovedPRReviewSubmittedEvent() *ApiStage {
 			},
 		},
 	}
-	payload := r.Create(s.t)
+	payload := r.CreatePullRequestReviewEvent(s.t)
 
 	c := newClient(s.t, s.app.URL(), s.WebHookSecret)
 	s.resp = c.sendEvent(payload, "pull_request_review")
@@ -463,7 +559,7 @@ func (s *ApiStage) SendingPRReviewSubmittedEventWithForceApproval() *ApiStage {
 	targetBranch := "master"
 	s.labels = []string{"foo", "bar", "needs-cab-approval"}
 
-	r := fakegithub.ReviewEvent{
+	r := fakegithub.Event{
 		OwnerLogin: s.fakeGitHub.Org().OwnerName,
 		RepoName:   s.fakeGitHub.Repo().Name,
 		PRNumber:   s.fakeGitHub.PR().PRNumber,
@@ -490,7 +586,7 @@ func (s *ApiStage) SendingPRReviewSubmittedEventWithForceApproval() *ApiStage {
 			},
 		},
 	}
-	payload := r.Create(s.t)
+	payload := r.CreatePullRequestReviewEvent(s.t)
 
 	c := newClient(s.t, s.app.URL(), s.WebHookSecret)
 	s.resp = c.sendEvent(payload, "pull_request_review")
@@ -519,6 +615,12 @@ func (s *ApiStage) ExpectStatusSuccessReported() *ApiStage {
 	status := s.fakeGitHub.ReportedStatus()
 	require.Equal(s.t, approval.StatusEventStatusSuccess, *(status.State))
 	require.Equal(s.t, botName, *(status.Context))
+	return s
+}
+
+func (s *ApiStage) ExpectInvalidTeamHandleInStatusDescription() *ApiStage {
+	status := s.fakeGitHub.ReportedStatus()
+	require.Regexp(s.t, ".*\\nCRAB - Foo", *(status.Description))
 	return s
 }
 

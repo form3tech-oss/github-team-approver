@@ -3,12 +3,13 @@ package approval
 import (
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"net/url"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/form3tech-oss/github-team-approver-commons/pkg/configuration"
 
@@ -170,7 +171,8 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 		for _, handle := range rule.ApprovingTeamHandles {
 			teamName, err := getTeamNameFromTeamHandle(teams, handle)
 			if err != nil {
-				return nil, err
+				state.addInvalidTeamHandle(handle)
+				continue
 			}
 			// Grab the list of members on the current approving team.
 			members, err := a.client.GetTeamMembers(ctx, teams, pr.OwnerLogin, teamName)

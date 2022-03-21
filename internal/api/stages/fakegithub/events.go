@@ -3,14 +3,15 @@ package fakegithub
 import (
 	"bytes"
 	"fmt"
+	"testing"
+
 	"github.com/form3tech-oss/github-team-approver-commons/pkg/configuration"
 	"github.com/google/go-github/v42/github"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
-// ReviewEvent Capturing the data we require in sending an event
-type ReviewEvent struct {
+// Event Capturing the data we require in sending an event
+type Event struct {
 	OwnerLogin     string
 	RepoName       string
 	PRNumber       int
@@ -24,7 +25,7 @@ type ReviewEvent struct {
 	PRCfg *configuration.Configuration
 }
 
-func (r *ReviewEvent) Create(t *testing.T) *github.PullRequestReviewEvent {
+func (r *Event) CreatePullRequestReviewEvent(t *testing.T) *github.PullRequestReviewEvent {
 	var labels []*github.Label
 	for _, n := range r.LabelNames {
 		labels = append(labels, &github.Label{Name: github.String(n)})
@@ -52,6 +53,37 @@ func (r *ReviewEvent) Create(t *testing.T) *github.PullRequestReviewEvent {
 				Ref: github.String(r.PRTargetBranch),
 			},
 			Merged: github.Bool(r.PRMerged),
+		},
+	}
+}
+
+func (e *Event) CreatePullRequestEvent(t *testing.T) *github.PullRequestEvent {
+	var labels []*github.Label
+	for _, n := range e.LabelNames {
+		labels = append(labels, &github.Label{Name: github.String(n)})
+	}
+	owner := &github.User{Login: github.String(e.OwnerLogin)}
+	fullName := fmt.Sprintf("%s/%s", e.OwnerLogin, e.RepoName)
+
+	return &github.PullRequestEvent{
+		Repo: &github.Repository{
+			Owner:    owner,
+			Name:     github.String(e.RepoName),
+			FullName: github.String(fullName),
+		},
+
+		Action: github.String(e.Action),
+		PullRequest: &github.PullRequest{
+			Number:      github.Int(e.PRNumber),
+			Body:        github.String(cfgString(t, e.PRCfg)),
+			Labels:      labels,
+			CommitsURL:  github.String(fmt.Sprintf("repos/%s/commits{/sha}", fullName)),
+			CommentsURL: github.String(fmt.Sprintf("repos/%s/comments{/number}", fullName)),
+			StatusesURL: github.String(fmt.Sprintf("repos/%s/statuses/%s", fullName, e.CommitSHA)),
+			Base: &github.PullRequestBranch{
+				Ref: github.String(e.PRTargetBranch),
+			},
+			Merged: github.Bool(e.PRMerged),
 		},
 	}
 }

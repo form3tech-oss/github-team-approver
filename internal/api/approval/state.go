@@ -2,9 +2,10 @@ package approval
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/google/go-github/v42/github"
 	log "github.com/sirupsen/logrus"
-	"strings"
 )
 
 const (
@@ -13,6 +14,7 @@ const (
 	statusEventDescriptionNoReviewsRequested   = "No teams have been identified as having to be requested for a review."
 	statusEventDescriptionNoRulesMatched       = "The PR's body doesn't meet the requirements."
 	statusEventDescriptionPendingFormatString  = "Needs approval from:\n%s"
+	statusEventDescriptionInvalidTeamHandles   = "Invalid config: no teams could be found for the following handles:\n%s"
 )
 
 type state struct {
@@ -31,6 +33,8 @@ type state struct {
 	approvingReviewers map[string]bool
 	// Reviewers who have committed to the PR as well thus ignored as allowed reviewers
 	ignoredReviewers []string
+	// Invalid team handles found in configuration
+	invalidTeamHandles []string
 }
 
 func newState() *state {
@@ -47,6 +51,10 @@ func (s *state) incRulesMatched() {
 
 func (s *state) addApprovingTeamNames(name string) {
 	s.approvingTeamNames = appendIfMissing(s.approvingTeamNames, name)
+}
+
+func (s *state) addInvalidTeamHandle(name string) {
+	s.invalidTeamHandles = appendIfMissing(s.invalidTeamHandles, name)
 }
 
 func (s *state) addPendingTeamNames(name string) {
@@ -90,6 +98,10 @@ func (s *state) result(log *log.Entry, teams []*github.Team) *Result {
 	case s.rulesMatched == 0:
 		// No rules have been matched, which represents an error.
 		result.description = statusEventDescriptionNoRulesMatched
+		result.status = StatusEventStatusPending
+	case len(s.invalidTeamHandles) > 0:
+		// The configuration references a non-existent team
+		result.description = fmt.Sprintf(statusEventDescriptionInvalidTeamHandles, strings.Join(s.invalidTeamHandles, "\n"))
 		result.status = StatusEventStatusPending
 	case s.forceApproval:
 		// The PR is being forcibly approved.

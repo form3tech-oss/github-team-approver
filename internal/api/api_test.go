@@ -1,8 +1,9 @@
 package api_test
 
 import (
-	"github.com/form3tech-oss/github-team-approver/internal/api/stages"
 	"testing"
+
+	"github.com/form3tech-oss/github-team-approver/internal/api/stages"
 )
 
 func TestWhenSendingInvalidSignatures(t *testing.T) {
@@ -260,4 +261,24 @@ func TestGitHubTeamApproverCleansUpOldIgnoredReviewsComments(t *testing.T) {
 		ExpectCommentAliceIgnoredAsReviewer().
 		ExpectLabelsUpdated().
 		ExpectedReviewRequestsMadeForFoo()
+}
+
+func TestGitHubTeamApproverReportsInvalidTeamHandlesInConfiguration(t *testing.T) {
+	given, when, then := stages.ApiTest(t)
+
+	given.
+		EncryptionKeyExists().
+		GitHubWebHookTokenExists().
+		FakeGHRunning().
+		OrganisationWithTeamFoo().
+		RepoWithConfigurationReferencingInvalidTeamHandles().
+		PullRequestExists().
+		NoReviewsExist().
+		GitHubTeamApproverRunning()
+	when.
+		SendingPREvent()
+	then.
+		ExpectPendingAnswerReturned().
+		ExpectStatusPendingReported().
+		ExpectInvalidTeamHandleInStatusDescription()
 }
