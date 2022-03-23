@@ -2,6 +2,7 @@ package approval
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"regexp"
@@ -25,6 +26,10 @@ const (
 	statusEventDescriptionNoRulesForTargetBranch = "No rules are defined for the target branch."
 	StatusEventStatusPending                     = "pending"
 	StatusEventStatusSuccess                     = "success"
+)
+
+var (
+	ErrInvalidTeamHandle = errors.New("No team could be found with given name or slug")
 )
 
 type Approval struct {
@@ -171,8 +176,12 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 		for _, handle := range rule.ApprovingTeamHandles {
 			teamName, err := getTeamNameFromTeamHandle(teams, handle)
 			if err != nil {
-				state.addInvalidTeamHandle(handle)
-				continue
+				if errors.Is(err, ErrInvalidTeamHandle) {
+					state.addInvalidTeamHandle(handle)
+					continue
+				}
+
+				return nil, err
 			}
 			// Grab the list of members on the current approving team.
 			members, err := a.client.GetTeamMembers(ctx, teams, pr.OwnerLogin, teamName)
@@ -350,7 +359,7 @@ func getTeamNameFromTeamHandle(teams []*github.Team, v string) (string, error) {
 			return team.GetName(), nil
 		}
 	}
-	return "", fmt.Errorf("Team with name or slug %q not found", v)
+	return "", fmt.Errorf("Invalid team handle: %q %w", v, ErrInvalidTeamHandle)
 }
 
 func (a *Approval) allowedAndIgnoreReviewers(ctx context.Context, pr *PR, members []*github.User, ignoreContributors bool) ([]string, []string, error) {
