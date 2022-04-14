@@ -101,7 +101,8 @@ func (s *state) result(log *log.Entry, teams []*github.Team) *Result {
 		result.status = StatusEventStatusPending
 	case len(s.invalidTeamHandles) > 0:
 		// The configuration references a non-existent team
-		result.description = fmt.Sprintf(statusEventDescriptionInvalidTeamHandles, strings.Join(s.invalidTeamHandles, "\n"))
+		result.errorMessage = fmt.Sprintf(statusEventDescriptionInvalidTeamHandles, strings.Join(s.invalidTeamHandles, "\n"))
+		result.description = "Team configuration is incorrect"
 		result.status = StatusEventStatusError
 	case s.forceApproval:
 		// The PR is being forcibly approved.

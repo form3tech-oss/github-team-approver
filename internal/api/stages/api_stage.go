@@ -683,6 +683,15 @@ func (s *ApiStage) IgnoreRepositoryExists() *ApiStage {
 	return s
 }
 
+func (s *ApiStage) ExpectCommentWithDetailsCreatedOnThePullRequest() *ApiStage {
+	comment := s.fakeGitHub.ReportedComment()
+	require.NotNil(s.t, comment)
+	require.NotEmpty(s.t, comment.Body)
+	require.Equal(s.t, *comment.Body, "Invalid config: no teams could be found for the following handles:\ncab-foo")
+
+	return s
+}
+
 func ApiTest(t *testing.T) (*ApiStage, *ApiStage, *ApiStage) {
 	webhookSecret, err := os.ReadFile(tokenPath)
 	require.NoError(t, err)

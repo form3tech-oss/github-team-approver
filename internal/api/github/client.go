@@ -44,6 +44,20 @@ type Client struct {
 	githubClient *github.Client
 }
 
+func (c *Client) AddPRComment(ctx context.Context, ownerLogin string, repoName string, prNumber int, commentBody *string) error {
+	comment := &github.PullRequestComment{
+		Body: commentBody,
+	}
+
+	_, res, err := c.githubClient.PullRequests.CreateComment(ctx, ownerLogin, repoName, prNumber, comment)
+	if err != nil {
+		log.WithError(err).Warn("error from GitHub: ", res.StatusCode)
+		return err
+	}
+
+	return nil
+}
+
 func (c *Client) GetConfiguration(ctx context.Context, ownerLogin, repoName string) (*configuration.Configuration, error) {
 	// Try to download the contents of the configuration file.
 	ctxTimeout, fn := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)

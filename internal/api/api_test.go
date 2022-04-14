@@ -300,3 +300,21 @@ func TestNoTeamRequestedForReviewIfConfigurationIsInvalid(t *testing.T) {
 	then.
 		ExpectNoReviewRequestsMade()
 }
+
+func TestCommentPostedWhenTeamConfigurationIsInvalid(t *testing.T) {
+	given, when, then := stages.ApiTest(t)
+
+	given.
+		EncryptionKeyExists().
+		GitHubWebHookTokenExists().
+		FakeGHRunning().
+		OrganisationWithTeamFoo().
+		RepoWithConfigurationReferencingInvalidTeamHandles().
+		PullRequestExists().
+		NoReviewsExist().
+		GitHubTeamApproverRunning()
+	when.
+		SendingPREvent()
+	then.
+		ExpectCommentWithDetailsCreatedOnThePullRequest()
+}

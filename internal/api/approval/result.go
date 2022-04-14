@@ -9,6 +9,7 @@ const (
 type Result struct {
 	status           string
 	description      string
+	errorMessage     string
 	finalLabels      []string
 	reviewsToRequest []string
 	ignoredReviewers []string
@@ -26,6 +27,10 @@ func (r *Result) Status() string             { return r.status }
 func (r *Result) FinalLabels() []string      { return r.finalLabels }
 func (r *Result) ReviewsToRequest() []string { return r.reviewsToRequest }
 func (r *Result) IgnoredReviewers() []string { return r.ignoredReviewers }
+
+func (r *Result) hasConfigurationError() bool {
+	return r.status == StatusEventStatusError
+}
 
 func truncate(v string, n int) string {
 	suffix := "..."

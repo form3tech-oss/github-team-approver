@@ -232,6 +232,14 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 		}
 	}
 
+	if result.hasConfigurationError() {
+
+		err := a.client.AddPRComment(ctx, pr.OwnerLogin, pr.RepoName, pr.Number, &result.errorMessage)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return result, nil
 }
 
