@@ -293,6 +293,13 @@ func (s *ApiStage) ExpectPendingAnswerReturned() *ApiStage {
 	return s
 }
 
+func (s *ApiStage) ExpectErrorAnswerReturned() *ApiStage {
+	require.NotNil(s.t, s.resp)
+	require.Equal(s.t, http.StatusOK, s.resp.StatusCode)
+	require.Equal(s.t, approval.StatusEventStatusError, s.resp.Header.Get(httpHeaderXFinalStatus))
+	return s
+}
+
 func (s *ApiStage) ExpectSuccessAnswerReturned() *ApiStage {
 	require.NotNil(s.t, s.resp)
 	require.Equal(s.t, http.StatusOK, s.resp.StatusCode)
@@ -607,6 +614,13 @@ func (s *ApiStage) ExpectLabelsUpdated() *ApiStage {
 func (s *ApiStage) ExpectStatusPendingReported() *ApiStage {
 	status := s.fakeGitHub.ReportedStatus()
 	require.Equal(s.t, approval.StatusEventStatusPending, *(status.State))
+	require.Equal(s.t, botName, *(status.Context))
+	return s
+}
+
+func (s *ApiStage) ExpectStatusErrorReported() *ApiStage {
+	status := s.fakeGitHub.ReportedStatus()
+	require.Equal(s.t, approval.StatusEventStatusError, *(status.State))
 	require.Equal(s.t, botName, *(status.Context))
 	return s
 }

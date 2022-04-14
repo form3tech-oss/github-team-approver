@@ -278,7 +278,25 @@ func TestGitHubTeamApproverReportsInvalidTeamHandlesInConfiguration(t *testing.T
 	when.
 		SendingPREvent()
 	then.
-		ExpectPendingAnswerReturned().
-		ExpectStatusPendingReported().
+		ExpectErrorAnswerReturned().
+		ExpectStatusErrorReported().
 		ExpectInvalidTeamHandleInStatusDescription()
+}
+
+func TestNoTeamRequestedForReviewIfConfigurationIsInvalid(t *testing.T) {
+	given, when, then := stages.ApiTest(t)
+
+	given.
+		EncryptionKeyExists().
+		GitHubWebHookTokenExists().
+		FakeGHRunning().
+		OrganisationWithTeamFoo().
+		RepoWithConfigurationReferencingInvalidTeamHandles().
+		PullRequestExists().
+		NoReviewsExist().
+		GitHubTeamApproverRunning()
+	when.
+		SendingPREvent()
+	then.
+		ExpectNoReviewRequestsMade()
 }

@@ -102,16 +102,18 @@ func (s *state) result(log *log.Entry, teams []*github.Team) *Result {
 	case len(s.invalidTeamHandles) > 0:
 		// The configuration references a non-existent team
 		result.description = fmt.Sprintf(statusEventDescriptionInvalidTeamHandles, strings.Join(s.invalidTeamHandles, "\n"))
-		result.status = StatusEventStatusPending
+		result.status = StatusEventStatusError
 	case s.forceApproval:
 		// The PR is being forcibly approved.
 		result.description = statusEventDescriptionForciblyApproved
 		result.status = StatusEventStatusSuccess
+		result.reviewsToRequest = computeReviewsToRequest(log, teams, s.pendingTeamNames)
 	case len(s.pendingTeamNames) > 0:
 		// At least one team must still approve the PR before it goes green.
 		result.description = fmt.Sprintf(
 			statusEventDescriptionPendingFormatString, strings.Join(s.pendingTeamNames, "\n"))
 		result.status = StatusEventStatusPending
+		result.reviewsToRequest = computeReviewsToRequest(log, teams, s.pendingTeamNames)
 	case len(s.pendingTeamNames) == 0 && len(s.approvingTeamNames) == 0:
 		// No teams have been identified as having to be requested for a review.
 		// NOTE: This should not really happen in practice.
@@ -121,12 +123,7 @@ func (s *state) result(log *log.Entry, teams []*github.Team) *Result {
 		// The PR has been approved either by all or at least one of the approving teams.
 		result.description = fmt.Sprintf(statusEventDescriptionApprovedFormatString, strings.Join(s.approvingTeamNames, "\n"))
 		result.status = StatusEventStatusSuccess
-
-		// Avoid requesting additional reviews.
-		s.pendingTeamNames = make([]string, 0, 0)
 	}
-
-	result.reviewsToRequest = computeReviewsToRequest(log, teams, s.pendingTeamNames)
 
 	return result
 }

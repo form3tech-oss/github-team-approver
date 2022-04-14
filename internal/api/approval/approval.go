@@ -26,6 +26,7 @@ const (
 	statusEventDescriptionNoRulesForTargetBranch = "No rules are defined for the target branch."
 	StatusEventStatusPending                     = "pending"
 	StatusEventStatusSuccess                     = "success"
+	StatusEventStatusError                       = "error"
 )
 
 var (
