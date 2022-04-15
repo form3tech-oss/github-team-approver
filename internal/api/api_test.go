@@ -316,5 +316,5 @@ func TestCommentPostedWhenTeamConfigurationIsInvalid(t *testing.T) {
 	when.
 		SendingPREvent()
 	then.
-		ExpectCommentWithDetailsCreatedOnThePullRequest()
+		ExpectInvalidConfigCommentCreatedOnThePullRequest()
 }

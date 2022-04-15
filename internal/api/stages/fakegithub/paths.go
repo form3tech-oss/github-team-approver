@@ -46,6 +46,10 @@ func (f *FakeGitHub) requestedReviewersURL() string {
 	return fmt.Sprintf("/repos/%s/pulls/%d/requested_reviewers", f.repoFullName(), f.pr.PRNumber)
 }
 
+func (f *FakeGitHub) pullRequestCommentsURL() string {
+	return fmt.Sprintf("/repos/%s/pulls/%d/comments", f.repoFullName(), f.pr.PRNumber)
+}
+
 func (f *FakeGitHub) repoFullName() string {
 	return fmt.Sprintf("%s/%s", f.org.OwnerName, f.repo.Name)
 }

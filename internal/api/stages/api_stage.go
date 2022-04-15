@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
 
 	approverCfg "github.com/form3tech-oss/github-team-approver-commons/pkg/configuration"
@@ -22,6 +23,8 @@ const (
 
 	ignoredReviewerMsg = "Following reviewers have been ignored as they are also authors in the PR:"
 )
+
+var invalidTeamHandles = []string{"BARC - Foo", "CRAB - Foo"}
 
 type ApiStage struct {
 	t *testing.T
@@ -234,7 +237,7 @@ func (s *ApiStage) RepoWithConfigurationReferencingInvalidTeamHandles() *ApiStag
 						{
 							ApprovalMode:         approverCfg.ApprovalModeRequireAny,
 							Regex:                `- \[x\] Yes - Emergency`,
-							ApprovingTeamHandles: []string{"CRAB - Foo"},
+							ApprovingTeamHandles: invalidTeamHandles,
 							Labels:               []string{},
 							ForceApproval:        true,
 						},
@@ -634,7 +637,7 @@ func (s *ApiStage) ExpectStatusSuccessReported() *ApiStage {
 
 func (s *ApiStage) ExpectInvalidTeamHandleInStatusDescription() *ApiStage {
 	status := s.fakeGitHub.ReportedStatus()
-	require.Regexp(s.t, ".*\\nCRAB - Foo", *(status.Description))
+	require.Equal(s.t, "Invalid config: invalid team handles.", status.GetDescription())
 	return s
 }
 
@@ -683,12 +686,16 @@ func (s *ApiStage) IgnoreRepositoryExists() *ApiStage {
 	return s
 }
 
-func (s *ApiStage) ExpectCommentWithDetailsCreatedOnThePullRequest() *ApiStage {
-	comment := s.fakeGitHub.ReportedComment()
-	require.NotNil(s.t, comment)
-	require.NotEmpty(s.t, comment.Body)
-	require.Equal(s.t, *comment.Body, "Invalid config: no teams could be found for the following handles:\ncab-foo")
-
+func (s *ApiStage) ExpectInvalidConfigCommentCreatedOnThePullRequest() *ApiStage {
+	expectedCommentBody := fmt.Sprintf("Invalid config: no teams could be found for the following handles:\n%s", strings.Join(invalidTeamHandles, "\n"))
+	comments := s.fakeGitHub.PullRequestComments()
+	require.NotNil(s.t, comments)
+	for _, comment := range comments {
+		if strings.EqualFold(comment.GetBody(), expectedCommentBody) {
+			return s
+		}
+	}
+	require.Fail(s.t, "Invalid config comment not found on the PR.")
 	return s
 }
 

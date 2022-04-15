@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/google/go-github/v42/github"
-	"github.com/gorilla/mux"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"net/http"
 	"strconv"
+
+	"github.com/google/go-github/v42/github"
+	"github.com/gorilla/mux"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -95,4 +96,21 @@ func (f *FakeGitHub) deleteComment(id int64) error {
 		}
 	}
 	return fmt.Errorf("%d %w", id, errNotFound)
+}
+
+func (f *FakeGitHub) postPRCommentHandler(w http.ResponseWriter, r *http.Request) {
+	var comment *github.PullRequestComment
+	payload, err := ioutil.ReadAll(r.Body)
+	require.NoError(f.t, err)
+
+	err = json.Unmarshal(payload, &comment)
+	require.NoError(f.t, err)
+
+	f.pullRequestComments = append(f.pullRequestComments, comment)
+
+	w.Header().Set("Content-Type", "application/json")
+
+	// ack by writing payload back to client
+	_, err = w.Write(payload)
+	require.NoError(f.t, err)
 }

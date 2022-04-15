@@ -2,10 +2,11 @@ package fakegithub
 
 import (
 	"fmt"
-	approverCfg "github.com/form3tech-oss/github-team-approver-commons/pkg/configuration"
-	"github.com/google/go-github/v42/github"
 	"net/http/httptest"
 	"testing"
+
+	approverCfg "github.com/form3tech-oss/github-team-approver-commons/pkg/configuration"
+	"github.com/google/go-github/v42/github"
 
 	"github.com/gorilla/mux"
 )
@@ -39,10 +40,11 @@ type FakeGitHub struct {
 	repo *Repo
 	pr   *PR
 
-	repoContents  []*github.RepositoryContent
-	commits       []*github.RepositoryCommit
-	reviews       []*github.PullRequestReview
-	issueComments []*github.IssueComment
+	repoContents        []*github.RepositoryContent
+	commits             []*github.RepositoryCommit
+	reviews             []*github.PullRequestReview
+	issueComments       []*github.IssueComment
+	pullRequestComments []*github.PullRequestComment
 
 	reportedStatus         *github.RepoStatus
 	reportedComment        *github.IssueComment
@@ -92,6 +94,7 @@ func (f *FakeGitHub) SetPR(pr *PR) {
 	f.mux.HandleFunc(f.statusURL(), f.statusHandler)
 	f.mux.HandleFunc(f.labelsURL(), f.labelsHandler)
 	f.mux.HandleFunc(f.requestedReviewersURL(), f.requestedReviewersHandler)
+	f.mux.HandleFunc(f.pullRequestCommentsURL(), f.postPRCommentHandler)
 
 }
 
@@ -133,6 +136,8 @@ func (f *FakeGitHub) ReportedStatus() *github.RepoStatus    { return f.reportedS
 func (f *FakeGitHub) ReportedComment() *github.IssueComment { return f.reportedComment }
 func (f *FakeGitHub) RequestedTeamReviews() []string        { return f.requestedTeamReviewers }
 func (f *FakeGitHub) Comments() []*github.IssueComment      { return f.issueComments }
+
+func (f *FakeGitHub) PullRequestComments() []*github.PullRequestComment { return f.pullRequestComments }
 
 func (f *FakeGitHub) URL() string {
 	return fmt.Sprintf("%s", f.ts.URL)

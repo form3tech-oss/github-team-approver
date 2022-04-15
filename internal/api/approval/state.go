@@ -14,7 +14,9 @@ const (
 	statusEventDescriptionNoReviewsRequested   = "No teams have been identified as having to be requested for a review."
 	statusEventDescriptionNoRulesMatched       = "The PR's body doesn't meet the requirements."
 	statusEventDescriptionPendingFormatString  = "Needs approval from:\n%s"
-	statusEventDescriptionInvalidTeamHandles   = "Invalid config: no teams could be found for the following handles:\n%s"
+	statusEventDescriptionInvalidTeamHandles   = "Invalid config: invalid team handles."
+
+	errorMessageInvalidTeamHandles = "Invalid config: no teams could be found for the following handles:\n%s"
 )
 
 type state struct {
@@ -101,8 +103,8 @@ func (s *state) result(log *log.Entry, teams []*github.Team) *Result {
 		result.status = StatusEventStatusPending
 	case len(s.invalidTeamHandles) > 0:
 		// The configuration references a non-existent team
-		result.errorMessage = fmt.Sprintf(statusEventDescriptionInvalidTeamHandles, strings.Join(s.invalidTeamHandles, "\n"))
-		result.description = "Team configuration is incorrect"
+		result.errorMessage = fmt.Sprintf(errorMessageInvalidTeamHandles, strings.Join(s.invalidTeamHandles, "\n"))
+		result.description = statusEventDescriptionInvalidTeamHandles
 		result.status = StatusEventStatusError
 	case s.forceApproval:
 		// The PR is being forcibly approved.
