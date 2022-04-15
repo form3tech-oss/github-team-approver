@@ -4,15 +4,14 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/form3tech-oss/github-team-approver/internal/api/aes"
-	"github.com/form3tech-oss/github-team-approver/internal/api/github"
-	"github.com/form3tech-oss/github-team-approver/internal/api/secret"
-	"github.com/form3tech-oss/logrus-logzio-hook/pkg/hook"
-	"github.com/logzio/logzio-go"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/form3tech-oss/github-team-approver/internal/api/aes"
+	"github.com/form3tech-oss/github-team-approver/internal/api/github"
+	"github.com/form3tech-oss/github-team-approver/internal/api/secret"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -28,7 +27,6 @@ const (
 	envLogLevel                        = "LOG_LEVEL"
 	envLogFormat                       = "LOG_FORMAT"
 	envSecretStoreType                 = "SECRET_STORE_TYPE" // Set to AWS_SSM for the ability to run in ECS using SSM. Empty, not set or anything else for default K8s secret
-	envLogzioTokenPath                 = "LOGZIO_TOKEN_PATH"
 	envEncryptionKeyPath               = "ENCRYPTION_KEY_PATH"
 )
 
@@ -88,17 +86,6 @@ func (api *API) configureLogger() {
 				},
 				TimestampFormat: logTimeFormat,
 			})
-	}
-
-	// Configure log shipping to Logz.io.
-	if t, err := api.SecretStore.Get(envLogzioTokenPath); err != nil {
-		log.WithError(err).Warn("failed to read the logz.io token from the configured path")
-	} else {
-		if c, err := logzio.New(string(t), logzio.SetUrl(logzioListenerURL)); err != nil {
-			log.WithError(err).Warn("failed to configure the logz.io logrus hook")
-		} else {
-			log.AddHook(hook.NewLogzioHook(c))
-		}
 	}
 	log.Info("Configured logger")
 }

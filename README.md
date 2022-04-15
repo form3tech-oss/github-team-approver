@@ -56,7 +56,6 @@ $ make secret \
     GITHUB_APP_PRIVATE_KEY_PATH=<path-to-private-key> \
     GITHUB_APP_WEBHOOK_SECRET_TOKEN_PATH=<path-to-webhook-secret-token> \
     ENCRYPTION_KEY_PATH=<path_to_256bit_hex_key> \
-    LOGZIO_TOKEN_PATH=<path-to-logzio-token>
 ```
 
 Then, run the following command to build and deploy `github-team-approver` in development mode:
