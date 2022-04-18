@@ -18,12 +18,15 @@ import (
 const (
 	defaultAppName = "github-team-approver"
 
+	logTimeFormat = "2006-01-02T15:04:05.000Z07:00"
+
 	logzioListenerURL = "https://listener-eu.logz.io:8071"
 
 	envAppName                         = "APP_NAME"
 	envGitHubAppWebhookSecretTokenPath = "GITHUB_APP_WEBHOOK_SECRET_TOKEN_PATH"
 	envIgnoredRepositories             = "IGNORED_REPOSITORIES"
 	envLogLevel                        = "LOG_LEVEL"
+	envLogFormat                       = "LOG_FORMAT"
 	envSecretStoreType                 = "SECRET_STORE_TYPE" // Set to AWS_SSM for the ability to run in ECS using SSM. Empty, not set or anything else for default K8s secret
 	envLogzioTokenPath                 = "LOGZIO_TOKEN_PATH"
 	envEncryptionKeyPath               = "ENCRYPTION_KEY_PATH"
@@ -73,6 +76,18 @@ func (api *API) configureLogger() {
 			Info("log level")
 	} else {
 		log.WithError(err).Warnf("failed to parse log level, falling back to %q", log.GetLevel().String())
+	}
+
+	logFormat := os.Getenv(envLogFormat)
+	if strings.EqualFold(logFormat, "json") {
+		log.SetFormatter(
+			&log.JSONFormatter{
+				FieldMap: log.FieldMap{
+					log.FieldKeyMsg:  "message",
+					log.FieldKeyTime: "@timestamp",
+				},
+				TimestampFormat: logTimeFormat,
+			})
 	}
 
 	// Configure log shipping to Logz.io.
