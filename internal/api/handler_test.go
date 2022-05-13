@@ -3,7 +3,6 @@ package api
 import (
 	"bytes"
 	"fmt"
-	"github.com/form3tech-oss/github-team-approver/internal/api/approval"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +11,8 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/form3tech-oss/github-team-approver/internal/api/approval"
 
 	"github.com/form3tech-oss/go-pact-testing/pacttesting"
 	"github.com/google/tcpproxy"
@@ -45,7 +46,7 @@ func Test_Handle(t *testing.T) {
 
 			eventType:      eventTypePullRequest,
 			eventBody:      readGitHubExampleFile("pull_request_opened.json"),
-			eventSignature: "sha1=f3a30cf3d5f785b779163dd04a20f87f9bce8aef",
+			eventSignature: "sha256=6d4d96d879720606802102a5892b51634c25d52f7827d2d9d0113cef17709c0e",
 			pacts: []pacttesting.Pact{
 				"pull_request_opened_pending",
 			},
@@ -57,7 +58,7 @@ func Test_Handle(t *testing.T) {
 
 			eventType:      eventTypePullRequest,
 			eventBody:      readGitHubExampleFile("pull_request_opened_no_rules_for_branch.json"),
-			eventSignature: "sha1=668a5b79988a958c5535bc7f484384f956a71799",
+			eventSignature: "sha256=f91b8ed784708050a1c332b07376a014a1f1e4ef1f94fe37d9532a37417c5bf6",
 			pacts:          []pacttesting.Pact{"pull_request_opened_no_rules_for_branch"},
 
 			expectedFinalStatus: approval.StatusEventStatusSuccess,
@@ -67,8 +68,8 @@ func Test_Handle(t *testing.T) {
 
 			eventType:      eventTypePullRequestReview,
 			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
-			eventSignature: "sha1=19206052dc16ae2f9a6c82df5d28fbc3b1eed0cd",
-			pacts:          []pacttesting.Pact{
+			eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
+			pacts: []pacttesting.Pact{
 				"pull_request_review_submitted_approved",
 			},
 
@@ -79,8 +80,8 @@ func Test_Handle(t *testing.T) {
 
 			eventType:      eventTypePullRequestReview,
 			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
-			eventSignature: "sha1=19206052dc16ae2f9a6c82df5d28fbc3b1eed0cd",
-			pacts:          []pacttesting.Pact{
+			eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
+			pacts: []pacttesting.Pact{
 				"pull_request_review_submitted_pending",
 			},
 
@@ -91,8 +92,8 @@ func Test_Handle(t *testing.T) {
 
 			eventType:      eventTypePullRequestReview,
 			eventBody:      readGitHubExampleFile("pull_request_review_submitted_force_approval.json"),
-			eventSignature: "sha1=c3850ad259e927948f20804f0128e692ae598a5a",
-			pacts:          []pacttesting.Pact{
+			eventSignature: "sha256=c4d9e2a311de0322c4b7c09c1a2239d23668542c9caf187be03c7acb62f3ca5b",
+			pacts: []pacttesting.Pact{
 				"pull_request_review_submitted_force_approval",
 			},
 
@@ -103,8 +104,8 @@ func Test_Handle(t *testing.T) {
 
 			eventType:      eventTypePullRequestReview,
 			eventBody:      readGitHubExampleFile("pull_request_review_submitted_no_regexes_matched.json"),
-			eventSignature: "sha1=da2609f8738084d21d7b9390c23bcd6dd67adb5b",
-			pacts:          []pacttesting.Pact{
+			eventSignature: "sha256=9b5e234c6deff549b631d7e08363e9e90e0bdf635e3a440e2b40cef5fab3205a",
+			pacts: []pacttesting.Pact{
 				"pull_request_review_submitted_no_regexes_matched",
 			},
 
@@ -115,8 +116,8 @@ func Test_Handle(t *testing.T) {
 
 			eventType:      eventTypePullRequestReview,
 			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
-			eventSignature: "sha1=19206052dc16ae2f9a6c82df5d28fbc3b1eed0cd",
-			pacts:          []pacttesting.Pact{
+			eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
+			pacts: []pacttesting.Pact{
 				"pull_request_review_submitted_approval_mode_require_any",
 			},
 
@@ -127,7 +128,7 @@ func Test_Handle(t *testing.T) {
 
 			eventType:      eventTypePullRequest,
 			eventBody:      readGitHubExampleFile("pull_request_merged_to_master.json"),
-			eventSignature: "sha1=12b9d49c35c1a11673d9287cda2a5b8f2b6b1b63",
+			eventSignature: "sha256=2324407137f738fc9e5e335e5ed6d52ab5d8a8b33705937d04463d7b9c678fcd",
 			pacts:          []pacttesting.Pact{"pull_request_merged_single_alert", "slack_post_message_for_emergency_change"},
 		},
 		{
@@ -135,7 +136,7 @@ func Test_Handle(t *testing.T) {
 
 			eventType:      eventTypePullRequest,
 			eventBody:      readGitHubExampleFile("pull_request_closed.json"),
-			eventSignature: "sha1=d2b6698e162d59d7e73d75900edf22bd903af731",
+			eventSignature: "sha256=5d681e510b19e1a5e3588839f541615eded29c0c955cd795efcc56450dbad8c2",
 			pacts:          []pacttesting.Pact{},
 		},
 		{
@@ -143,8 +144,8 @@ func Test_Handle(t *testing.T) {
 
 			eventType:      eventTypePullRequestReview,
 			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
-			eventSignature: "sha1=19206052dc16ae2f9a6c82df5d28fbc3b1eed0cd",
-			pacts:          []pacttesting.Pact{
+			eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
+			pacts: []pacttesting.Pact{
 				"pull_request_commits_alice_contributed",
 				"pull_request_get_comments_pr_7",
 				"pull_request_post_comment_pr_7",
@@ -158,8 +159,8 @@ func Test_Handle(t *testing.T) {
 
 			eventType:      eventTypePullRequestReview,
 			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
-			eventSignature: "sha1=19206052dc16ae2f9a6c82df5d28fbc3b1eed0cd",
-			pacts:          []pacttesting.Pact{
+			eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
+			pacts: []pacttesting.Pact{
 				"pull_request_commits_alice_contributed",
 				"pull_request_review_submitted_alice_bob_approved",
 			},
