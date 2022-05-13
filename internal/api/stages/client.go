@@ -3,14 +3,15 @@ package stages
 import (
 	"bytes"
 	"crypto/hmac"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/google/uuid"
 )
@@ -34,7 +35,6 @@ func newClient(t *testing.T, address string, token []byte) *client {
 	}
 }
 
-
 func (c *client) sendEventWithIncorrectSignature(e interface{}) *http.Response {
 	payload, err := json.Marshal(e)
 	require.NoError(c.t, err)
@@ -44,7 +44,7 @@ func (c *client) sendEventWithIncorrectSignature(e interface{}) *http.Response {
 
 	fudgedPayload := append(payload, []byte{1}...)
 
-	req.Header.Add("X-Hub-Signature", c.generateSignature(fudgedPayload))
+	req.Header.Add("X-Hub-Signature-256", c.generateSignature(fudgedPayload))
 
 	resp, err := c.http.Do(req)
 	require.NoError(c.t, err)
@@ -59,7 +59,7 @@ func (c *client) sendEvent(e interface{}, eventType string) *http.Response {
 	req, err := http.NewRequest(http.MethodPost, c.endpoint(), bytes.NewReader(payload))
 	require.NoError(c.t, err)
 
-	req.Header.Add("X-Hub-Signature", c.generateSignature(payload))
+	req.Header.Add("X-Hub-Signature-256", c.generateSignature(payload))
 	req.Header.Add("X-GitHub-Event", eventType)
 
 	u, err := uuid.NewRandom()
@@ -73,15 +73,13 @@ func (c *client) sendEvent(e interface{}, eventType string) *http.Response {
 }
 
 func (c *client) generateSignature(payload []byte) string {
-	// TODO once upgraded go-github, we should switch to using only X-Hub-Signature-256
-	// #nosec G505 (CWE-327): Blocklisted import crypto/sha1: weak cryptographic primitive (Confidence: HIGH, Severity: MEDIUM)
-	h := hmac.New(sha1.New, []byte(c.secretToken))
+	h := hmac.New(sha256.New, []byte(c.secretToken))
 	_, err := h.Write(payload)
 	require.NoError(c.t, err)
 
 	mac := h.Sum(nil)
 
-	return "sha1=" + hex.EncodeToString(mac)
+	return "sha256=" + hex.EncodeToString(mac)
 }
 
 func (c *client) endpoint() string {
