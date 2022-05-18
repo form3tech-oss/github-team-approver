@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+
 	ghclient "github.com/form3tech-oss/github-team-approver/internal/api/github"
 	"github.com/google/go-github/v42/github"
 	"github.com/sirupsen/logrus"
-	"io/ioutil"
-	"net/http"
 )
 
 const (
@@ -22,7 +23,7 @@ const (
 	httpHeaderXFinalStatus    = "X-Final-Status"
 	httpHeaderXGithubDelivery = "X-GitHub-Delivery"
 	httpHeaderXGithubEvent    = "X-GitHub-Event"
-	httpHeaderXHubSignature   = "X-Hub-Signature"
+	httpHeaderXHubSignature   = "X-Hub-Signature-256"
 )
 
 var (
