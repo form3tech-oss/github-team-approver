@@ -16,7 +16,7 @@ require (
 	github.com/hashicorp/go-version v1.2.1-0.20190424083514-192140e6f3e6 // indirect
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
 	github.com/sirupsen/logrus v1.8.1
-	github.com/slack-go/slack v0.10.3
+	github.com/slack-go/slack v0.11.0
 	github.com/spf13/viper v1.12.0
 	github.com/stretchr/testify v1.7.1
 )
