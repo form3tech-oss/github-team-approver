@@ -1,6 +1,6 @@
 module github.com/form3tech-oss/github-team-approver
 
-go 1.13
+go 1.18
 
 replace github.com/gregjones/httpcache => github.com/form3tech-oss/httpcache v0.0.0-20190708110905-85712625ba05
 
