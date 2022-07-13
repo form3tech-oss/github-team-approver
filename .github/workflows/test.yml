@@ -1,0 +1,24 @@
+name: test
+
+on: [ push ]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3.0.2
+      - name: Set up Go
+        uses: actions/setup-go@84cbf8094393cdc5fe1fe1671ff2647332956b1a # v3.2.1
+        with:
+          go-version-file: 'go.mod'
+      - uses: actions/cache@0865c47f36e68161719c5b124609996bb5c40129 # v3.0.5
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - run: make test

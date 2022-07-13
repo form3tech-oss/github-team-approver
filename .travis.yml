@@ -19,8 +19,6 @@ before_install:
   echo '{"mtu": 1460}' | sudo tee /etc/docker/daemon.json
   sudo systemctl restart docker
 - make install-deps
-script:
-- make test
 deploy:
 - provider: script
   skip_cleanup: true
