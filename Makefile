@@ -3,10 +3,10 @@ SHELL := /bin/bash
 ROOT := $(shell git rev-parse --show-toplevel)
 GO_FILES := $(shell find . -name "*.go" -not -path "./build/*" -not -path "**/vendor/*")
 
-ifeq ($(TRAVIS_TAG),)
+ifeq ($(TAG),)
 	VERSION ?= $(shell git describe --dirty="-dev")
 else
-	VERSION = $(TRAVIS_TAG)
+	VERSION = $(TAG)
 endif
 
 .DEFAULT_GOAL := error
@@ -78,7 +78,7 @@ secret:
 
 .PHONY: docker.login
 docker.login:
-	@echo $(DOCKER_PASSWORD) | docker login --username $(DOCKER_USERNAME) --password-stdin
+	@echo $(DOCKER_HUB_PASSWORD) | docker login --username $(DOCKER_HUB_USERNAME) --password-stdin
 
 .PHONY: skaffold.push
 skaffold.push: docker.login
