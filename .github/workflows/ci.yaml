@@ -1,0 +1,21 @@
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+    tags:
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+      - name: Setup Go
+        uses: actions/setup-go@b22fbbc2921299758641fab08929b4ac52b32923
+        with:
+          go-version-file: go.mod
+      - name: Install dependencies
+        run: make install-deps
+      - name: Test
+        run: make test
