@@ -1,8 +1,9 @@
 package approval
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -114,7 +115,7 @@ func Test_uniqueAppend(t *testing.T) {
 			[]string{"foo"},
 			[]string{"foo"},
 		},
-		"add nil to empty slice" : {
+		"add nil to empty slice": {
 			[]string{},
 			nil,
 			[]string{},

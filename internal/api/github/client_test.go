@@ -1,8 +1,9 @@
 package github_test
 
 import (
-	"github.com/form3tech-oss/github-team-approver/internal/api/github/stages"
 	"testing"
+
+	"github.com/form3tech-oss/github-team-approver/internal/api/github/stages"
 )
 
 func TestDeletePRCommentWhenCommentExist(t *testing.T) {

@@ -1,10 +1,11 @@
 package approval
 
 import (
+	"testing"
+
 	"github.com/google/go-github/v42/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestIsDirectoryChanged(t *testing.T) {

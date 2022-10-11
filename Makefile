@@ -3,10 +3,10 @@ SHELL := /bin/bash
 ROOT := $(shell git rev-parse --show-toplevel)
 GO_FILES := $(shell find . -name "*.go" -not -path "./build/*" -not -path "**/vendor/*")
 
-ifeq ($(TRAVIS_TAG),)
+ifeq ($(TAG),)
 	VERSION ?= $(shell git describe --dirty="-dev")
 else
-	VERSION = $(TRAVIS_TAG)
+	VERSION = $(TAG)
 endif
 
 .DEFAULT_GOAL := error
@@ -28,12 +28,9 @@ else
 	skaffold_url := https://storage.googleapis.com/skaffold/releases/$(SKAFFOLD_VERSION)/skaffold-linux-amd64
 endif
 
-.PHONY: install-deps
-install-deps: install-goimports install-skaffold
-
 .PHONY: install-goimports
 install-goimports:
-	go get -u golang.org/x/tools/cmd/goimports
+	go install golang.org/x/tools/cmd/goimports@latest
 
 .PHONY: install-skaffold
 install-skaffold:
@@ -60,8 +57,11 @@ dep:
 	cd github-team-approver && dep ensure -v
 
 .PHONY: goimports
-goimports:
+goimports: install-goimports
 	goimports -w $(GO_FILES)
+
+goimports-check: install-goimports
+	./hack/goimports-check.sh
 
 .PHONY: secret
 secret: GITHUB_APP_PRIVATE_KEY_PATH ?= $(ROOT)/github-app-private-key
@@ -78,7 +78,7 @@ secret:
 
 .PHONY: docker.login
 docker.login:
-	@echo $(DOCKER_PASSWORD) | docker login --username $(DOCKER_USERNAME) --password-stdin
+	@echo $(DOCKER_HUB_PASSWORD) | docker login --username $(DOCKER_HUB_USERNAME) --password-stdin
 
 .PHONY: skaffold.push
 skaffold.push: docker.login
