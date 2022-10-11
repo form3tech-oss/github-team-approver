@@ -16,8 +16,7 @@ jobs:
         uses: actions/setup-go@b22fbbc2921299758641fab08929b4ac52b32923
         with:
           go-version-file: go.mod
-      - name: Install dependencies
-        run: make install-deps
+      - run: make goimports
       - name: Test
         run: make test
   deploy:
@@ -26,6 +25,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+      - name: Install Skaffold
+        run: make install-skaffold
       - name: Skaffold push
         run: make skaffold.push
         env:

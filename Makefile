@@ -28,12 +28,9 @@ else
 	skaffold_url := https://storage.googleapis.com/skaffold/releases/$(SKAFFOLD_VERSION)/skaffold-linux-amd64
 endif
 
-.PHONY: install-deps
-install-deps: install-goimports install-skaffold
-
 .PHONY: install-goimports
 install-goimports:
-	go get -u golang.org/x/tools/cmd/goimports
+	go install golang.org/x/tools/cmd/goimports@latest
 
 .PHONY: install-skaffold
 install-skaffold:
@@ -60,7 +57,7 @@ dep:
 	cd github-team-approver && dep ensure -v
 
 .PHONY: goimports
-goimports:
+goimports: install-goimports
 	goimports -w $(GO_FILES)
 
 .PHONY: secret

@@ -4,23 +4,24 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
+
 	"github.com/form3tech-oss/github-team-approver-commons/pkg/configuration"
 	"github.com/form3tech-oss/github-team-approver/internal/api/github"
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
-	"regexp"
 )
 
 type MergeEventHandler struct {
-	api *API
-	log *logrus.Entry
+	api    *API
+	log    *logrus.Entry
 	client *github.Client
 }
 
 func NewMergeEventHandler(api *API, log *logrus.Entry, client *github.Client) *MergeEventHandler {
 	return &MergeEventHandler{
-		api: api,
-		log: log,
+		api:    api,
+		log:    log,
 		client: client,
 	}
 }

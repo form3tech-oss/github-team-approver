@@ -2,10 +2,11 @@ package main
 
 import (
 	"flag"
-	"github.com/form3tech-oss/github-team-approver/internal/api"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/form3tech-oss/github-team-approver/internal/api"
 )
 
 func main() {

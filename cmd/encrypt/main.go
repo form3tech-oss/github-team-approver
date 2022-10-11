@@ -3,9 +3,10 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/form3tech-oss/github-team-approver/internal/api/aes"
 	"io/ioutil"
 	"os"
+
+	"github.com/form3tech-oss/github-team-approver/internal/api/aes"
 )
 
 // use to encrypt webhook tokens to place into your approver config

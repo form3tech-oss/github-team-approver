@@ -2,12 +2,13 @@ package fakegithub
 
 import (
 	"encoding/json"
-	"github.com/google/go-github/v42/github"
-	"github.com/gorilla/mux"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"net/http"
 	"strconv"
+
+	"github.com/google/go-github/v42/github"
+	"github.com/gorilla/mux"
+	"github.com/stretchr/testify/require"
 )
 
 func (f *FakeGitHub) contentsHandler(w http.ResponseWriter, r *http.Request) {

@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
+
 	"github.com/form3tech-oss/github-team-approver/internal/api/approval"
 	ghclient "github.com/form3tech-oss/github-team-approver/internal/api/github"
 	"github.com/google/go-github/v42/github"
 	"github.com/sirupsen/logrus"
-	"sync"
 )
 
 const (

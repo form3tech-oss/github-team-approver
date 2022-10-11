@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/form3tech-oss/github-team-approver/internal/api/secret"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -13,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/form3tech-oss/github-team-approver/internal/api/secret"
 
 	"github.com/bradleyfalzon/ghinstallation"
 	"github.com/form3tech-oss/github-team-approver-commons/pkg/configuration"

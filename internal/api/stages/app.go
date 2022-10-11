@@ -2,8 +2,6 @@ package stages
 
 import (
 	"fmt"
-	"github.com/form3tech-oss/github-team-approver/internal/api"
-	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/url"
@@ -11,6 +9,9 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/form3tech-oss/github-team-approver/internal/api"
+	"github.com/stretchr/testify/require"
 
 	"github.com/sirupsen/logrus"
 
