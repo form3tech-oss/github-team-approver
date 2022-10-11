@@ -60,6 +60,9 @@ dep:
 goimports: install-goimports
 	goimports -w $(GO_FILES)
 
+goimports-check: install-goimports
+	./hack/goimports-check.sh
+
 .PHONY: secret
 secret: GITHUB_APP_PRIVATE_KEY_PATH ?= $(ROOT)/github-app-private-key
 secret: GITHUB_APP_WEBHOOK_SECRET_TOKEN_PATH ?= $(ROOT)/github-app-webhook-secret-token

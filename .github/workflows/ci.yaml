@@ -16,7 +16,7 @@ jobs:
         uses: actions/setup-go@b22fbbc2921299758641fab08929b4ac52b32923
         with:
           go-version-file: go.mod
-      - run: make goimports
+      - run: make goimports-check
       - name: Test
         run: make test
   deploy:
