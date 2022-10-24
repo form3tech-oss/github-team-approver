@@ -17,7 +17,7 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	github.com/slack-go/slack v0.11.3
 	github.com/spf13/viper v1.13.0
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.1
 )
 
 require (
