@@ -114,51 +114,15 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 
 	// Check if each required team has approved the pull request.
 	for _, rule := range rules {
-		// Check whether the pull request's body matches the aforementioned regex (ignoring case).
-		var prBodyMatch bool
-		if rule.Regex != "" {
-			prBodyMatch, err = regexp.MatchString(fmt.Sprintf("(?i)%s", rule.Regex), pr.Body)
-			if err != nil {
-				return nil, err
-			}
-		}
-		// check whether there is a rule on a directory and it has changed
-		var matchedDirectories []string
-		for _, directory := range rule.Directories {
-			commitFiles, err := a.client.GetPullRequestCommitFiles(ctx, pr.OwnerLogin, pr.RepoName, pr.Number)
-			if err != nil {
-				return nil, fmt.Errorf("directory match: get pull request commit files: %w", err)
-			}
-			directoryMatched, err := isDirectoryChanged(directory, commitFiles)
-			if err != nil {
-				return nil, fmt.Errorf("directory match: is directory changed: %w", err)
-			}
-			if directoryMatched {
-				matchedDirectories = append(matchedDirectories, directory)
-			}
-		}
-
-		// check whether there is a rule on a label and it matches
-		prLabelMatch, err := a.isRegexLabelMatched(ctx, pr.OwnerLogin, pr.RepoName, pr.Number, rule.RegexLabel)
+		matched, err := a.isRuleMatched(ctx, rule, pr)
 		if err != nil {
 			return nil, err
 		}
-
-		if !prBodyMatch && len(matchedDirectories) == 0 && !prLabelMatch {
-			a.log.Tracef("PR doesn't match regular expression %q, directory %q or label regular expression %q", rule.Regex, rule.Directories, rule.RegexLabel)
+		if !matched {
 			continue
 		}
-		if prBodyMatch {
-			a.log.Tracef("PR matches regular expression %q", rule.Regex)
-		}
-		if len(matchedDirectories) > 0 {
-			a.log.Tracef("PR matches directory %q", strings.Join(matchedDirectories, ", "))
-		}
-		if prLabelMatch {
-			a.log.Tracef("PR matches label regular expression %q", rule.RegexLabel)
-		}
-		state.incRulesMatched()
 
+		state.incRulesMatched()
 		// Add the current label to the set of final labels.
 		for _, label := range rule.Labels {
 			if label != "" {
@@ -190,7 +154,8 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 				return nil, err
 			}
 
-			allowed, ignored, err := a.allowedAndIgnoreReviewers(ctx, pr, members, cfg.IgnoreContributorApproval)
+			ignoreContributorApproval := a.ignoreContributorApproval(cfg, rule)
+			allowed, ignored, err := a.allowedAndIgnoreReviewers(ctx, pr, members, ignoreContributorApproval)
 			if err != nil {
 				return nil, err
 			}
@@ -252,6 +217,82 @@ func (a *Approval) isRegexLabelMatched(ctx context.Context, ownerLogin, repoName
 		}
 	}
 	return false, nil
+}
+
+func (a *Approval) isRuleMatched(ctx context.Context, rule configuration.Rule, pr *PR) (bool, error) {
+	// Check whether the pull request's body matches the aforementioned regex (ignoring case).
+	prBodyMatch, err := a.isRegexMatched(ctx, pr.OwnerLogin, pr.RepoName, pr.Number, rule.Regex, pr.Body)
+	if err != nil {
+		return false, err
+	}
+	// check whether there is a rule on a directory and it has changed
+	directoriesMatch, err := a.areDirectoriesMatched(ctx, pr.OwnerLogin, pr.RepoName, pr.Number, rule.Directories)
+	if err != nil {
+		return false, err
+	}
+	// check whether there is a rule on a label and it matches
+	prLabelMatch, err := a.isRegexLabelMatched(ctx, pr.OwnerLogin, pr.RepoName, pr.Number, rule.RegexLabel)
+	if err != nil {
+		return false, err
+	}
+
+	if !prBodyMatch && !directoriesMatch && !prLabelMatch {
+		a.log.Tracef("PR doesn't match regular expression %v, directory %v or label regular expression %v", rule.Regex, rule.Directories, rule.RegexLabel)
+		return false, nil
+	}
+
+	shouldMatchDirectories := len(rule.Directories) > 0
+	if shouldMatchDirectories && !directoriesMatch {
+		a.log.Trace("No directory in rule")
+		return false, nil
+	}
+
+	shouldMatchBody := rule.Regex != ""
+	if shouldMatchBody && !prBodyMatch {
+		a.log.Trace("No regex in rule")
+		return false, nil
+	}
+
+	shouldMatchLabels := rule.RegexLabel != ""
+	if shouldMatchLabels && !prLabelMatch {
+		a.log.Trace("No regex in labels")
+		return false, nil
+	}
+	return true, nil
+}
+
+func (a *Approval) isRegexMatched(ctx context.Context, ownerLogin, repoName string, prNumber int, regex string, body string) (bool, error) {
+	if regex == "" {
+		return false, nil
+	}
+
+	var prBodyMatch bool
+	prBodyMatch, err := regexp.MatchString(fmt.Sprintf("(?i)%s", regex), body)
+	if err != nil {
+		return false, err
+	}
+
+	return prBodyMatch, nil
+}
+
+func (a *Approval) areDirectoriesMatched(ctx context.Context, ownerLogin, repoName string, prNumber int, directories []string) (bool, error) {
+	var matchedDirectories []string
+
+	for _, directory := range directories {
+		commitFiles, err := a.client.GetPullRequestCommitFiles(ctx, ownerLogin, repoName, prNumber)
+		if err != nil {
+			return false, fmt.Errorf("directory match: get pull request commit files: %w", err)
+		}
+		directoryMatched, err := isDirectoryChanged(directory, commitFiles)
+		if err != nil {
+			return false, fmt.Errorf("directory match: is directory changed: %w", err)
+		}
+		if directoryMatched {
+			matchedDirectories = append(matchedDirectories, directory)
+		}
+	}
+
+	return len(matchedDirectories) > 0, nil
 }
 
 // return true if there were any changes in the specified directory. If the directory starts with '/' match is done
@@ -363,6 +404,14 @@ func getTeamNameFromTeamHandle(teams []*github.Team, v string) (string, error) {
 	return "", fmt.Errorf("Invalid team handle: %q %w", v, ErrInvalidTeamHandle)
 }
 
+func (a *Approval) ignoreContributorApproval(cfg *configuration.Configuration, rule configuration.Rule) bool {
+	if rule.IgnoreContributorApproval {
+		return rule.IgnoreContributorApproval // does it always take the default on the rule level
+	}
+
+	return cfg.IgnoreContributorApproval
+}
+
 func (a *Approval) allowedAndIgnoreReviewers(ctx context.Context, pr *PR, members []*github.User, ignoreContributors bool) ([]string, []string, error) {
 	if !ignoreContributors {
 		var allowedMembers []string
@@ -385,6 +434,9 @@ func filterAllowedAndIgnoreReviewers(members []*github.User, commits []*github.R
 	authors := map[string]bool{}
 	for _, c := range commits {
 		authors[c.GetCommitter().GetLogin()] = true
+		for _, c := range findCoAuthors(c) {
+			_ = c
+		}
 	}
 
 	var allowed, ignored []string
@@ -399,4 +451,8 @@ func filterAllowedAndIgnoreReviewers(members []*github.User, commits []*github.R
 	}
 
 	return allowed, ignored
+}
+
+func findCoAuthors(c *github.RepositoryCommit) []*github.User {
+	return []*github.User{}
 }
