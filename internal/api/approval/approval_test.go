@@ -1,6 +1,7 @@
 package approval
 
 import (
+	"sort"
 	"testing"
 
 	"github.com/google/go-github/v42/github"
@@ -135,6 +136,44 @@ func TestContentsUrlToRelDir(t *testing.T) {
 	})
 }
 
+func TestFindCoAuthors(t *testing.T) {
+	tests := map[string]struct {
+		message  string
+		expected []string
+	}{
+		"when no co-authors in commit message": {
+			message:  "feat: awesome new feature",
+			expected: []string{},
+		},
+		"when one co-author in commit message": {
+			message: `feat: awesome new feature
+
+			Co-authored-by: John Doe <12345678+john-doe@users.noreply.github.com>`,
+			expected: []string{"john-doe"},
+		},
+		"when multiple co-authors in commit message": {
+			message: `feat: awesome new feature
+
+			Co-authored-by: John Doe <12345678+john-doe@users.noreply.github.com>
+			Co-authored-by: Jane Doe <87654321+jane-doe@users.noreply.github.com>`,
+			expected: []string{"john-doe", "jane-doe"},
+		},
+		"when one of the co-authors uses unsupported format": {
+			message: `feat: awesome new feature
+
+			Co-authored-by: John Doe <john@doe.com>
+			Co-authored-by: Jane Doe <87654321+jane-doe@users.noreply.github.com>`,
+			expected: []string{"jane-doe"},
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			require.Equal(t, findCoAuthors(tt.message), tt.expected)
+		})
+	}
+}
+
 func TestFilterAllowedAndIgnoreReviewers(t *testing.T) {
 	tests := map[string]struct {
 		commits []*github.RepositoryCommit
@@ -173,7 +212,7 @@ func TestFilterAllowedAndIgnoreReviewers(t *testing.T) {
 				{Login: github.String("bar")},
 				{Login: github.String("baz")},
 			},
-			[]string{"foo", "bar", "baz"},
+			[]string{"bar", "baz", "foo"},
 			nil,
 		},
 		"When multiple members exist, some are authors": {
@@ -191,8 +230,29 @@ func TestFilterAllowedAndIgnoreReviewers(t *testing.T) {
 				{Login: github.String("baz")},
 				{Login: github.String("qux")},
 			},
-			[]string{"foo", "baz"},
+			[]string{"baz", "foo"},
 			[]string{"bar", "qux"},
+		},
+		"When multiple members exist, some are co-authors": {
+			[]*github.RepositoryCommit{
+				{
+					Committer: &github.User{Login: github.String("bar")},
+					Commit: &github.Commit{
+						Message: github.String("feat: awesome new feature\n\nCo-authored-by: foo <12345678+foo@users.noreply.github.com>"),
+					},
+				},
+				{
+					Committer: &github.User{Login: github.String("qux")},
+				},
+			},
+			[]*github.User{
+				{Login: github.String("foo")},
+				{Login: github.String("bar")},
+				{Login: github.String("baz")},
+				{Login: github.String("qux")},
+			},
+			[]string{"baz"},
+			[]string{"bar", "foo", "qux"},
 		},
 	}
 
@@ -200,6 +260,8 @@ func TestFilterAllowedAndIgnoreReviewers(t *testing.T) {
 		t.Run(name,
 			func(t *testing.T) {
 				gotAllowed, gotIgnored := filterAllowedAndIgnoreReviewers(tt.members, tt.commits)
+				sort.Strings(gotAllowed)
+				sort.Strings(gotIgnored)
 				require.Equal(t, gotAllowed, tt.allowed)
 				require.Equal(t, gotIgnored, tt.ignored)
 			})

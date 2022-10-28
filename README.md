@@ -158,3 +158,6 @@ Place the encrypted webhook as the `slack_webhook_secret` in the yaml.
 * If the `target_branches` field is omitted or left empty, the specified rules are applied to all PRs regardless of the target branch.
 * PRs made against branches for which no rules are defined are automatically marked as approved.
 * PRs made against branches for which rules are defined **MUST** match at least one rule to be approved.
+
+
+#### TODO: describe detecting co-authors behaviour and its limitations 

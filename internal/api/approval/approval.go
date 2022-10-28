@@ -154,8 +154,7 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 				return nil, err
 			}
 
-			ignoreContributorApproval := a.ignoreContributorApproval(cfg, rule)
-			allowed, ignored, err := a.allowedAndIgnoreReviewers(ctx, pr, members, ignoreContributorApproval)
+			allowed, ignored, err := a.allowedAndIgnoreReviewers(ctx, pr, members, rule.IgnoreContributorApproval)
 			if err != nil {
 				return nil, err
 			}
@@ -404,14 +403,6 @@ func getTeamNameFromTeamHandle(teams []*github.Team, v string) (string, error) {
 	return "", fmt.Errorf("Invalid team handle: %q %w", v, ErrInvalidTeamHandle)
 }
 
-func (a *Approval) ignoreContributorApproval(cfg *configuration.Configuration, rule configuration.Rule) bool {
-	if rule.IgnoreContributorApproval {
-		return rule.IgnoreContributorApproval // does it always take the default on the rule level
-	}
-
-	return cfg.IgnoreContributorApproval
-}
-
 func (a *Approval) allowedAndIgnoreReviewers(ctx context.Context, pr *PR, members []*github.User, ignoreContributors bool) ([]string, []string, error) {
 	if !ignoreContributors {
 		var allowedMembers []string
@@ -434,8 +425,9 @@ func filterAllowedAndIgnoreReviewers(members []*github.User, commits []*github.R
 	authors := map[string]bool{}
 	for _, c := range commits {
 		authors[c.GetCommitter().GetLogin()] = true
-		for _, c := range findCoAuthors(c) {
-			_ = c
+		coauthors := findCoAuthors(c.GetCommit().GetMessage())
+		for _, coauthor := range coauthors {
+			authors[coauthor] = true
 		}
 	}
 
@@ -453,6 +445,19 @@ func filterAllowedAndIgnoreReviewers(members []*github.User, commits []*github.R
 	return allowed, ignored
 }
 
-func findCoAuthors(c *github.RepositoryCommit) []*github.User {
-	return []*github.User{}
+func findCoAuthors(msg string) []string {
+	pattern := "Co-authored-by: .+? <(\\d+)\\+([\\w-]+)@users.noreply.github.com>"
+	r := regexp.MustCompile(pattern)
+
+	coauthors := []string{}
+
+	for _, match := range r.FindAllStringSubmatch(msg, -1) {
+		if len(match) != 3 {
+			return []string{} // TODO: should this return error?
+		}
+
+		coauthors = append(coauthors, match[2])
+	}
+
+	return coauthors
 }
