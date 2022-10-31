@@ -151,11 +151,24 @@ func TestFindCoAuthors(t *testing.T) {
 			Co-authored-by: John Doe <12345678+john-doe@users.noreply.github.com>`,
 			expected: []string{"john-doe"},
 		},
+		"when one co-author in commit message (legacy format)": {
+			message: `feat: awesome new feature
+
+			Co-authored-by: John Doe <john-doe@users.noreply.github.com>`,
+			expected: []string{"john-doe"},
+		},
 		"when multiple co-authors in commit message": {
 			message: `feat: awesome new feature
 
 			Co-authored-by: John Doe <12345678+john-doe@users.noreply.github.com>
 			Co-authored-by: Jane Doe <87654321+jane-doe@users.noreply.github.com>`,
+			expected: []string{"john-doe", "jane-doe"},
+		},
+		"when multiple co-authors in commit message (legacy format)": {
+			message: `feat: awesome new feature
+
+			Co-authored-by: John Doe <12345678+john-doe@users.noreply.github.com>
+			Co-authored-by: Jane Doe <jane-doe@users.noreply.github.com>`,
 			expected: []string{"john-doe", "jane-doe"},
 		},
 		"when one of the co-authors uses unsupported format": {

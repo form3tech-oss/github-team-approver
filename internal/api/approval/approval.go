@@ -450,12 +450,18 @@ func filterAllowedAndIgnoreReviewers(members []*github.User, commits []*github.R
 }
 
 func findCoAuthors(msg string) []string {
-	pattern := "Co-authored-by: .+? <(\\d+)\\+([\\w-]+)@users.noreply.github.com>"
+	pattern := "Co-authored-by: .+? <([\\w\\+-]+)@users.noreply.github.com>"
 	r := regexp.MustCompile(pattern)
 
 	coauthors := []string{}
 	for _, match := range r.FindAllStringSubmatch(msg, -1) {
-		coauthors = append(coauthors, match[2])
+		coauthor := match[1]
+		if strings.Contains(coauthor, "+") {
+			parts := strings.Split(coauthor, "+")
+			coauthors = append(coauthors, parts[1])
+		} else {
+			coauthors = append(coauthors, coauthor)
+		}
 	}
 
 	return coauthors
