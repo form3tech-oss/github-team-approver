@@ -133,16 +133,16 @@ func (s *ApiStage) RepoWithNoContributorReviewEnabledAndFooAsApprovingTeam() *Ap
 		Name: "some-service",
 
 		ApproverCfg: &approverCfg.Configuration{
-			IgnoreContributorApproval: true,
 			PullRequestApprovalRules: []approverCfg.PullRequestApprovalRule{
 				{
 					TargetBranches: []string{"master"},
 					Rules: []approverCfg.Rule{
 						{
-							ApprovalMode:         approverCfg.ApprovalModeRequireAny,
-							Regex:                `- \[x\] Yes - this change impacts customers`,
-							ApprovingTeamHandles: []string{approvingTeam},
-							Labels:               []string{},
+							ApprovalMode:              approverCfg.ApprovalModeRequireAny,
+							Regex:                     `- \[x\] Yes - this change impacts customers`,
+							ApprovingTeamHandles:      []string{approvingTeam},
+							Labels:                    []string{},
+							IgnoreContributorApproval: true,
 						},
 					},
 				},
@@ -386,6 +386,33 @@ func (s *ApiStage) CommitsWithAliceAsContributor() *ApiStage {
 			Committer: &github.User{
 				Login: github.String("alice"),
 			},
+		},
+	}
+	s.fakeGitHub.SetCommits(commits)
+
+	return s
+}
+
+func (s *ApiStage) CommitsWithAliceAsCoAuthor() *ApiStage {
+	return s.commitsWithAuthorAndCoAuthor("bob", "alice")
+}
+
+func (s *ApiStage) CommitsWithBobAsCoAuthor() *ApiStage {
+	return s.commitsWithAuthorAndCoAuthor("eve", "bob")
+}
+
+func (s *ApiStage) commitsWithAuthorAndCoAuthor(author, coauthor string) *ApiStage {
+	message := fmt.Sprintf("commit message\n\nCo-authored-by: %s <12345678+%s@users.noreply.github.com>", coauthor, coauthor)
+	commits := []*github.RepositoryCommit{
+		{
+			SHA: github.String("some-sha-1"),
+			Author: &github.User{
+				Login: github.String(author),
+			},
+			Committer: &github.User{
+				Login: github.String(author),
+			},
+			Commit: &github.Commit{Message: github.String(message)},
 		},
 	}
 	s.fakeGitHub.SetCommits(commits)

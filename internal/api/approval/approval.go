@@ -242,21 +242,26 @@ func (a *Approval) isRuleMatched(ctx context.Context, rule configuration.Rule, p
 
 	shouldMatchDirectories := len(rule.Directories) > 0
 	if shouldMatchDirectories && !directoriesMatch {
-		a.log.Trace("No directory in rule")
+		a.log.WithField("directories", rule.Directories).Tracef("Rule has 'directories' set but PR does not match")
 		return false, nil
 	}
 
 	shouldMatchBody := rule.Regex != ""
 	if shouldMatchBody && !prBodyMatch {
-		a.log.Trace("No regex in rule")
+		a.log.WithField("regex", rule.Regex).Tracef("Rule has 'regex' set but PR does not match")
 		return false, nil
 	}
 
 	shouldMatchLabels := rule.RegexLabel != ""
 	if shouldMatchLabels && !prLabelMatch {
-		a.log.Trace("No regex in labels")
+		a.log.WithField("regex_label", rule.RegexLabel).Tracef("Rule has 'regex_label' set but PR does not match")
 		return false, nil
 	}
+
+	a.log.WithFields(logrus.Fields{
+		"pr":   pr.Number,
+		"rule": rule,
+	}).Tracef("PR matches rule")
 	return true, nil
 }
 
@@ -425,8 +430,7 @@ func filterAllowedAndIgnoreReviewers(members []*github.User, commits []*github.R
 	authors := map[string]bool{}
 	for _, c := range commits {
 		authors[c.GetCommitter().GetLogin()] = true
-		coauthors := findCoAuthors(c.GetCommit().GetMessage())
-		for _, coauthor := range coauthors {
+		for _, coauthor := range findCoAuthors(c.GetCommit().GetMessage()) {
 			authors[coauthor] = true
 		}
 	}
@@ -450,12 +454,7 @@ func findCoAuthors(msg string) []string {
 	r := regexp.MustCompile(pattern)
 
 	coauthors := []string{}
-
 	for _, match := range r.FindAllStringSubmatch(msg, -1) {
-		if len(match) != 3 {
-			return []string{} // TODO: should this return error?
-		}
-
 		coauthors = append(coauthors, match[2])
 	}
 

@@ -1,0 +1,79 @@
+{
+  "provider": {
+    "name": "github-api"
+  },
+  "consumer": {
+    "name": "github-team-approver"
+  },
+  "interactions": [
+    {
+      "description": "Get commits (#7) where alice coauthored",
+      "request": {
+        "method": "GET",
+        "path": "/repos/form3tech/github-team-approver-test/pulls/7/commits"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8"
+        },
+        "body": [
+          {
+            "sha": "1958a56447cda88f90cf98a353f506507a3954de",
+            "commit": {
+              "author": {
+                "name": "author a",
+                "email": "author-a@some.test",
+                "date": "2021-09-06T09:18:21Z"
+              },
+              "committer": {
+                "name": "author a",
+                "email": "author-a@some.test",
+                "date": "2021-09-06T09:18:21Z"
+              },
+              "message": "Some commit message\n\nCo-authored-by: Alice<12345678+alice@users.noreply.github.com>"
+            },
+            "author": {
+              "login": "author-a"
+            },
+            "committer": {
+              "login": "author-a"
+            },
+            "parents": []
+          },
+          {
+            "sha": "0e7aa0c3cf3421ec914afc47c76f44d5af91c598",
+            "commit": {
+              "author": {
+                "name": "author a",
+                "email": "author-a@some.test",
+                "date": "2021-09-06T09:18:21Z"
+              },
+              "committer": {
+                "name": "author a",
+                "email": "author-a@some.test",
+                "date": "2021-09-06T09:18:21Z"
+              },
+              "message": "Some commit message\n\nCo-authored-by: Alice<12345678+alice@users.noreply.github.com>"
+            },
+            "author": {
+              "login": "author-a"
+            },
+            "committer": {
+              "login": "author-a"
+            },
+            "parents": []
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "pact-specification": {
+      "version": "3.0.0"
+    },
+    "pact-jvm": {
+      "version": "3.0.0"
+    }
+  }
+}
