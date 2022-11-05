@@ -157,7 +157,6 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 		if prLabelMatch {
 			a.log.Tracef("PR matches label regular expression %q", rule.RegexLabel)
 		}
-		state.incRulesMatched()
 
 		// Add the current label to the set of final labels.
 		for _, label := range rule.Labels {
@@ -166,13 +165,7 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 			}
 		}
 
-		// Forcibly approve the PR in case the current check is configured to do so.
-		if rule.ForceApproval {
-			state.forceApproval = true
-		}
-
-		approvingTeamNamesForRule, pendingTeamNamesForRule := make([]string, 0, 0), make([]string, 0, 0)
-
+		mr := NewMatchedRule(rule)
 		// Check the approval status for each rule.
 		for _, handle := range rule.ApprovingTeamHandles {
 			teamName, err := getTeamNameFromTeamHandle(teams, handle)
@@ -196,30 +189,11 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 			}
 
 			// Check whether the current team has approved the PR.
-			if approvalCount := countApprovalsForTeam(reviews, allowed); approvalCount >= 1 {
-				// Add the current team to the list of approving teams.
-				a.log.Tracef("Team %q has approved!", teamName)
-				approvingTeamNamesForRule = appendIfMissing(approvingTeamNamesForRule, teamName)
-			} else {
-				// Add the current team to the slice of pending teams.
-				a.log.Tracef("Team %q hasn't approved yet", teamName)
-				pendingTeamNamesForRule = appendIfMissing(pendingTeamNamesForRule, teamName)
-				state.addIgnoredReviewers(ignored)
-			}
+			approvalCount := countApprovalsForTeam(reviews, allowed)
+			mr.RecordApproval(teamName, approvalCount)
+			state.addIgnoredReviewers(ignored)
 		}
-
-		// Add the names of the teams that have approved to the set of approving teams.
-		for _, n := range approvingTeamNamesForRule {
-			state.addApprovingTeamNames(n)
-		}
-		// If the approval mode is "require_any" and there's at least one approval, skip requesting additional reviews.
-		if rule.ApprovalMode == configuration.ApprovalModeRequireAny && len(approvingTeamNamesForRule) > 0 {
-			continue
-		}
-		// Add the names of the teams that haven't approved yet to the set of pending teams.
-		for _, n := range pendingTeamNamesForRule {
-			state.addPendingTeamNames(n)
-		}
+		state.addMatchedRule(mr)
 	}
 
 	result := state.result(a.log, teams) // state should not be consumed past this point

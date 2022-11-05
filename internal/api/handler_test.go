@@ -13,7 +13,6 @@ import (
 	"testing"
 
 	"github.com/form3tech-oss/github-team-approver/internal/api/approval"
-
 	"github.com/form3tech-oss/go-pact-testing/pacttesting"
 	"github.com/google/tcpproxy"
 	"github.com/spf13/viper"
@@ -63,6 +62,7 @@ func Test_Handle(t *testing.T) {
 
 			expectedFinalStatus: approval.StatusEventStatusSuccess,
 		},
+
 		{
 			name: `PR review Submitted (requires approval from the "CAB" and "Documentation" teams)`,
 
@@ -87,6 +87,7 @@ func Test_Handle(t *testing.T) {
 
 			expectedFinalStatus: approval.StatusEventStatusPending,
 		},
+
 		{
 			name: `PR review Submitted (requires approval from the "CAB" and "Documentation" teams)`,
 
@@ -99,6 +100,7 @@ func Test_Handle(t *testing.T) {
 
 			expectedFinalStatus: approval.StatusEventStatusSuccess,
 		},
+
 		{
 			name: `PR review Submitted (no regular expressions matched)`,
 
@@ -111,6 +113,7 @@ func Test_Handle(t *testing.T) {
 
 			expectedFinalStatus: approval.StatusEventStatusPending,
 		},
+
 		{
 			name: `PR review Submitted (requires approval from at least one of the "CAB - Foo" and "CAB - BAR" teams, as well as from the "CAB - Documentation" team)`,
 
@@ -129,7 +132,10 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequest,
 			eventBody:      readGitHubExampleFile("pull_request_merged_to_master.json"),
 			eventSignature: "sha256=2324407137f738fc9e5e335e5ed6d52ab5d8a8b33705937d04463d7b9c678fcd",
-			pacts:          []pacttesting.Pact{"pull_request_merged_single_alert", "slack_post_message_for_emergency_change"},
+			pacts: []pacttesting.Pact{
+				"pull_request_merged_single_alert",
+				"slack_post_message_for_emergency_change",
+			},
 		},
 		{
 			name: `PR closed (matches slack alert - alert should not fire)`,
@@ -139,6 +145,8 @@ func Test_Handle(t *testing.T) {
 			eventSignature: "sha256=5d681e510b19e1a5e3588839f541615eded29c0c955cd795efcc56450dbad8c2",
 			pacts:          []pacttesting.Pact{},
 		},
+
+		// below are good
 		{
 			name: `PR review Submitted (requires approval from CAB - FOO, a member of CAB - FOO contributed to the PR thus PR review isn't accepted)`,
 
