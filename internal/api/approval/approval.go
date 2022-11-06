@@ -148,7 +148,7 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 				return nil, err
 			}
 
-			allowed, ignored, err := a.allowedAndIgnoreReviewers(ctx, pr, members, cfg.IgnoreContributorApproval)
+			allowed, ignored, err := a.allowedAndIgnoreReviewers(ctx, pr, members, rule.IgnoreContributorApproval)
 			if err != nil {
 				return nil, err
 			}
@@ -405,6 +405,9 @@ func filterAllowedAndIgnoreReviewers(members []*github.User, commits []*github.R
 	authors := map[string]bool{}
 	for _, c := range commits {
 		authors[c.GetCommitter().GetLogin()] = true
+		for _, coauthor := range findCoAuthors(c.GetCommit().GetMessage()) {
+			authors[coauthor] = true
+		}
 	}
 
 	var allowed, ignored []string
@@ -419,4 +422,22 @@ func filterAllowedAndIgnoreReviewers(members []*github.User, commits []*github.R
 	}
 
 	return allowed, ignored
+}
+
+func findCoAuthors(msg string) []string {
+	pattern := "Co-authored-by: .+? <([\\w\\+-]+)@users.noreply.github.com>"
+	r := regexp.MustCompile(pattern)
+
+	coauthors := []string{}
+	for _, match := range r.FindAllStringSubmatch(msg, -1) {
+		coauthor := match[1]
+		if strings.Contains(coauthor, "+") {
+			parts := strings.Split(coauthor, "+")
+			coauthors = append(coauthors, parts[1])
+		} else {
+			coauthors = append(coauthors, coauthor)
+		}
+	}
+
+	return coauthors
 }

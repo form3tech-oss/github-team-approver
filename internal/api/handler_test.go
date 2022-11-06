@@ -40,53 +40,53 @@ func Test_Handle(t *testing.T) {
 
 		expectedFinalStatus string
 	}{
-		// {
-		// 	name: `PR opened (requires approval from the "CAB" team)`,
+		{
+			name: `PR opened (requires approval from the "CAB" team)`,
 
-		// 	eventType:      eventTypePullRequest,
-		// 	eventBody:      readGitHubExampleFile("pull_request_opened.json"),
-		// 	eventSignature: "sha256=6d4d96d879720606802102a5892b51634c25d52f7827d2d9d0113cef17709c0e",
-		// 	pacts: []pacttesting.Pact{
-		// 		"pull_request_opened_pending",
-		// 	},
+			eventType:      eventTypePullRequest,
+			eventBody:      readGitHubExampleFile("pull_request_opened.json"),
+			eventSignature: "sha256=6d4d96d879720606802102a5892b51634c25d52f7827d2d9d0113cef17709c0e",
+			pacts: []pacttesting.Pact{
+				"pull_request_opened_pending",
+			},
 
-		// 	expectedFinalStatus: approval.StatusEventStatusPending,
-		// },
-		// {
-		// 	name: `PR opened (no rules for branch)`,
+			expectedFinalStatus: approval.StatusEventStatusPending,
+		},
+		{
+			name: `PR opened (no rules for branch)`,
 
-		// 	eventType:      eventTypePullRequest,
-		// 	eventBody:      readGitHubExampleFile("pull_request_opened_no_rules_for_branch.json"),
-		// 	eventSignature: "sha256=f91b8ed784708050a1c332b07376a014a1f1e4ef1f94fe37d9532a37417c5bf6",
-		// 	pacts:          []pacttesting.Pact{"pull_request_opened_no_rules_for_branch"},
+			eventType:      eventTypePullRequest,
+			eventBody:      readGitHubExampleFile("pull_request_opened_no_rules_for_branch.json"),
+			eventSignature: "sha256=f91b8ed784708050a1c332b07376a014a1f1e4ef1f94fe37d9532a37417c5bf6",
+			pacts:          []pacttesting.Pact{"pull_request_opened_no_rules_for_branch"},
 
-		// 	expectedFinalStatus: approval.StatusEventStatusSuccess,
-		// },
+			expectedFinalStatus: approval.StatusEventStatusSuccess,
+		},
 
-		// {
-		// 	name: `PR review Submitted (requires approval from the "CAB" and "Documentation" teams)`,
+		{
+			name: `PR review Submitted (requires approval from the "CAB" and "Documentation" teams)`,
 
-		// 	eventType:      eventTypePullRequestReview,
-		// 	eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
-		// 	eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
-		// 	pacts: []pacttesting.Pact{
-		// 		"pull_request_review_submitted_approved",
-		// 	},
+			eventType:      eventTypePullRequestReview,
+			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
+			eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
+			pacts: []pacttesting.Pact{
+				"pull_request_review_submitted_approved",
+			},
 
-		// 	expectedFinalStatus: approval.StatusEventStatusSuccess,
-		// },
-		// {
-		// 	name: `PR review Submitted (requires approval from the "CAB" and "Documentation" teams)`,
+			expectedFinalStatus: approval.StatusEventStatusSuccess,
+		},
+		{
+			name: `PR review Submitted (requires approval from the "CAB" and "Documentation" teams)`,
 
-		// 	eventType:      eventTypePullRequestReview,
-		// 	eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
-		// 	eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
-		// 	pacts: []pacttesting.Pact{
-		// 		"pull_request_review_submitted_pending",
-		// 	},
+			eventType:      eventTypePullRequestReview,
+			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
+			eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
+			pacts: []pacttesting.Pact{
+				"pull_request_review_submitted_pending",
+			},
 
-		// 	expectedFinalStatus: approval.StatusEventStatusPending,
-		// },
+			expectedFinalStatus: approval.StatusEventStatusPending,
+		},
 
 		{
 			name: `PR review Submitted (requires approval from the "CAB" and "Documentation" teams)`,
@@ -100,81 +100,93 @@ func Test_Handle(t *testing.T) {
 
 			expectedFinalStatus: approval.StatusEventStatusSuccess,
 		},
+		{
+			name: `PR review Submitted (no regular expressions matched)`,
 
-		// {
-		// 	name: `PR review Submitted (no regular expressions matched)`,
+			eventType:      eventTypePullRequestReview,
+			eventBody:      readGitHubExampleFile("pull_request_review_submitted_no_regexes_matched.json"),
+			eventSignature: "sha256=9b5e234c6deff549b631d7e08363e9e90e0bdf635e3a440e2b40cef5fab3205a",
+			pacts: []pacttesting.Pact{
+				"pull_request_review_submitted_no_regexes_matched",
+			},
 
-		// 	eventType:      eventTypePullRequestReview,
-		// 	eventBody:      readGitHubExampleFile("pull_request_review_submitted_no_regexes_matched.json"),
-		// 	eventSignature: "sha256=9b5e234c6deff549b631d7e08363e9e90e0bdf635e3a440e2b40cef5fab3205a",
-		// 	pacts: []pacttesting.Pact{
-		// 		"pull_request_review_submitted_no_regexes_matched",
-		// 	},
+			expectedFinalStatus: approval.StatusEventStatusPending,
+		},
+		{
+			name: `PR review Submitted (requires approval from at least one of the "CAB - Foo" and "CAB - BAR" teams, as well as from the "CAB - Documentation" team)`,
 
-		// 	expectedFinalStatus: approval.StatusEventStatusPending,
-		// },
+			eventType:      eventTypePullRequestReview,
+			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
+			eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
+			pacts: []pacttesting.Pact{
+				"pull_request_review_submitted_approval_mode_require_any",
+			},
 
-		// {
-		// 	name: `PR review Submitted (requires approval from at least one of the "CAB - Foo" and "CAB - BAR" teams, as well as from the "CAB - Documentation" team)`,
+			expectedFinalStatus: approval.StatusEventStatusSuccess,
+		},
+		{
+			name: `PR Merged to master (matches slack alert - alert should fire)`,
 
-		// 	eventType:      eventTypePullRequestReview,
-		// 	eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
-		// 	eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
-		// 	pacts: []pacttesting.Pact{
-		// 		"pull_request_review_submitted_approval_mode_require_any",
-		// 	},
+			eventType:      eventTypePullRequest,
+			eventBody:      readGitHubExampleFile("pull_request_merged_to_master.json"),
+			eventSignature: "sha256=2324407137f738fc9e5e335e5ed6d52ab5d8a8b33705937d04463d7b9c678fcd",
+			pacts: []pacttesting.Pact{
+				"pull_request_merged_single_alert",
+				"slack_post_message_for_emergency_change",
+			},
+		},
+		{
+			name: `PR closed (matches slack alert - alert should not fire)`,
 
-		// 	expectedFinalStatus: approval.StatusEventStatusSuccess,
-		// },
-		// {
-		// 	name: `PR Merged to master (matches slack alert - alert should fire)`,
+			eventType:      eventTypePullRequest,
+			eventBody:      readGitHubExampleFile("pull_request_closed.json"),
+			eventSignature: "sha256=5d681e510b19e1a5e3588839f541615eded29c0c955cd795efcc56450dbad8c2",
+			pacts:          []pacttesting.Pact{},
+		},
 
-		// 	eventType:      eventTypePullRequest,
-		// 	eventBody:      readGitHubExampleFile("pull_request_merged_to_master.json"),
-		// 	eventSignature: "sha256=2324407137f738fc9e5e335e5ed6d52ab5d8a8b33705937d04463d7b9c678fcd",
-		// 	pacts: []pacttesting.Pact{
-		// 		"pull_request_merged_single_alert",
-		// 		"slack_post_message_for_emergency_change",
-		// 	},
-		// },
-		// {
-		// 	name: `PR closed (matches slack alert - alert should not fire)`,
+		// below are good
+		{
+			name: `PR review Submitted (requires approval from CAB - FOO, a member of CAB - FOO contributed to the PR thus PR review isn't accepted)`,
 
-		// 	eventType:      eventTypePullRequest,
-		// 	eventBody:      readGitHubExampleFile("pull_request_closed.json"),
-		// 	eventSignature: "sha256=5d681e510b19e1a5e3588839f541615eded29c0c955cd795efcc56450dbad8c2",
-		// 	pacts:          []pacttesting.Pact{},
-		// },
+			eventType:      eventTypePullRequestReview,
+			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
+			eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
+			pacts: []pacttesting.Pact{
+				"pull_request_commits_alice_contributed",
+				"pull_request_get_comments_pr_7",
+				"pull_request_post_comment_pr_7",
+				"pull_request_review_submitted_alice_approved",
+			},
 
-		// // below are good
-		// {
-		// 	name: `PR review Submitted (requires approval from CAB - FOO, a member of CAB - FOO contributed to the PR thus PR review isn't accepted)`,
+			expectedFinalStatus: approval.StatusEventStatusPending,
+		},
+		{
+			name: `PR review Submitted (requires approval from CAB - FOO, Alice and Bob are members of CAB - FOO, Alice is a contributor to PR, her review is ignored. Bob's review is accepted.')`,
 
-		// 	eventType:      eventTypePullRequestReview,
-		// 	eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
-		// 	eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
-		// 	pacts: []pacttesting.Pact{
-		// 		"pull_request_commits_alice_contributed",
-		// 		"pull_request_get_comments_pr_7",
-		// 		"pull_request_post_comment_pr_7",
-		// 		"pull_request_review_submitted_alice_approved",
-		// 	},
+			eventType:      eventTypePullRequestReview,
+			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
+			eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
+			pacts: []pacttesting.Pact{
+				"pull_request_commits_alice_contributed",
+				"pull_request_review_submitted_alice_bob_approved",
+			},
 
-		// 	expectedFinalStatus: approval.StatusEventStatusPending,
-		// },
-		// {
-		// 	name: `PR review Submitted (requires approval from CAB - FOO, Alice and Bob are members of CAB - FOO, Alice is a contributor to PR, her review is ignored. Bob's review is accepted.')`,
+			expectedFinalStatus: approval.StatusEventStatusSuccess,
+		},
 
-		// 	eventType:      eventTypePullRequestReview,
-		// 	eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
-		// 	eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
-		// 	pacts: []pacttesting.Pact{
-		// 		"pull_request_commits_alice_contributed",
-		// 		"pull_request_review_submitted_alice_bob_approved",
-		// 	},
+		{
+			name: `PR review Submitted (requires approval from CAB - FOO, Alice and Bob are members of CAB - FOO, Alice is a coauthor of a commit in PR, her review is ignored. Bob's review is accepted.')`,
 
-		// 	expectedFinalStatus: approval.StatusEventStatusSuccess,
-		// },
+			eventType:      eventTypePullRequestReview,
+			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
+			eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
+			pacts: []pacttesting.Pact{
+				"pull_request_commits_alice_coauthor",
+				"pull_request_review_submitted_alice_bob_approved",
+			},
+
+			expectedFinalStatus: approval.StatusEventStatusSuccess,
+		},
 	}
 
 	for _, tt := range tests {

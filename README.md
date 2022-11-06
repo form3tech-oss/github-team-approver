@@ -116,6 +116,7 @@ Each item under `pull_request_approval_rules` represents how approval for PRs ma
 | `approval_mode` | One of `require_any` or `require_all`.
 | `labels`  | The set of labels to apply to the pull request. Labels are prefixed with the `github-team-approver/` prefix.  |
 | `force_approval` | Whether to automatically approve PRs matching the regular expression without waiting for review.
+| `ignore_contributors_approval` | Whether to ignore approvals of people who pushed a commit to the PR or are a co-author of at least one of the commits. |
 
 Each item under `alert` represents a slack alert that will fire if regex is matched:
 
@@ -158,3 +159,4 @@ Place the encrypted webhook as the `slack_webhook_secret` in the yaml.
 * If the `target_branches` field is omitted or left empty, the specified rules are applied to all PRs regardless of the target branch.
 * PRs made against branches for which no rules are defined are automatically marked as approved.
 * PRs made against branches for which rules are defined **MUST** match at least one rule to be approved.
+* At the moment detecting co-authors supports only [`noreply` email addresses from GitHub](https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-email-preferences/setting-your-commit-email-address#about-commit-email-addresses).
