@@ -1,6 +1,10 @@
 package approval
 
-import "github.com/form3tech-oss/github-team-approver-commons/pkg/configuration"
+import (
+	"sort"
+
+	"github.com/form3tech-oss/github-team-approver-commons/pkg/configuration"
+)
 
 type MatchedRule struct {
 	ConfigRule configuration.Rule
@@ -21,29 +25,31 @@ func (mr MatchedRule) RecordApproval(teamHandle string, count int) {
 }
 
 func (mr MatchedRule) ApprovingTeamNames() []string {
-	approved := []string{}
+	approving := []string{}
 	for name, approvals := range mr.Approvals {
 		if approvals > 0 {
-			approved = append(approved, name)
+			approving = append(approving, name)
 		}
 	}
 
-	return approved
+	sort.Strings(approving)
+	return approving
 }
 
 func (mr MatchedRule) PendingTeamNames() []string {
 	pending := []string{}
 	for _, name := range mr.ConfigRule.ApprovingTeamHandles {
-		// only append if we don't have an approval or we have zero approvals
 		approvals, ok := mr.Approvals[name]
 		if !ok || approvals == 0 {
 			pending = append(pending, name)
 		}
 	}
+
+	sort.Strings(pending)
 	return pending
 }
 
-func (mr MatchedRule) IsFulfilled() bool {
+func (mr MatchedRule) Fulfilled() bool {
 	r := mr.ConfigRule
 
 	switch {
@@ -51,7 +57,6 @@ func (mr MatchedRule) IsFulfilled() bool {
 		return true
 	case r.ApprovalMode == configuration.ApprovalModeRequireAny:
 		return mr.Approvals.AnyTeamApproved()
-
 	case r.ApprovalMode == configuration.ApprovalModeRequireAll:
 		return mr.Approvals.AllTeamsApproved(r.ApprovingTeamHandles)
 	}
@@ -66,12 +71,11 @@ func (ta TeamApprovals) AnyTeamApproved() bool {
 	for _, count := range ta {
 		total += count
 	}
-
 	return total >= 1
 }
 
-func (ta TeamApprovals) AllTeamsApproved(handles []string) bool {
-	for _, handle := range handles {
+func (ta TeamApprovals) AllTeamsApproved(allTeams []string) bool {
+	for _, handle := range allTeams {
 		approvals, present := ta[handle]
 		if !present || approvals < 1 {
 			return false

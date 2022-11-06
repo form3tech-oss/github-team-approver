@@ -160,6 +160,49 @@ func (s *ApiStage) RepoWithNoContributorReviewEnabledAndFooAsApprovingTeam() *Ap
 	return s
 }
 
+func (s *ApiStage) RepoWithFooAsApprovingTeamAndMultipleRules() *ApiStage {
+	require.NotNil(s.t, s.fakeGitHub.Org())
+	approvingTeam := *s.fakeGitHub.Org().Teams[0].Name
+
+	repo := &fakegithub.Repo{
+		Name: "some-service",
+
+		ApproverCfg: &approverCfg.Configuration{
+			PullRequestApprovalRules: []approverCfg.PullRequestApprovalRule{
+				{
+					TargetBranches: []string{"master"},
+					Rules: []approverCfg.Rule{
+						{
+							IgnoreContributorApproval: true,
+							Directories:               []string{"code/"},
+							ApprovalMode:              approverCfg.ApprovalModeRequireAny,
+							Regex:                     `- \[x\] Yes - this change impacts customers`,
+							ApprovingTeamHandles:      []string{approvingTeam},
+							Labels:                    []string{},
+						},
+						{
+							IgnoreContributorApproval: false,
+							ApprovalMode:              approverCfg.ApprovalModeRequireAny,
+							Regex:                     `- \[x\] Yes - this change impacts customers`,
+							ApprovingTeamHandles:      []string{approvingTeam},
+							Labels:                    []string{},
+						},
+					},
+				},
+			},
+		},
+	}
+	s.fakeGitHub.SetRepo(repo)
+	s.fakeGitHub.SetRepoContents([]*github.RepositoryContent{
+		{
+			Name:        github.String("GITHUB_TEAM_APPROVER.yaml"),
+			DownloadURL: github.String(fmt.Sprintf("%s/master/%s", s.fakeGitHub.RepoURL(), approverCfg.ConfigurationFilePath)),
+		},
+	})
+
+	return s
+}
+
 func (s *ApiStage) RepoWithFooAsApprovingTeamWithEmergencyRule() *ApiStage {
 	require.NotNil(s.t, s.fakeGitHub.Org())
 	approvingTeam := *s.fakeGitHub.Org().Teams[0].Name
@@ -489,6 +532,16 @@ func (s *ApiStage) PullRequestExists() *ApiStage {
 	s.fakeGitHub.SetPR(&fakegithub.PR{
 		PRNumber: 1,
 		PRCommit: "some-hash",
+		Files: []fakegithub.PRFile{
+			fakegithub.PRFile{
+				SHA:      "sha1",
+				Filename: "/code/main.go",
+			},
+			fakegithub.PRFile{
+				SHA:      "sha2",
+				Filename: "/config/dev.yaml",
+			},
+		},
 	})
 
 	return s

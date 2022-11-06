@@ -77,8 +77,6 @@ func (handler *PullRequestEventHandler) handleEvent(ctx context.Context, eventTy
 	wg := sync.WaitGroup{}
 	wg.Add(3)
 
-	reviewsToRequest := result.ReviewsToRequest()
-	_ = reviewsToRequest
 	go func() {
 		defer wg.Done()
 		handler.log.Tracef("Reporting %q as the status", result.Status())
@@ -90,12 +88,10 @@ func (handler *PullRequestEventHandler) handleEvent(ctx context.Context, eventTy
 	}()
 	go func() {
 		defer wg.Done()
-		if len(result.ReviewsToRequest()) > 0 {
-			handler.log.Tracef("Requesting reviews from %v", result.ReviewsToRequest())
-			if err := handler.client.RequestReviews(ctx, ownerLogin, repoName, prNumber, result.ReviewsToRequest()); err != nil {
-				handler.log.WithError(err).Error("Failed to request reviews")
-				ch <- err
-			}
+		handler.log.Tracef("Requesting reviews from %v", result.ReviewsToRequest())
+		if err := handler.client.RequestReviews(ctx, ownerLogin, repoName, prNumber, result.ReviewsToRequest()); err != nil {
+			handler.log.WithError(err).Error("Failed to request reviews")
+			ch <- err
 		}
 	}()
 	go func() {

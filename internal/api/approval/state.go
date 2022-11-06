@@ -20,12 +20,11 @@ const (
 
 type state struct {
 	labels []string
-
 	// forceApproval is used to check whether we must forcibly approve the PR (as defined by at least one rule).
 	forceApproval bool
-
-	rules []MatchedRule
-
+	// matchedRules keeps track of all rules applicable to the current PR and their reviews
+	matchedRules []MatchedRule
+	// approvingReviewers tracks users who have approved the pull request
 	approvingReviewers map[string]bool
 	// Reviewers who have committed to the PR as well thus ignored as allowed reviewers
 	ignoredReviewers []string
@@ -36,7 +35,7 @@ type state struct {
 func newState() *state {
 	return &state{
 		approvingReviewers: make(map[string]bool),
-		rules:              make([]MatchedRule, 0),
+		matchedRules:       make([]MatchedRule, 0),
 	}
 }
 
@@ -44,44 +43,8 @@ func (s *state) addLabel(label string) {
 	s.labels = appendIfMissing(s.labels, label)
 }
 
-func (s *state) areAllRulesMatched() bool {
-	for _, rule := range s.rules {
-		if !rule.IsFulfilled() {
-			return false
-		}
-	}
-
-	return true
-}
-
-func (s *state) getPendingTeamNames() []string {
-	allPending := []string{}
-	for _, rule := range s.rules {
-		rulePending := rule.PendingTeamNames()
-		allPending = uniqueAppend(allPending, rulePending)
-	}
-
-	return allPending
-}
-
-func (s *state) getApprovingTeamNames() []string {
-	allApproving := []string{}
-	for _, rule := range s.rules {
-		ruleApproving := rule.ApprovingTeamNames()
-		allApproving = uniqueAppend(allApproving, ruleApproving)
-	}
-
-	return allApproving
-}
-
-func (s *state) shouldForceApprove() bool {
-	for _, rule := range s.rules {
-		if rule.ConfigRule.ForceApproval {
-			return true
-		}
-	}
-
-	return false
+func (s *state) addMatchedRule(mr MatchedRule) {
+	s.matchedRules = append(s.matchedRules, mr)
 }
 
 func (s *state) addInvalidTeamHandle(name string) {
@@ -114,8 +77,44 @@ func (s *state) addIgnoredReviewers(ignoredTeamMembers []string) {
 	s.ignoredReviewers = uniqueAppend(s.ignoredReviewers, ignoredReviewers)
 }
 
-func (s *state) addMatchedRule(mr MatchedRule) {
-	s.rules = append(s.rules, mr)
+func (s *state) allRulesFulfilled() bool {
+	for _, rule := range s.matchedRules {
+		if !rule.Fulfilled() {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (s *state) pendingTeamNames() []string {
+	allPending := []string{}
+	for _, rule := range s.matchedRules {
+		rulePending := rule.PendingTeamNames()
+		allPending = uniqueAppend(allPending, rulePending)
+	}
+
+	return allPending
+}
+
+func (s *state) approvingTeamNames() []string {
+	allApproving := []string{}
+	for _, rule := range s.matchedRules {
+		ruleApproving := rule.ApprovingTeamNames()
+		allApproving = uniqueAppend(allApproving, ruleApproving)
+	}
+
+	return allApproving
+}
+
+func (s *state) shouldForceApprove() bool {
+	for _, rule := range s.matchedRules {
+		if rule.ConfigRule.ForceApproval {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (s *state) result(log *log.Entry, teams []*github.Team) *Result {
@@ -124,9 +123,13 @@ func (s *state) result(log *log.Entry, teams []*github.Team) *Result {
 		ignoredReviewers: s.ignoredReviewers,
 	}
 
+	pendingTeamNames := s.pendingTeamNames()
+	approvingTeamNames := s.approvingTeamNames()
+	allRulesFulfilled := s.allRulesFulfilled()
+
 	// Compute the final status based on whether all required approvals have been met.
 	switch {
-	case len(s.rules) == 0:
+	case len(s.matchedRules) == 0:
 		// No rules have been matched, which represents an error.
 		result.description = statusEventDescriptionNoRulesMatched
 		result.status = StatusEventStatusPending
@@ -138,22 +141,21 @@ func (s *state) result(log *log.Entry, teams []*github.Team) *Result {
 		// The PR is being forcibly approved.
 		result.description = statusEventDescriptionForciblyApproved
 		result.status = StatusEventStatusSuccess
-		result.reviewsToRequest = computeReviewsToRequest(log, teams, s.getPendingTeamNames())
-	case len(s.getPendingTeamNames()) > 0 && !s.areAllRulesMatched():
+		result.reviewsToRequest = computeReviewsToRequest(log, teams, pendingTeamNames)
+	case len(pendingTeamNames) > 0 && !allRulesFulfilled:
 		// At least one team must still approve the PR before it goes green.
 		result.description = fmt.Sprintf(
-			statusEventDescriptionPendingFormatString, strings.Join(s.getPendingTeamNames(), "\n"))
+			statusEventDescriptionPendingFormatString, strings.Join(pendingTeamNames, "\n"))
 		result.status = StatusEventStatusPending
-		result.reviewsToRequest = computeReviewsToRequest(log, teams, s.getPendingTeamNames())
-	case len(s.getPendingTeamNames()) == 0 && len(s.getApprovingTeamNames()) == 0:
+		result.reviewsToRequest = computeReviewsToRequest(log, teams, pendingTeamNames)
+	case len(pendingTeamNames) == 0 && len(approvingTeamNames) == 0:
 		// No teams have been identified as having to be requested for a review.
 		// NOTE: This should not really happen in practice.
 		result.description = statusEventDescriptionNoReviewsRequested
 		result.status = StatusEventStatusSuccess
-	case s.areAllRulesMatched():
-		approvedBy := s.getApprovingTeamNames()
-		sort.Strings(approvedBy)
-		result.description = fmt.Sprintf(statusEventDescriptionApprovedFormatString, strings.Join(approvedBy, "\n"))
+	case allRulesFulfilled:
+		sort.Strings(approvingTeamNames)
+		result.description = fmt.Sprintf(statusEventDescriptionApprovedFormatString, strings.Join(approvingTeamNames, "\n"))
 		result.status = StatusEventStatusSuccess
 	}
 

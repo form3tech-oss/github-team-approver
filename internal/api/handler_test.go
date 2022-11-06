@@ -62,7 +62,6 @@ func Test_Handle(t *testing.T) {
 
 			expectedFinalStatus: approval.StatusEventStatusSuccess,
 		},
-
 		{
 			name: `PR review Submitted (requires approval from the "CAB" and "Documentation" teams)`,
 
@@ -87,7 +86,6 @@ func Test_Handle(t *testing.T) {
 
 			expectedFinalStatus: approval.StatusEventStatusPending,
 		},
-
 		{
 			name: `PR review Submitted (requires approval from the "CAB" and "Documentation" teams)`,
 
@@ -143,8 +141,6 @@ func Test_Handle(t *testing.T) {
 			eventSignature: "sha256=5d681e510b19e1a5e3588839f541615eded29c0c955cd795efcc56450dbad8c2",
 			pacts:          []pacttesting.Pact{},
 		},
-
-		// below are good
 		{
 			name: `PR review Submitted (requires approval from CAB - FOO, a member of CAB - FOO contributed to the PR thus PR review isn't accepted)`,
 
@@ -173,7 +169,6 @@ func Test_Handle(t *testing.T) {
 
 			expectedFinalStatus: approval.StatusEventStatusSuccess,
 		},
-
 		{
 			name: `PR review Submitted (requires approval from CAB - FOO, Alice and Bob are members of CAB - FOO, Alice is a coauthor of a commit in PR, her review is ignored. Bob's review is accepted.')`,
 

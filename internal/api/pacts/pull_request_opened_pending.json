@@ -195,7 +195,7 @@
         "path": "/repos/form3tech/github-team-approver-test/statuses/0e7aa0c3cf3421ec914afc47c76f44d5af91c598",
         "body": {
           "state": "pending",
-          "description": "Needs approval from:\nCAB - Foo\nCAB - Bar",
+          "description": "Needs approval from:\nCAB - Bar\nCAB - Foo",
           "context": "github-team-approver"
         }
       },
@@ -229,8 +229,8 @@
         "path": "/repos/form3tech/github-team-approver-test/pulls/5/requested_reviewers",
         "body": {
           "team_reviewers": [
-            "cab-foo",
-            "cab-bar"
+            "cab-bar",
+            "cab-foo"
           ]
         }
       },

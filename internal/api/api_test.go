@@ -144,6 +144,30 @@ func TestWhenNoContributorReviewIsEnabledAndReviewApproverIsACoAuthor(t *testing
 		ExpectedReviewRequestsMadeForFoo()
 }
 
+func TestWhenMultipleRulesMatch(t *testing.T) {
+	given, when, then := stages.ApiTest(t)
+
+	given.
+		EncryptionKeyExists().
+		GitHubWebHookTokenExists().
+		FakeGHRunning().
+		OrganisationWithTeamFoo().
+		RepoWithFooAsApprovingTeamAndMultipleRules().
+		PullRequestExists().
+		NoCommentsExist().
+		CommitsWithAliceAsCoAuthor().
+		AliceApprovesPullRequest().
+		GitHubTeamApproverRunning()
+	when.
+		SendingApprovedPRReviewSubmittedEvent()
+	then.
+		ExpectPendingAnswerReturned().
+		ExpectStatusPendingReported().
+		ExpectCommentAliceIgnoredAsReviewer().
+		ExpectLabelsUpdated().
+		ExpectedReviewRequestsMadeForFoo()
+}
+
 func TestWhenReviewApproverIsNotAContributor(t *testing.T) {
 	given, when, then := stages.ApiTest(t)
 
