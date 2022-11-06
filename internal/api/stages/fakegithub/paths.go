@@ -49,3 +49,7 @@ func (f *FakeGitHub) requestedReviewersURL() string {
 func (f *FakeGitHub) repoFullName() string {
 	return fmt.Sprintf("%s/%s", f.org.OwnerName, f.repo.Name)
 }
+
+func (f *FakeGitHub) prFilesURL() string {
+	return fmt.Sprintf("/repos/%s/pulls/%d/files", f.repoFullName(), f.pr.PRNumber)
+}
