@@ -155,7 +155,9 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 
 			// Check whether the current team has approved the PR.
 			approvalCount := countApprovalsForTeam(reviews, allowed)
-			mr.RecordApproval(teamName, approvalCount)
+			// Need to use full team handle here, as we'll be comparing recorded handles
+			// to all approving team handles before computing the final status.
+			mr.RecordApproval(handle, approvalCount)
 			state.addIgnoredReviewers(ignored)
 		}
 		state.addMatchedRule(mr)
