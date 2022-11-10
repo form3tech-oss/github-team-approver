@@ -12,7 +12,8 @@
         "method": "POST",
         "path": "/1234",
         "body" : {
-
+          "replace_original": false,
+          "delete_original": false,
 
             "blocks": [
               {
