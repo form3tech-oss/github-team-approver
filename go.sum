@@ -78,10 +78,8 @@ github.com/envoyproxy/go-control-plane v0.9.7/go.mod h1:cwu0lG7PUMfa9snN8LXBig5y
 github.com/envoyproxy/go-control-plane v0.9.9-0.20201210154907-fd9021fe5dad/go.mod h1:cXg6YxExXjJnVBQHBLXeUAgxn2UodCpnH306RInaBQk=
 github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7+kN2VEUnK/pcBlmesArF7c=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
-github.com/form3tech-oss/github-team-approver-commons v1.3.2 h1:/OLWd1CpIn1yhku7gW7qtov5AOIFGzAXqG07pxQIh00=
-github.com/form3tech-oss/github-team-approver-commons v1.3.2/go.mod h1:tN5CBbfWAh7knlKuHV3Wpd87c5nfY/kI7Cmg4ens24I=
-github.com/form3tech-oss/github-team-approver-commons v1.3.3-0.20221110112130-adcde39793f8 h1:qCkEwJtVVateCrif37LWCsbD6uOTg5pGKF9C86v51x0=
-github.com/form3tech-oss/github-team-approver-commons v1.3.3-0.20221110112130-adcde39793f8/go.mod h1:1OBTFpIlnoTlhS3H/2kcNswpcjkENTe+ycLKC9mT/ds=
+github.com/form3tech-oss/github-team-approver-commons/v2 v2.0.1 h1:1LwNxw0MTvWOZ2xOuBwu4HBAcUn1g/aRQc++MLf3nUM=
+github.com/form3tech-oss/github-team-approver-commons/v2 v2.0.1/go.mod h1:KYSERfExeOJT2zxdUeX88OdS1ITSSeyq91D20BusGRc=
 github.com/form3tech-oss/go-pact-testing v1.4.1 h1:5NK9kY8E4/3EZGpolXn+Z/CtAQ86cc8WY0LfAWO38Ag=
 github.com/form3tech-oss/go-pact-testing v1.4.1/go.mod h1:VjimdqPBJuHFjcvCoz8s3AMGncetFKQV8dT556zUQjk=
 github.com/form3tech-oss/httpcache v0.0.0-20190708110905-85712625ba05 h1:PN+bT1bgaqtSUULTi2Zs3+FOXTrFORN2vJj7b59TGa8=

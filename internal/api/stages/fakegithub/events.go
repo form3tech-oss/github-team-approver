@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/form3tech-oss/github-team-approver-commons/pkg/configuration"
+	"github.com/form3tech-oss/github-team-approver-commons/v2/pkg/configuration"
 	"github.com/google/go-github/v42/github"
 	"github.com/stretchr/testify/require"
 )

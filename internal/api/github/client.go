@@ -16,7 +16,7 @@ import (
 	"github.com/form3tech-oss/github-team-approver/internal/api/secret"
 
 	"github.com/bradleyfalzon/ghinstallation"
-	"github.com/form3tech-oss/github-team-approver-commons/pkg/configuration"
+	"github.com/form3tech-oss/github-team-approver-commons/v2/pkg/configuration"
 	"github.com/google/go-github/v42/github"
 	"github.com/gregjones/httpcache"
 	log "github.com/sirupsen/logrus"

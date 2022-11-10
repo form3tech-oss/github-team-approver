@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/form3tech-oss/github-team-approver-commons/pkg/configuration"
+	"github.com/form3tech-oss/github-team-approver-commons/v2/pkg/configuration"
 	"github.com/form3tech-oss/github-team-approver/internal/api/github"
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
