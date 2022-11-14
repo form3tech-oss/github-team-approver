@@ -1,7 +1,6 @@
 package approval
 
 import (
-	"sort"
 	"testing"
 
 	"github.com/google/go-github/v42/github"
@@ -178,11 +177,19 @@ func TestFindCoAuthors(t *testing.T) {
 			Co-authored-by: Jane Doe <87654321+jane-doe@users.noreply.github.com>`,
 			expected: []string{"jane-doe"},
 		},
+		"when duplicated co-author in commit message": {
+			message: `feat: awesome new feature
+			Co-authored-by: John Doe <12345678+john-doe@users.noreply.github.com>
+			Co-authored-by: John Doe <12345678+john-doe@users.noreply.github.com>
+			Co-authored-by: John Doe <12345678+john-doe@users.noreply.github.com>
+			Co-authored-by: John Doe <12345678+john-doe@users.noreply.github.com>`,
+			expected: []string{"john-doe"},
+		},
 	}
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			require.Equal(t, findCoAuthors(tt.message), tt.expected)
+			require.ElementsMatch(t, tt.expected, findCoAuthors(tt.message))
 		})
 	}
 }
@@ -273,10 +280,8 @@ func TestFilterAllowedAndIgnoreReviewers(t *testing.T) {
 		t.Run(name,
 			func(t *testing.T) {
 				gotAllowed, gotIgnored := filterAllowedAndIgnoreReviewers(tt.members, tt.commits)
-				sort.Strings(gotAllowed)
-				sort.Strings(gotIgnored)
-				require.Equal(t, gotAllowed, tt.allowed)
-				require.Equal(t, gotIgnored, tt.ignored)
+				require.ElementsMatch(t, gotAllowed, tt.allowed)
+				require.ElementsMatch(t, gotIgnored, tt.ignored)
 			})
 	}
 }

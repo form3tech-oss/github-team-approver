@@ -77,7 +77,11 @@ func (ta TeamApprovals) AnyTeamApproved() bool {
 func (ta TeamApprovals) AllTeamsApproved(allTeams []string) bool {
 	for _, handle := range allTeams {
 		approvals, present := ta[handle]
-		if !present || approvals < 1 {
+		if !present {
+			return false
+		}
+
+		if approvals < 1 {
 			return false
 		}
 	}

@@ -30,6 +30,7 @@ const (
 )
 
 var (
+	CoauthorPattern      = regexp.MustCompile("Co-authored-by: .+? <([\\w\\+-]+)@users.noreply.github.com>")
 	ErrInvalidTeamHandle = errors.New("No team could be found with given name or slug")
 )
 
@@ -427,19 +428,20 @@ func filterAllowedAndIgnoreReviewers(members []*github.User, commits []*github.R
 }
 
 func findCoAuthors(msg string) []string {
-	pattern := "Co-authored-by: .+? <([\\w\\+-]+)@users.noreply.github.com>"
-	r := regexp.MustCompile(pattern)
-
-	coauthors := []string{}
-	for _, match := range r.FindAllStringSubmatch(msg, -1) {
+	coauthors := make(map[string]struct{})
+	for _, match := range CoauthorPattern.FindAllStringSubmatch(msg, -1) {
 		coauthor := match[1]
 		if strings.Contains(coauthor, "+") {
 			parts := strings.Split(coauthor, "+")
-			coauthors = append(coauthors, parts[1])
+			coauthors[parts[1]] = struct{}{}
 		} else {
-			coauthors = append(coauthors, coauthor)
+			coauthors[coauthor] = struct{}{}
 		}
 	}
 
-	return coauthors
+	final := make([]string, 0)
+	for name := range coauthors {
+		final = append(final, name)
+	}
+	return final
 }

@@ -105,7 +105,7 @@ func TestMatchedRule_ApprovingTeamNames(t *testing.T) {
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			require.Equal(t, tt.result, tt.matchedRule.ApprovingTeamNames())
+			require.ElementsMatch(t, tt.result, tt.matchedRule.ApprovingTeamNames())
 		})
 	}
 }
@@ -155,7 +155,7 @@ func TestMatchedRule_PendingTeamNames(t *testing.T) {
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			require.Equal(t, tt.result, tt.matchedRule.PendingTeamNames())
+			require.ElementsMatch(t, tt.result, tt.matchedRule.PendingTeamNames())
 		})
 	}
 }
