@@ -88,17 +88,27 @@ func (s *state) allRulesFulfilled() bool {
 }
 
 func (s *state) pendingTeamNames() []string {
-	allPending := []string{}
+	allPending := make([]string, 0)
 	for _, rule := range s.matchedRules {
+		// Pending team names should be gathered when:
+		// - rule is not fulfilled
+		// - rule is fulfilled and was force approved
+
 		rulePending := rule.PendingTeamNames()
-		allPending = uniqueAppend(allPending, rulePending)
+		if !rule.Fulfilled() {
+			allPending = uniqueAppend(allPending, rulePending)
+		}
+
+		if rule.Fulfilled() && rule.ConfigRule.ForceApproval {
+			allPending = append(allPending, rulePending...)
+		}
 	}
 
 	return allPending
 }
 
 func (s *state) approvingTeamNames() []string {
-	allApproving := []string{}
+	allApproving := make([]string, 0)
 	for _, rule := range s.matchedRules {
 		ruleApproving := rule.ApprovingTeamNames()
 		allApproving = uniqueAppend(allApproving, ruleApproving)
@@ -125,7 +135,6 @@ func (s *state) result(log *log.Entry, teams []*github.Team) *Result {
 
 	pendingTeamNames := s.pendingTeamNames()
 	approvingTeamNames := s.approvingTeamNames()
-	allRulesFulfilled := s.allRulesFulfilled()
 
 	// Compute the final status based on whether all required approvals have been met.
 	switch {
@@ -142,7 +151,7 @@ func (s *state) result(log *log.Entry, teams []*github.Team) *Result {
 		result.description = statusEventDescriptionForciblyApproved
 		result.status = StatusEventStatusSuccess
 		result.reviewsToRequest = computeReviewsToRequest(log, teams, pendingTeamNames)
-	case len(pendingTeamNames) > 0 && !allRulesFulfilled:
+	case len(pendingTeamNames) > 0:
 		// At least one team must still approve the PR before it goes green.
 		result.description = fmt.Sprintf(
 			statusEventDescriptionPendingFormatString, strings.Join(pendingTeamNames, "\n"))
@@ -153,7 +162,7 @@ func (s *state) result(log *log.Entry, teams []*github.Team) *Result {
 		// NOTE: This should not really happen in practice.
 		result.description = statusEventDescriptionNoReviewsRequested
 		result.status = StatusEventStatusSuccess
-	case allRulesFulfilled:
+	case s.allRulesFulfilled():
 		sort.Strings(approvingTeamNames)
 		result.description = fmt.Sprintf(statusEventDescriptionApprovedFormatString, strings.Join(approvingTeamNames, "\n"))
 		result.status = StatusEventStatusSuccess
