@@ -12,7 +12,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/form3tech-oss/github-team-approver-commons/pkg/configuration"
+	"github.com/form3tech-oss/github-team-approver-commons/v2/pkg/configuration"
 
 	ghclient "github.com/form3tech-oss/github-team-approver/internal/api/github"
 
@@ -30,6 +30,7 @@ const (
 )
 
 var (
+	CoauthorPattern      = regexp.MustCompile("Co-authored-by: .+? <([\\w\\+-]+)@users.noreply.github.com>")
 	ErrInvalidTeamHandle = errors.New("No team could be found with given name or slug")
 )
 
@@ -114,50 +115,14 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 
 	// Check if each required team has approved the pull request.
 	for _, rule := range rules {
-		// Check whether the pull request's body matches the aforementioned regex (ignoring case).
-		var prBodyMatch bool
-		if rule.Regex != "" {
-			prBodyMatch, err = regexp.MatchString(fmt.Sprintf("(?i)%s", rule.Regex), pr.Body)
-			if err != nil {
-				return nil, err
-			}
-		}
-		// check whether there is a rule on a directory and it has changed
-		var matchedDirectories []string
-		for _, directory := range rule.Directories {
-			commitFiles, err := a.client.GetPullRequestCommitFiles(ctx, pr.OwnerLogin, pr.RepoName, pr.Number)
-			if err != nil {
-				return nil, fmt.Errorf("directory match: get pull request commit files: %w", err)
-			}
-			directoryMatched, err := isDirectoryChanged(directory, commitFiles)
-			if err != nil {
-				return nil, fmt.Errorf("directory match: is directory changed: %w", err)
-			}
-			if directoryMatched {
-				matchedDirectories = append(matchedDirectories, directory)
-			}
-		}
-
-		// check whether there is a rule on a label and it matches
-		prLabelMatch, err := a.isRegexLabelMatched(ctx, pr.OwnerLogin, pr.RepoName, pr.Number, rule.RegexLabel)
+		matched, err := a.isRuleMatched(ctx, rule, pr)
 		if err != nil {
 			return nil, err
 		}
 
-		if !prBodyMatch && len(matchedDirectories) == 0 && !prLabelMatch {
-			a.log.Tracef("PR doesn't match regular expression %q, directory %q or label regular expression %q", rule.Regex, rule.Directories, rule.RegexLabel)
+		if !matched {
 			continue
 		}
-		if prBodyMatch {
-			a.log.Tracef("PR matches regular expression %q", rule.Regex)
-		}
-		if len(matchedDirectories) > 0 {
-			a.log.Tracef("PR matches directory %q", strings.Join(matchedDirectories, ", "))
-		}
-		if prLabelMatch {
-			a.log.Tracef("PR matches label regular expression %q", rule.RegexLabel)
-		}
-		state.incRulesMatched()
 
 		// Add the current label to the set of final labels.
 		for _, label := range rule.Labels {
@@ -166,13 +131,7 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 			}
 		}
 
-		// Forcibly approve the PR in case the current check is configured to do so.
-		if rule.ForceApproval {
-			state.forceApproval = true
-		}
-
-		approvingTeamNamesForRule, pendingTeamNamesForRule := make([]string, 0, 0), make([]string, 0, 0)
-
+		mr := NewMatchedRule(rule)
 		// Check the approval status for each rule.
 		for _, handle := range rule.ApprovingTeamHandles {
 			teamName, err := getTeamNameFromTeamHandle(teams, handle)
@@ -190,36 +149,19 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 				return nil, err
 			}
 
-			allowed, ignored, err := a.allowedAndIgnoreReviewers(ctx, pr, members, cfg.IgnoreContributorApproval)
+			allowed, ignored, err := a.allowedAndIgnoreReviewers(ctx, pr, members, rule.IgnoreContributorApproval)
 			if err != nil {
 				return nil, err
 			}
 
 			// Check whether the current team has approved the PR.
-			if approvalCount := countApprovalsForTeam(reviews, allowed); approvalCount >= 1 {
-				// Add the current team to the list of approving teams.
-				a.log.Tracef("Team %q has approved!", teamName)
-				approvingTeamNamesForRule = appendIfMissing(approvingTeamNamesForRule, teamName)
-			} else {
-				// Add the current team to the slice of pending teams.
-				a.log.Tracef("Team %q hasn't approved yet", teamName)
-				pendingTeamNamesForRule = appendIfMissing(pendingTeamNamesForRule, teamName)
-				state.addIgnoredReviewers(ignored)
-			}
+			approvalCount := countApprovalsForTeam(reviews, allowed)
+			// Need to use full team handle here, as we'll be comparing recorded handles
+			// to all approving team handles before computing the final status.
+			mr.RecordApproval(handle, approvalCount)
+			state.addIgnoredReviewers(ignored)
 		}
-
-		// Add the names of the teams that have approved to the set of approving teams.
-		for _, n := range approvingTeamNamesForRule {
-			state.addApprovingTeamNames(n)
-		}
-		// If the approval mode is "require_any" and there's at least one approval, skip requesting additional reviews.
-		if rule.ApprovalMode == configuration.ApprovalModeRequireAny && len(approvingTeamNamesForRule) > 0 {
-			continue
-		}
-		// Add the names of the teams that haven't approved yet to the set of pending teams.
-		for _, n := range pendingTeamNamesForRule {
-			state.addPendingTeamNames(n)
-		}
+		state.addMatchedRule(mr)
 	}
 
 	result := state.result(a.log, teams) // state should not be consumed past this point
@@ -233,6 +175,87 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 	}
 
 	return result, nil
+}
+
+func (a *Approval) isRuleMatched(ctx context.Context, rule configuration.Rule, pr *PR) (bool, error) {
+	// Check whether the pull request's body matches the aforementioned regex (ignoring case).
+	prBodyMatch, err := a.isRegexMatched(ctx, pr.OwnerLogin, pr.RepoName, pr.Number, rule.Regex, pr.Body)
+	if err != nil {
+		return false, err
+	}
+	// check whether there is a rule on a directory and it has changed
+	directoriesMatch, err := a.areDirectoriesMatched(ctx, pr.OwnerLogin, pr.RepoName, pr.Number, rule.Directories)
+	if err != nil {
+		return false, err
+	}
+	// check whether there is a rule on a label and it matches
+	prLabelMatch, err := a.isRegexLabelMatched(ctx, pr.OwnerLogin, pr.RepoName, pr.Number, rule.RegexLabel)
+	if err != nil {
+		return false, err
+	}
+
+	if !prBodyMatch && !directoriesMatch && !prLabelMatch {
+		a.log.Tracef("PR doesn't match regular expression %v, directory %v or label regular expression %v", rule.Regex, rule.Directories, rule.RegexLabel)
+		return false, nil
+	}
+
+	shouldMatchDirectories := len(rule.Directories) > 0
+	if shouldMatchDirectories && !directoriesMatch {
+		a.log.WithField("directories", rule.Directories).Tracef("Rule has 'directories' set but PR does not match")
+		return false, nil
+	}
+
+	shouldMatchBody := rule.Regex != ""
+	if shouldMatchBody && !prBodyMatch {
+		a.log.WithField("regex", rule.Regex).Tracef("Rule has 'regex' set but PR does not match")
+		return false, nil
+	}
+
+	shouldMatchLabels := rule.RegexLabel != ""
+	if shouldMatchLabels && !prLabelMatch {
+		a.log.WithField("regex_label", rule.RegexLabel).Tracef("Rule has 'regex_label' set but PR does not match")
+		return false, nil
+	}
+
+	a.log.WithFields(logrus.Fields{
+		"pr":   pr.Number,
+		"rule": rule,
+	}).Tracef("PR matches rule")
+	return true, nil
+}
+
+func (a *Approval) isRegexMatched(ctx context.Context, ownerLogin, repoName string, prNumber int, regex string, body string) (bool, error) {
+	if regex == "" {
+		return false, nil
+	}
+
+	var prBodyMatch bool
+	prBodyMatch, err := regexp.MatchString(fmt.Sprintf("(?i)%s", regex), body)
+	if err != nil {
+		return false, err
+	}
+
+	return prBodyMatch, nil
+}
+
+func (a *Approval) areDirectoriesMatched(ctx context.Context, ownerLogin, repoName string, prNumber int, directories []string) (bool, error) {
+	var matchedDirectories []string
+
+	for _, directory := range directories {
+		commitFiles, err := a.client.GetPullRequestCommitFiles(ctx, ownerLogin, repoName, prNumber)
+		if err != nil {
+			return false, fmt.Errorf("directory match: get pull request commit files: %w", err)
+		}
+		directoryMatched, err := isDirectoryChanged(directory, commitFiles)
+		if err != nil {
+			return false, fmt.Errorf("directory match: is directory changed: %w", err)
+		}
+		if directoryMatched {
+			matchedDirectories = append(matchedDirectories, directory)
+		}
+	}
+
+	return len(matchedDirectories) > 0, nil
 }
 
 func (a *Approval) isRegexLabelMatched(ctx context.Context, ownerLogin, repoName string, prNumber int, regexLabel string) (bool, error) {
@@ -385,6 +408,9 @@ func filterAllowedAndIgnoreReviewers(members []*github.User, commits []*github.R
 	authors := map[string]bool{}
 	for _, c := range commits {
 		authors[c.GetCommitter().GetLogin()] = true
+		for _, coauthor := range findCoAuthors(c.GetCommit().GetMessage()) {
+			authors[coauthor] = true
+		}
 	}
 
 	var allowed, ignored []string
@@ -399,4 +425,23 @@ func filterAllowedAndIgnoreReviewers(members []*github.User, commits []*github.R
 	}
 
 	return allowed, ignored
+}
+
+func findCoAuthors(msg string) []string {
+	coauthors := make(map[string]struct{})
+	for _, match := range CoauthorPattern.FindAllStringSubmatch(msg, -1) {
+		coauthor := match[1]
+		if strings.Contains(coauthor, "+") {
+			parts := strings.Split(coauthor, "+")
+			coauthors[parts[1]] = struct{}{}
+		} else {
+			coauthors[coauthor] = struct{}{}
+		}
+	}
+
+	final := make([]string, 0)
+	for name := range coauthors {
+		final = append(final, name)
+	}
+	return final
 }

@@ -13,7 +13,6 @@ import (
 	"testing"
 
 	"github.com/form3tech-oss/github-team-approver/internal/api/approval"
-
 	"github.com/form3tech-oss/go-pact-testing/pacttesting"
 	"github.com/google/tcpproxy"
 	"github.com/spf13/viper"
@@ -129,7 +128,10 @@ func Test_Handle(t *testing.T) {
 			eventType:      eventTypePullRequest,
 			eventBody:      readGitHubExampleFile("pull_request_merged_to_master.json"),
 			eventSignature: "sha256=2324407137f738fc9e5e335e5ed6d52ab5d8a8b33705937d04463d7b9c678fcd",
-			pacts:          []pacttesting.Pact{"pull_request_merged_single_alert", "slack_post_message_for_emergency_change"},
+			pacts: []pacttesting.Pact{
+				"pull_request_merged_single_alert",
+				"slack_post_message_for_emergency_change",
+			},
 		},
 		{
 			name: `PR closed (matches slack alert - alert should not fire)`,
@@ -162,6 +164,19 @@ func Test_Handle(t *testing.T) {
 			eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
 			pacts: []pacttesting.Pact{
 				"pull_request_commits_alice_contributed",
+				"pull_request_review_submitted_alice_bob_approved",
+			},
+
+			expectedFinalStatus: approval.StatusEventStatusSuccess,
+		},
+		{
+			name: `PR review Submitted (requires approval from CAB - FOO, Alice and Bob are members of CAB - FOO, Alice is a coauthor of a commit in PR, her review is ignored. Bob's review is accepted.')`,
+
+			eventType:      eventTypePullRequestReview,
+			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
+			eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
+			pacts: []pacttesting.Pact{
+				"pull_request_commits_alice_coauthor",
 				"pull_request_review_submitted_alice_bob_approved",
 			},
 

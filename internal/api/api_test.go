@@ -120,6 +120,54 @@ func TestWhenNoContributorReviewIsEnabledAndReviewApproverIsAContributor(t *test
 		ExpectedReviewRequestsMadeForFoo()
 }
 
+func TestWhenNoContributorReviewIsEnabledAndReviewApproverIsACoAuthor(t *testing.T) {
+	given, when, then := stages.ApiTest(t)
+
+	given.
+		EncryptionKeyExists().
+		GitHubWebHookTokenExists().
+		FakeGHRunning().
+		OrganisationWithTeamFoo().
+		RepoWithNoContributorReviewEnabledAndFooAsApprovingTeam().
+		PullRequestExists().
+		NoCommentsExist().
+		CommitsWithAliceAsCoAuthor().
+		AliceApprovesPullRequest().
+		GitHubTeamApproverRunning()
+	when.
+		SendingApprovedPRReviewSubmittedEvent()
+	then.
+		ExpectPendingAnswerReturned().
+		ExpectStatusPendingReported().
+		ExpectCommentAliceIgnoredAsReviewer().
+		ExpectLabelsUpdated().
+		ExpectedReviewRequestsMadeForFoo()
+}
+
+func TestWhenMultipleRulesMatch(t *testing.T) {
+	given, when, then := stages.ApiTest(t)
+
+	given.
+		EncryptionKeyExists().
+		GitHubWebHookTokenExists().
+		FakeGHRunning().
+		OrganisationWithTeamFoo().
+		RepoWithFooAsApprovingTeamAndMultipleRules().
+		PullRequestExists().
+		NoCommentsExist().
+		CommitsWithAliceAsCoAuthor().
+		AliceApprovesPullRequest().
+		GitHubTeamApproverRunning()
+	when.
+		SendingApprovedPRReviewSubmittedEvent()
+	then.
+		ExpectPendingAnswerReturned().
+		ExpectStatusPendingReported().
+		ExpectCommentAliceIgnoredAsReviewer().
+		ExpectLabelsUpdated().
+		ExpectedReviewRequestsMadeForFoo()
+}
+
 func TestWhenReviewApproverIsNotAContributor(t *testing.T) {
 	given, when, then := stages.ApiTest(t)
 
@@ -131,6 +179,29 @@ func TestWhenReviewApproverIsNotAContributor(t *testing.T) {
 		RepoWithFooAsApprovingTeam().
 		PullRequestExists().
 		CommitsWithBobAsContributor().
+		AliceApprovesPullRequest().
+		GitHubTeamApproverRunning()
+	when.
+		SendingApprovedPRReviewSubmittedEvent()
+	then.
+		ExpectSuccessAnswerReturned().
+		ExpectStatusSuccessReported().
+		ExpectNoCommentsMade().
+		ExpectLabelsUpdated().
+		ExpectNoReviewRequestsMade()
+}
+
+func TestWhenReviewApproverIsNotACoAuthor(t *testing.T) {
+	given, when, then := stages.ApiTest(t)
+
+	given.
+		EncryptionKeyExists().
+		GitHubWebHookTokenExists().
+		FakeGHRunning().
+		OrganisationWithTeamFoo().
+		RepoWithFooAsApprovingTeam().
+		PullRequestExists().
+		CommitsWithBobAsCoAuthor().
 		AliceApprovesPullRequest().
 		GitHubTeamApproverRunning()
 	when.

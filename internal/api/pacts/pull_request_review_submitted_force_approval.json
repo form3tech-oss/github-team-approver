@@ -79,7 +79,7 @@
         "headers": {
           "Content-Type": "text/plain; charset=utf-8"
         },
-        "body": "pull_request_approval_rules:\n- target_branches:\n  - master\n  rules:\n  - regex: \"- \\\\[x\\\\] Emergency\"\n    approving_team_handles:\n    -  CAB - Foo\n    -  CAB - Bar\n    labels:\n    - needs-cab-approval\n    force_approval: true\n  - regex: \"- \\\\[x\\\\] Yes - this change impacts documentation\"\n    approving_team_handles:\n    -  CAB - Documentation\n    labels:\n    - needs-doc-approval\n"
+        "body": "pull_request_approval_rules:\n- target_branches:\n  - master\n  rules:\n  - approval_mode: require_any\n    regex: \"- \\\\[x\\\\] Emergency\"\n    approving_team_handles:\n    -  CAB - Foo\n    -  CAB - Bar\n    labels:\n    - needs-cab-approval\n    force_approval: true\n  - approval_mode: require_any\n    regex: \"- \\\\[x\\\\] Yes - this change impacts documentation\"\n    approving_team_handles:\n    -  CAB - Documentation\n    labels:\n    - needs-doc-approval\n"
       }
     },
     {

@@ -76,6 +76,7 @@ func (handler *PullRequestEventHandler) handleEvent(ctx context.Context, eventTy
 	ch := make(chan error, 3)
 	wg := sync.WaitGroup{}
 	wg.Add(3)
+
 	go func() {
 		defer wg.Done()
 		handler.log.Tracef("Reporting %q as the status", result.Status())

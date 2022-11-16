@@ -8,7 +8,7 @@ import (
 	"sort"
 	"testing"
 
-	approverCfg "github.com/form3tech-oss/github-team-approver-commons/pkg/configuration"
+	approverCfg "github.com/form3tech-oss/github-team-approver-commons/v2/pkg/configuration"
 	"github.com/form3tech-oss/github-team-approver/internal/api/approval"
 	"github.com/form3tech-oss/github-team-approver/internal/api/stages/fakegithub"
 	"github.com/google/go-github/v42/github"
@@ -133,16 +133,59 @@ func (s *ApiStage) RepoWithNoContributorReviewEnabledAndFooAsApprovingTeam() *Ap
 		Name: "some-service",
 
 		ApproverCfg: &approverCfg.Configuration{
-			IgnoreContributorApproval: true,
 			PullRequestApprovalRules: []approverCfg.PullRequestApprovalRule{
 				{
 					TargetBranches: []string{"master"},
 					Rules: []approverCfg.Rule{
 						{
-							ApprovalMode:         approverCfg.ApprovalModeRequireAny,
-							Regex:                `- \[x\] Yes - this change impacts customers`,
-							ApprovingTeamHandles: []string{approvingTeam},
-							Labels:               []string{},
+							IgnoreContributorApproval: true,
+							ApprovalMode:              approverCfg.ApprovalModeRequireAny,
+							Regex:                     `- \[x\] Yes - this change impacts customers`,
+							ApprovingTeamHandles:      []string{approvingTeam},
+							Labels:                    []string{},
+						},
+					},
+				},
+			},
+		},
+	}
+	s.fakeGitHub.SetRepo(repo)
+	s.fakeGitHub.SetRepoContents([]*github.RepositoryContent{
+		{
+			Name:        github.String("GITHUB_TEAM_APPROVER.yaml"),
+			DownloadURL: github.String(fmt.Sprintf("%s/master/%s", s.fakeGitHub.RepoURL(), approverCfg.ConfigurationFilePath)),
+		},
+	})
+
+	return s
+}
+
+func (s *ApiStage) RepoWithFooAsApprovingTeamAndMultipleRules() *ApiStage {
+	require.NotNil(s.t, s.fakeGitHub.Org())
+	approvingTeam := *s.fakeGitHub.Org().Teams[0].Name
+
+	repo := &fakegithub.Repo{
+		Name: "some-service",
+
+		ApproverCfg: &approverCfg.Configuration{
+			PullRequestApprovalRules: []approverCfg.PullRequestApprovalRule{
+				{
+					TargetBranches: []string{"master"},
+					Rules: []approverCfg.Rule{
+						{
+							IgnoreContributorApproval: true,
+							Directories:               []string{"code/"},
+							ApprovalMode:              approverCfg.ApprovalModeRequireAny,
+							Regex:                     `- \[x\] Yes - this change impacts customers`,
+							ApprovingTeamHandles:      []string{approvingTeam},
+							Labels:                    []string{},
+						},
+						{
+							IgnoreContributorApproval: false,
+							ApprovalMode:              approverCfg.ApprovalModeRequireAny,
+							Regex:                     `- \[x\] Yes - this change impacts customers`,
+							ApprovingTeamHandles:      []string{approvingTeam},
+							Labels:                    []string{},
 						},
 					},
 				},
@@ -393,6 +436,33 @@ func (s *ApiStage) CommitsWithAliceAsContributor() *ApiStage {
 	return s
 }
 
+func (s *ApiStage) CommitsWithAliceAsCoAuthor() *ApiStage {
+	return s.commitsWithAuthorAndCoAuthor("bob", "alice")
+}
+
+func (s *ApiStage) CommitsWithBobAsCoAuthor() *ApiStage {
+	return s.commitsWithAuthorAndCoAuthor("eve", "bob")
+}
+
+func (s *ApiStage) commitsWithAuthorAndCoAuthor(author, coauthor string) *ApiStage {
+	message := fmt.Sprintf("commit message\n\nCo-authored-by: %s <12345678+%s@users.noreply.github.com>", coauthor, coauthor)
+	commits := []*github.RepositoryCommit{
+		{
+			SHA: github.String("some-sha-1"),
+			Author: &github.User{
+				Login: github.String(author),
+			},
+			Committer: &github.User{
+				Login: github.String(author),
+			},
+			Commit: &github.Commit{Message: github.String(message)},
+		},
+	}
+	s.fakeGitHub.SetCommits(commits)
+
+	return s
+}
+
 func (s *ApiStage) NoCommentsExist() *ApiStage {
 	s.fakeGitHub.SetIssueComments([]*github.IssueComment{})
 	return s
@@ -462,6 +532,16 @@ func (s *ApiStage) PullRequestExists() *ApiStage {
 	s.fakeGitHub.SetPR(&fakegithub.PR{
 		PRNumber: 1,
 		PRCommit: "some-hash",
+		Files: []fakegithub.PRFile{
+			fakegithub.PRFile{
+				SHA:      "sha1",
+				Filename: "/code/main.go",
+			},
+			fakegithub.PRFile{
+				SHA:      "sha2",
+				Filename: "/config/dev.yaml",
+			},
+		},
 	})
 
 	return s

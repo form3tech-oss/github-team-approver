@@ -2,6 +2,7 @@ package fakegithub
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -176,6 +177,31 @@ func (f *FakeGitHub) requestedReviewersHandler(w http.ResponseWriter, r *http.Re
 	payload, err = json.Marshal(pr)
 	require.NoError(f.t, err)
 
+	_, err = w.Write(payload)
+	require.NoError(f.t, err)
+}
+
+func (f *FakeGitHub) prFilesHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	require.NotNil(f.t, f.pr)
+
+	files := []*github.CommitFile{}
+	for _, file := range f.pr.Files {
+		repoPath := fmt.Sprintf("https://api.github.com/repos/%s/contents/%s", f.repoFullName(), file.Filename)
+		files = append(files, &github.CommitFile{
+			SHA:         github.String(file.SHA),
+			Filename:    github.String(file.Filename),
+			ContentsURL: github.String(repoPath),
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	payload, err := json.Marshal(files)
+	require.NoError(f.t, err)
 	_, err = w.Write(payload)
 	require.NoError(f.t, err)
 }

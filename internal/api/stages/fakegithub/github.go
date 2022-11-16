@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	approverCfg "github.com/form3tech-oss/github-team-approver-commons/pkg/configuration"
+	approverCfg "github.com/form3tech-oss/github-team-approver-commons/v2/pkg/configuration"
 	"github.com/google/go-github/v42/github"
 
 	"github.com/gorilla/mux"
@@ -29,6 +29,13 @@ type Repo struct {
 type PR struct {
 	PRNumber int
 	PRCommit string
+	Files    []PRFile
+}
+
+type PRFile struct {
+	SHA         string
+	Filename    string
+	ContentsURL string
 }
 
 type FakeGitHub struct {
@@ -93,6 +100,7 @@ func (f *FakeGitHub) SetPR(pr *PR) {
 	f.mux.HandleFunc(f.statusURL(), f.statusHandler)
 	f.mux.HandleFunc(f.labelsURL(), f.labelsHandler)
 	f.mux.HandleFunc(f.requestedReviewersURL(), f.requestedReviewersHandler)
+	f.mux.HandleFunc(f.prFilesURL(), f.prFilesHandler)
 
 }
 
@@ -111,7 +119,7 @@ func (f *FakeGitHub) SetCommits(r []*github.RepositoryCommit) {
 }
 
 func (f *FakeGitHub) SetReviews(r []*github.PullRequestReview) {
-	f.reviews = r
+	f.reviews = append(f.reviews, r...)
 
 	// only expose handlers when expected data is there
 	f.mux.HandleFunc(f.reviewsURL(), f.reviewsHandler)
