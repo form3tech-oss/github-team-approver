@@ -1,0 +1,69 @@
+{
+    "provider": {
+        "name": "github-api"
+    },
+    "consumer": {
+        "name": "github-team-approver"
+    },
+    "interactions": [
+        {
+            "description": "Get events (#5)",
+            "request": {
+                "method": "GET",
+                "path": "/repos/form3tech/github-team-approver-test/issues/5/events"
+            },
+            "response": {
+                "status": 200,
+                "headers": {
+                    "Content-Type": "application/json; charset=utf-8"
+                },
+                "body": [
+                    {
+                        "actor": {
+                            "login": "alice"
+                        },
+                        "event": "closed"
+                    },
+                    {
+                        "actor": {
+                            "login": "eve"
+                        },
+                        "event": "reopened"
+                    },
+                    {
+                        "actor": {
+                            "login": "alice"
+                        },
+                        "event": "labeled"
+                    },
+                    {
+                        "actor": {
+                            "login": "bob"
+                        },
+                        "event": "closed"
+                    },
+                    {
+                        "actor": {
+                            "login": "eve"
+                        },
+                        "event": "reopened"
+                    },
+                    {
+                        "actor": {
+                            "login": "bob"
+                        },
+                        "event": "closed"
+                    }
+                ]
+            }
+        }
+    ],
+    "metadata": {
+        "pact-specification": {
+            "version": "3.0.0"
+        },
+        "pact-jvm": {
+            "version": "3.0.0"
+        }
+    }
+}
