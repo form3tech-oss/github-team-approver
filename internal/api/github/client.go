@@ -300,7 +300,7 @@ func (c *Client) GetTeamMembers(ctx context.Context, teams []*github.Team, organ
 	return users, nil
 }
 
-func (c* Client) GetIssuesEvents(ctx context.Context, owner, repo string, number int) ([]*github.IssueEvent, error) {
+func (c *Client) GetIssuesEvents(ctx context.Context, owner, repo string, number int) ([]*github.IssueEvent, error) {
 	var events []*github.IssueEvent
 	ctxTimeout, fn := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
 	defer fn()
@@ -328,7 +328,7 @@ func (c *Client) getIssuesEventsPage(ctx context.Context, owner, repo string, nu
 	}
 	log.WithFields(
 		log.Fields{
-			"issue":       number,
+			"issue":    number,
 			"repo":     fmt.Sprintf("%s/%s", owner, repo),
 			"api":      "Issues.ListIssueEvents",
 			"per_page": opts.PerPage,
@@ -368,7 +368,7 @@ func (c *Client) ReportIgnoredReviews(ctx context.Context, owner, repo string, p
 		return nil
 	}
 
-	title := "Following reviewers have been ignored as they are also authors in the PR:\n"
+	title := "Following reviewers have been ignored as they either contributed to or reopened the PR:\n"
 
 	err := c.removeOldBotComments(ctx, owner, repo, prNumber, title)
 	if err != nil {

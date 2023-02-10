@@ -431,7 +431,7 @@ func filterAllowedAndIgnoreReviewers(members []*github.User, commits []*github.R
 func findReOpeners(events []*github.IssueEvent) map[string]bool {
 	reopeners := map[string]bool{}
 	for _, e := range events {
-		if e != nil && e.Event != nil && *e.Event == "reopened" {
+		if e.GetEvent() == "reopened" {
 			reopeners[e.GetActor().GetLogin()] = true
 		}
 	}
