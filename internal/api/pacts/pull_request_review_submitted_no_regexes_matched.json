@@ -72,7 +72,7 @@
         "headers": {
           "Content-Type": "text/plain; charset=utf-8"
         },
-        "body": "pull_request_approval_rules:\n- target_branches:\n  - master\n  rules:\n  - regex: \"- \\\\[x\\\\] Yes - this change impacts customers\"\n    approving_team_handles:\n    -  CAB - Foo\n    labels:\n    - needs-cab-approval\n  - regex: \"- \\\\[x\\\\] Yes - this change impacts documentation\"\n    approving_team_handles:\n    -  CAB - Documentation\n    labels:\n    - needs-doc-approval\n"
+        "body": "pull_request_approval_rules:\n- target_branches:\n  - master\n  rules:\n  - regex: \"- \\\\[x\\\\] Yes - this change impacts customers\"\n    approving_team_handles:\n    - cab-foo\n    labels:\n    - needs-cab-approval\n  - regex: \"- \\\\[x\\\\] Yes - this change impacts documentation\"\n    approving_team_handles:\n    - cab-documentation\n    labels:\n    - needs-doc-approval\n"
       }
     },
     {
@@ -101,7 +101,7 @@
           {
             "id": 3,
             "name": "CAB - Documentation",
-            "slug": "documentation-baz"
+            "slug": "cab-documentation"
           }
         ]
       }

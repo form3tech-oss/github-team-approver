@@ -252,3 +252,4 @@ func readGitHubExampleFile(file string) []byte {
 	}
 	return bytes
 }
+
