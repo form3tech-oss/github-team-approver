@@ -93,7 +93,7 @@ func (s *ApiStage) OrganisationWithTeamFoo() *ApiStage {
 
 func (s *ApiStage) RepoWithFooAsApprovingTeam() *ApiStage {
 	require.NotNil(s.t, s.fakeGitHub.Org())
-	approvingTeam := *s.fakeGitHub.Org().Teams[0].Name
+	approvingTeam := *s.fakeGitHub.Org().Teams[0].Slug
 
 	repo := &fakegithub.Repo{
 		Name: "some-service",
@@ -127,7 +127,7 @@ func (s *ApiStage) RepoWithFooAsApprovingTeam() *ApiStage {
 
 func (s *ApiStage) RepoWithNoContributorReviewEnabledAndFooAsApprovingTeam() *ApiStage {
 	require.NotNil(s.t, s.fakeGitHub.Org())
-	approvingTeam := *s.fakeGitHub.Org().Teams[0].Name
+	approvingTeam := *s.fakeGitHub.Org().Teams[0].Slug
 
 	repo := &fakegithub.Repo{
 		Name: "some-service",
@@ -162,7 +162,7 @@ func (s *ApiStage) RepoWithNoContributorReviewEnabledAndFooAsApprovingTeam() *Ap
 
 func (s *ApiStage) RepoWithFooAsApprovingTeamAndMultipleRules() *ApiStage {
 	require.NotNil(s.t, s.fakeGitHub.Org())
-	approvingTeam := *s.fakeGitHub.Org().Teams[0].Name
+	approvingTeam := *s.fakeGitHub.Org().Teams[0].Slug
 
 	repo := &fakegithub.Repo{
 		Name: "some-service",
@@ -205,7 +205,7 @@ func (s *ApiStage) RepoWithFooAsApprovingTeamAndMultipleRules() *ApiStage {
 
 func (s *ApiStage) RepoWithFooAsApprovingTeamWithEmergencyRule() *ApiStage {
 	require.NotNil(s.t, s.fakeGitHub.Org())
-	approvingTeam := *s.fakeGitHub.Org().Teams[0].Name
+	approvingTeam := *s.fakeGitHub.Org().Teams[0].Slug
 
 	repo := &fakegithub.Repo{
 		Name: "some-service",
@@ -224,7 +224,7 @@ func (s *ApiStage) RepoWithFooAsApprovingTeamWithEmergencyRule() *ApiStage {
 						{
 							ApprovalMode:         approverCfg.ApprovalModeRequireAny,
 							Regex:                `- \[x\] Yes - Emergency`,
-							ApprovingTeamHandles: []string{"CAB - Foo"},
+							ApprovingTeamHandles: []string{"cab-foo"},
 							Labels:               []string{},
 							ForceApproval:        true,
 						},
@@ -258,7 +258,7 @@ func (s *ApiStage) RepoWithoutConfigurationFile() *ApiStage {
 
 func (s *ApiStage) RepoWithConfigurationReferencingInvalidTeamHandles() *ApiStage {
 	require.NotNil(s.t, s.fakeGitHub.Org())
-	approvingTeam := *s.fakeGitHub.Org().Teams[0].Name
+	approvingTeam := *s.fakeGitHub.Org().Teams[0].Slug
 
 	repo := &fakegithub.Repo{
 		Name: "some-service",
@@ -277,7 +277,7 @@ func (s *ApiStage) RepoWithConfigurationReferencingInvalidTeamHandles() *ApiStag
 						{
 							ApprovalMode:         approverCfg.ApprovalModeRequireAny,
 							Regex:                `- \[x\] Yes - Emergency`,
-							ApprovingTeamHandles: []string{"CRAB - Foo"},
+							ApprovingTeamHandles: []string{"crab-foo"},
 							Labels:               []string{},
 							ForceApproval:        true,
 						},
@@ -551,7 +551,7 @@ func (s *ApiStage) SendingPREvent() *ApiStage {
 	require.NotNil(s.t, s.fakeGitHub.Org())
 	require.NotNil(s.t, s.fakeGitHub.Repo())
 
-	approvingTeam := *s.fakeGitHub.Org().Teams[0].Name
+	approvingTeam := *s.fakeGitHub.Org().Teams[0].Slug
 	targetBranch := "master"
 	s.labels = []string{"foo", "bar", "needs-cab-approval"}
 
@@ -622,7 +622,7 @@ func (s *ApiStage) SendingApprovedPRReviewSubmittedEvent() *ApiStage {
 						{
 							ApprovalMode:         approverCfg.ApprovalModeRequireAny,
 							Regex:                `- [x] Yes - this change impacts customers`,
-							ApprovingTeamHandles: []string{"CAB - Foo"},
+							ApprovingTeamHandles: []string{"cab-foo"},
 							Labels:               []string{},
 						},
 					},
@@ -664,7 +664,7 @@ func (s *ApiStage) SendingPRReviewSubmittedEventWithForceApproval() *ApiStage {
 						{
 							ApprovalMode:         approverCfg.ApprovalModeRequireAny,
 							Regex:                `- [x] Yes - Emergency`,
-							ApprovingTeamHandles: []string{"CAB - Foo"},
+							ApprovingTeamHandles: []string{"cab-foo"},
 							Labels:               []string{"needs-cab-approval"},
 							ForceApproval:        true,
 						},
@@ -714,7 +714,7 @@ func (s *ApiStage) ExpectStatusSuccessReported() *ApiStage {
 
 func (s *ApiStage) ExpectInvalidTeamHandleInStatusDescription() *ApiStage {
 	status := s.fakeGitHub.ReportedStatus()
-	require.Regexp(s.t, ".*\\nCRAB - Foo", *(status.Description))
+	require.Regexp(s.t, ".*\\ncrab-foo", *(status.Description))
 	return s
 }
 

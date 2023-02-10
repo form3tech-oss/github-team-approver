@@ -79,7 +79,7 @@
         "headers": {
           "Content-Type": "text/plain; charset=utf-8"
         },
-        "body": "pull_request_approval_rules:\n- target_branches:\n  - master\n  rules:\n  - approval_mode: require_all\n    regex: \"- \\\\[x\\\\] Yes - this change impacts customers\"\n    approving_team_handles:\n    -  CAB - Foo\n    -  CAB - Bar\n    labels:\n    - needs-cab-approval\n  - approval_mode: require_any\n    regex: \"- \\\\[x\\\\] Yes - this change impacts documentation\"\n    approving_team_handles:\n    -  CAB - Documentation\n    labels:\n    - needs-doc-approval\n"
+        "body": "pull_request_approval_rules:\n- target_branches:\n  - master\n  rules:\n  - approval_mode: require_all\n    regex: \"- \\\\[x\\\\] Yes - this change impacts customers\"\n    approving_team_handles:\n    - cab-foo\n    - cab-bar\n    labels:\n    - needs-cab-approval\n  - approval_mode: require_any\n    regex: \"- \\\\[x\\\\] Yes - this change impacts documentation\"\n    approving_team_handles:\n    - cab-documentation\n    labels:\n    - needs-doc-approval\n"
       }
     },
     {
@@ -108,7 +108,7 @@
           {
             "id": 3,
             "name": "CAB - Documentation",
-            "slug": "documentation-baz"
+            "slug": "cab-documentation"
           }
         ]
       }
@@ -251,7 +251,7 @@
         "path": "/repos/form3tech/github-team-approver-test/statuses/0e7aa0c3cf3421ec914afc47c76f44d5af91c598",
         "body": {
           "state": "pending",
-          "description": "Needs approval from:\nCAB - Bar",
+          "description": "Needs approval from:\ncab-bar",
           "context": "github-team-approver"
         }
       },
