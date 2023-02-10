@@ -214,6 +214,30 @@ func TestWhenReviewApproverIsNotACoAuthor(t *testing.T) {
 		ExpectNoReviewRequestsMade()
 }
 
+func TestWhenReviewApproverIsReopener(t *testing.T) {
+	given, when, then := stages.ApiTest(t)
+
+	given.
+		EncryptionKeyExists().
+		GitHubWebHookTokenExists().
+		FakeGHRunning().
+		OrganisationWithTeamFoo().
+		RepoWithFooAsApprovingTeam().
+		PullRequestExists().
+		NoCommentsExist().
+		CommitsWithBobAsCoAuthor().
+		AliceApprovesPullRequest().
+		EventsWithAliceAsReopener().
+		GitHubTeamApproverRunning()
+	when.
+		SendingApprovedPRReviewSubmittedEvent()
+	then.
+		ExpectPendingAnswerReturned().
+		ExpectStatusPendingReported().
+		ExpectCommentAliceIgnoredAsReviewer().
+		ExpectLabelsUpdated()
+}
+
 func TestForciblyApprovedPRWithoutAnyReviewsIsPassed(t *testing.T) {
 	given, when, then := stages.ApiTest(t)
 

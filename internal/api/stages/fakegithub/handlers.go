@@ -205,3 +205,18 @@ func (f *FakeGitHub) prFilesHandler(w http.ResponseWriter, r *http.Request) {
 	_, err = w.Write(payload)
 	require.NoError(f.t, err)
 }
+
+func (f *FakeGitHub) issueEventsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	require.NotNil(f.t, f.events)
+
+	w.Header().Set("Content-Type", "application/json")
+	payload, err := json.Marshal(f.events)
+	require.NoError(f.t, err)
+	_, err = w.Write(payload)
+	require.NoError(f.t, err)
+}

@@ -48,6 +48,7 @@ func Test_Handle(t *testing.T) {
 			eventSignature: "sha256=6d4d96d879720606802102a5892b51634c25d52f7827d2d9d0113cef17709c0e",
 			pacts: []pacttesting.Pact{
 				"pull_request_opened_pending",
+				"issue_events_pr_5",
 			},
 
 			expectedFinalStatus: approval.StatusEventStatusPending,
@@ -70,6 +71,7 @@ func Test_Handle(t *testing.T) {
 			eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
 			pacts: []pacttesting.Pact{
 				"pull_request_review_submitted_approved",
+				"issue_events_pr_7",
 			},
 
 			expectedFinalStatus: approval.StatusEventStatusSuccess,
@@ -82,6 +84,7 @@ func Test_Handle(t *testing.T) {
 			eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
 			pacts: []pacttesting.Pact{
 				"pull_request_review_submitted_pending",
+				"issue_events_pr_7",
 			},
 
 			expectedFinalStatus: approval.StatusEventStatusPending,
@@ -94,6 +97,7 @@ func Test_Handle(t *testing.T) {
 			eventSignature: "sha256=c4d9e2a311de0322c4b7c09c1a2239d23668542c9caf187be03c7acb62f3ca5b",
 			pacts: []pacttesting.Pact{
 				"pull_request_review_submitted_force_approval",
+				"issue_events_pr_7",
 			},
 
 			expectedFinalStatus: approval.StatusEventStatusSuccess,
@@ -118,6 +122,7 @@ func Test_Handle(t *testing.T) {
 			eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
 			pacts: []pacttesting.Pact{
 				"pull_request_review_submitted_approval_mode_require_any",
+				"issue_events_pr_7",
 			},
 
 			expectedFinalStatus: approval.StatusEventStatusSuccess,
@@ -152,6 +157,7 @@ func Test_Handle(t *testing.T) {
 				"pull_request_get_comments_pr_7",
 				"pull_request_post_comment_pr_7",
 				"pull_request_review_submitted_alice_approved",
+				"issue_events_pr_7",
 			},
 
 			expectedFinalStatus: approval.StatusEventStatusPending,
@@ -165,6 +171,7 @@ func Test_Handle(t *testing.T) {
 			pacts: []pacttesting.Pact{
 				"pull_request_commits_alice_contributed",
 				"pull_request_review_submitted_alice_bob_approved",
+				"issue_events_pr_7",
 			},
 
 			expectedFinalStatus: approval.StatusEventStatusSuccess,
@@ -178,6 +185,7 @@ func Test_Handle(t *testing.T) {
 			pacts: []pacttesting.Pact{
 				"pull_request_commits_alice_coauthor",
 				"pull_request_review_submitted_alice_bob_approved",
+				"issue_events_pr_7",
 			},
 
 			expectedFinalStatus: approval.StatusEventStatusSuccess,

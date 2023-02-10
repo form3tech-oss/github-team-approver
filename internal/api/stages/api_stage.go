@@ -20,7 +20,7 @@ const (
 	botName                = "github-team-approver"
 	httpHeaderXFinalStatus = "X-Final-Status"
 
-	ignoredReviewerMsg = "Following reviewers have been ignored as they are also authors in the PR:"
+	ignoredReviewerMsg = "Following reviewers have been ignored as they either contributed to or reopened the PR:"
 )
 
 type ApiStage struct {
@@ -463,6 +463,23 @@ func (s *ApiStage) commitsWithAuthorAndCoAuthor(author, coauthor string) *ApiSta
 	return s
 }
 
+func (s *ApiStage) EventsWithAliceAsReopener() *ApiStage {
+	return s.eventsWithReopener("alice")
+}
+
+func (s *ApiStage) eventsWithReopener(reopener string) *ApiStage {
+	events := []*github.IssueEvent{
+		{
+			Actor: &github.User{
+				Login: github.String(reopener),
+			},
+			Event: github.String("reopened"),
+		},
+	}
+	s.fakeGitHub.SetEvents(events)
+	return s
+}
+
 func (s *ApiStage) NoCommentsExist() *ApiStage {
 	s.fakeGitHub.SetIssueComments([]*github.IssueComment{})
 	return s
@@ -543,6 +560,7 @@ func (s *ApiStage) PullRequestExists() *ApiStage {
 			},
 		},
 	})
+	s.fakeGitHub.SetEvents([]*github.IssueEvent{})
 
 	return s
 }

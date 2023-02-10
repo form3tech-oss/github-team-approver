@@ -300,6 +300,50 @@ func (c *Client) GetTeamMembers(ctx context.Context, teams []*github.Team, organ
 	return users, nil
 }
 
+func (c *Client) GetIssuesEvents(ctx context.Context, owner, repo string, number int) ([]*github.IssueEvent, error) {
+	var events []*github.IssueEvent
+	ctxTimeout, fn := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
+	defer fn()
+
+	nextPage := 1
+	for nextPage != 0 {
+		eventsPage, next, err := c.getIssuesEventsPage(ctxTimeout, owner, repo, number, nextPage)
+		if err != nil {
+			return nil, err
+		}
+		events = append(events, eventsPage...)
+		nextPage = next
+	}
+
+	return events, nil
+}
+
+func (c *Client) getIssuesEventsPage(ctx context.Context, owner, repo string, number int, page int) ([]*github.IssueEvent, int, error) {
+	ctxTimeout, cancel := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
+	defer cancel()
+
+	opts := &github.ListOptions{
+		Page:    page,
+		PerPage: defaultListOptionsPerPage,
+	}
+	log.WithFields(
+		log.Fields{
+			"issue":    number,
+			"repo":     fmt.Sprintf("%s/%s", owner, repo),
+			"api":      "Issues.ListIssueEvents",
+			"per_page": opts.PerPage,
+			"page":     opts.Page,
+		}).Tracef("requesting")
+
+	events, resp, err := c.githubClient.Issues.ListIssueEvents(
+		ctxTimeout, owner, repo, number, opts)
+	if err != nil {
+		return nil, 0, fmt.Errorf("getIssuesEventsPage: %w", err)
+	}
+
+	return events, resp.NextPage, nil
+}
+
 func (c *Client) ReportStatus(ctx context.Context, ownerLogin, repoName, statusesURL, status, description string) error {
 	n := os.Getenv(envGitHubStatusName)
 	v := &github.RepoStatus{
@@ -324,7 +368,7 @@ func (c *Client) ReportIgnoredReviews(ctx context.Context, owner, repo string, p
 		return nil
 	}
 
-	title := "Following reviewers have been ignored as they are also authors in the PR:\n"
+	title := "Following reviewers have been ignored as they either contributed to or reopened the PR:\n"
 
 	err := c.removeOldBotComments(ctx, owner, repo, prNumber, title)
 	if err != nil {

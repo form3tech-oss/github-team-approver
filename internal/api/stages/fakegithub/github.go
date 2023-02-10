@@ -51,6 +51,7 @@ type FakeGitHub struct {
 	commits       []*github.RepositoryCommit
 	reviews       []*github.PullRequestReview
 	issueComments []*github.IssueComment
+	events        []*github.IssueEvent
 
 	reportedStatus         *github.RepoStatus
 	reportedComment        *github.IssueComment
@@ -116,6 +117,11 @@ func (f *FakeGitHub) SetCommits(r []*github.RepositoryCommit) {
 
 	// only expose handlers when expected data is there
 	f.mux.HandleFunc(f.commitsURL(), f.commitsHandler)
+}
+
+func (f *FakeGitHub) SetEvents(r []*github.IssueEvent) {
+	f.events = r
+	f.mux.HandleFunc(f.issueEventsURL(), f.issueEventsHandler)
 }
 
 func (f *FakeGitHub) SetReviews(r []*github.PullRequestReview) {

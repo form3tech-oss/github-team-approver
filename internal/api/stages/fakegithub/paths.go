@@ -53,3 +53,7 @@ func (f *FakeGitHub) repoFullName() string {
 func (f *FakeGitHub) prFilesURL() string {
 	return fmt.Sprintf("/repos/%s/pulls/%d/files", f.repoFullName(), f.pr.PRNumber)
 }
+
+func (f *FakeGitHub) issueEventsURL() string {
+	return fmt.Sprintf("/repos/%s/issues/%d/events", f.repoFullName(), f.pr.PRNumber)
+}

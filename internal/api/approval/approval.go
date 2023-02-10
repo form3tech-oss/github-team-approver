@@ -387,24 +387,25 @@ func getTeamNameFromTeamHandle(teams []*github.Team, v string) (string, error) {
 }
 
 func (a *Approval) allowedAndIgnoreReviewers(ctx context.Context, pr *PR, members []*github.User, ignoreContributors bool) ([]string, []string, error) {
-	if !ignoreContributors {
-		var allowedMembers []string
-		for _, m := range members {
-			allowedMembers = append(allowedMembers, m.GetLogin())
+	commits := []*github.RepositoryCommit{}
+	if ignoreContributors {
+		var err error
+		commits, err = a.client.GetPRCommits(ctx, pr.OwnerLogin, pr.RepoName, pr.Number)
+		if err != nil {
+			return nil, nil, err
 		}
-		return allowedMembers, []string{}, nil
 	}
 
-	commits, err := a.client.GetPRCommits(ctx, pr.OwnerLogin, pr.RepoName, pr.Number)
+	events, err := a.client.GetIssuesEvents(ctx, pr.OwnerLogin, pr.RepoName, pr.Number)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	allowed, ignored := filterAllowedAndIgnoreReviewers(members, commits)
+	allowed, ignored := filterAllowedAndIgnoreReviewers(members, commits, events)
 	return allowed, ignored, nil
 }
 
-func filterAllowedAndIgnoreReviewers(members []*github.User, commits []*github.RepositoryCommit) ([]string, []string) {
+func filterAllowedAndIgnoreReviewers(members []*github.User, commits []*github.RepositoryCommit, events []*github.IssueEvent) ([]string, []string) {
 	authors := map[string]bool{}
 	for _, c := range commits {
 		authors[c.GetCommitter().GetLogin()] = true
@@ -413,11 +414,11 @@ func filterAllowedAndIgnoreReviewers(members []*github.User, commits []*github.R
 		}
 	}
 
+	reopeners := findReOpeners(events)
 	var allowed, ignored []string
-
 	for _, m := range members {
 		login := m.GetLogin()
-		if _, ok := authors[login]; !ok {
+		if ok := authors[login] || reopeners[login]; !ok {
 			allowed = append(allowed, login)
 		} else {
 			ignored = append(ignored, login)
@@ -425,6 +426,16 @@ func filterAllowedAndIgnoreReviewers(members []*github.User, commits []*github.R
 	}
 
 	return allowed, ignored
+}
+
+func findReOpeners(events []*github.IssueEvent) map[string]bool {
+	reopeners := map[string]bool{}
+	for _, e := range events {
+		if e.GetEvent() == "reopened" {
+			reopeners[e.GetActor().GetLogin()] = true
+		}
+	}
+	return reopeners
 }
 
 func findCoAuthors(msg string) []string {

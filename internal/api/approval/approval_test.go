@@ -194,9 +194,106 @@ func TestFindCoAuthors(t *testing.T) {
 	}
 }
 
+func TestFindReopeners(t *testing.T) {
+	tests := map[string]struct {
+		events   []*github.IssueEvent
+		expected map[string]bool
+	}{
+		"When there are no reopen events": {
+			[]*github.IssueEvent{
+				{
+					Actor: &github.User{Login: github.String("foo")},
+					Event: github.String("closed"),
+				},
+				{
+					Actor: &github.User{Login: github.String("bar")},
+					Event: github.String("merged"),
+				},
+			},
+			map[string]bool{},
+		},
+		"When there are reopen events for one user": {
+			[]*github.IssueEvent{
+				{
+					Actor: &github.User{Login: github.String("foo")},
+					Event: github.String("reopened"),
+				},
+				{
+					Actor: &github.User{Login: github.String("bar")},
+					Event: github.String("merged"),
+				},
+			},
+			map[string]bool{
+				"foo": true,
+			},
+		},
+		"When there are reopen events for multiple users": {
+			[]*github.IssueEvent{
+				{
+					Actor: &github.User{Login: github.String("foo")},
+					Event: github.String("reopened"),
+				},
+				{
+					Actor: &github.User{Login: github.String("bar")},
+					Event: github.String("reopened"),
+				},
+			},
+			map[string]bool{
+				"foo": true,
+				"bar": true,
+			},
+		},
+		"When there are multiple events for a user including a reopen": {
+			[]*github.IssueEvent{
+				{
+					Actor: &github.User{Login: github.String("foo")},
+					Event: github.String("merged"),
+				},
+				{
+					Actor: &github.User{Login: github.String("foo")},
+					Event: github.String("reopened"),
+				},
+			},
+			map[string]bool{
+				"foo": true,
+			},
+		},
+		"When there are multiple events for multiple users including a reopen": {
+			[]*github.IssueEvent{
+				{
+					Actor: &github.User{Login: github.String("foo")},
+					Event: github.String("merged"),
+				},
+				{
+					Actor: &github.User{Login: github.String("foo")},
+					Event: github.String("reopened"),
+				},
+				{
+					Actor: &github.User{Login: github.String("bar")},
+					Event: github.String("reopened"),
+				},
+				{
+					Actor: &github.User{Login: github.String("foo")},
+					Event: github.String("closed"),
+				},
+			},
+			map[string]bool{
+				"foo": true,
+				"bar": true,
+			},
+		},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			require.Equal(t, tt.expected, findReOpeners(tt.events))
+		})
+	}
+}
+
 func TestFilterAllowedAndIgnoreReviewers(t *testing.T) {
 	tests := map[string]struct {
 		commits []*github.RepositoryCommit
+		events  []*github.IssueEvent
 		members []*github.User
 		allowed []string
 		ignored []string
@@ -207,6 +304,7 @@ func TestFilterAllowedAndIgnoreReviewers(t *testing.T) {
 					Committer: &github.User{Login: github.String("foo")},
 				},
 			},
+			nil,
 			[]*github.User{
 				{Login: github.String("bar")},
 			},
@@ -219,6 +317,7 @@ func TestFilterAllowedAndIgnoreReviewers(t *testing.T) {
 					Committer: &github.User{Login: github.String("foo")},
 				},
 			},
+			nil,
 			[]*github.User{
 				{Login: github.String("foo")},
 			},
@@ -227,6 +326,7 @@ func TestFilterAllowedAndIgnoreReviewers(t *testing.T) {
 		},
 		"When multiple members exist without being author": {
 			[]*github.RepositoryCommit{},
+			nil,
 			[]*github.User{
 				{Login: github.String("foo")},
 				{Login: github.String("bar")},
@@ -244,6 +344,7 @@ func TestFilterAllowedAndIgnoreReviewers(t *testing.T) {
 					Committer: &github.User{Login: github.String("qux")},
 				},
 			},
+			nil,
 			[]*github.User{
 				{Login: github.String("foo")},
 				{Login: github.String("bar")},
@@ -265,6 +366,7 @@ func TestFilterAllowedAndIgnoreReviewers(t *testing.T) {
 					Committer: &github.User{Login: github.String("qux")},
 				},
 			},
+			nil,
 			[]*github.User{
 				{Login: github.String("foo")},
 				{Login: github.String("bar")},
@@ -274,12 +376,229 @@ func TestFilterAllowedAndIgnoreReviewers(t *testing.T) {
 			[]string{"baz"},
 			[]string{"bar", "foo", "qux"},
 		},
+		"When no member is an author in PR and not a reopener": {
+			[]*github.RepositoryCommit{
+				{
+					Committer: &github.User{Login: github.String("foo")},
+				},
+			},
+			[]*github.IssueEvent{
+				{
+					Actor: &github.User{Login: github.String("baz")},
+					Event: github.String("reopened"),
+				},
+			},
+			[]*github.User{
+				{Login: github.String("bar")},
+			},
+			[]string{"bar"},
+			nil,
+		},
+		"When only member is a reopener in PR": {
+			[]*github.RepositoryCommit{
+				{
+					Committer: &github.User{Login: github.String("foo")},
+				},
+			},
+			[]*github.IssueEvent{
+				{
+					Actor: &github.User{Login: github.String("bar")},
+					Event: github.String("reopened"),
+				},
+			},
+			[]*github.User{
+				{Login: github.String("bar")},
+			},
+			nil,
+			[]string{"bar"},
+		},
+		"When multiple members exist without being author or reopener": {
+			[]*github.RepositoryCommit{},
+			[]*github.IssueEvent{
+				{
+					Actor: &github.User{Login: github.String("qux")},
+					Event: github.String("reopened"),
+				},
+				{
+					Actor: &github.User{Login: github.String("corge")},
+					Event: github.String("reopened"),
+				},
+				{
+					Actor: &github.User{Login: github.String("grault")},
+					Event: github.String("reopened"),
+				},
+			},
+			[]*github.User{
+				{Login: github.String("foo")},
+				{Login: github.String("bar")},
+				{Login: github.String("baz")},
+			},
+			[]string{"bar", "baz", "foo"},
+			nil,
+		},
+		"When multiple members exist, some are reopeners": {
+			[]*github.RepositoryCommit{
+				{
+					Committer: &github.User{Login: github.String("corge")},
+				},
+				{
+					Committer: &github.User{Login: github.String("grault")},
+				},
+			},
+			[]*github.IssueEvent{
+				{
+					Actor: &github.User{Login: github.String("bar")},
+					Event: github.String("reopened"),
+				},
+				{
+					Actor: &github.User{Login: github.String("qux")},
+					Event: github.String("reopened"),
+				},
+			},
+			[]*github.User{
+				{Login: github.String("foo")},
+				{Login: github.String("bar")},
+				{Login: github.String("baz")},
+				{Login: github.String("qux")},
+			},
+			[]string{"baz", "foo"},
+			[]string{"bar", "qux"},
+		},
+		"When multiple members exist, some are reopeners, and some are authors": {
+			[]*github.RepositoryCommit{
+				{
+					Committer: &github.User{Login: github.String("corge")},
+				},
+				{
+					Committer: &github.User{Login: github.String("grault")},
+				},
+			},
+			[]*github.IssueEvent{
+				{
+					Actor: &github.User{Login: github.String("bar")},
+					Event: github.String("reopened"),
+				},
+				{
+					Actor: &github.User{Login: github.String("qux")},
+					Event: github.String("reopened"),
+				},
+			},
+			[]*github.User{
+				{Login: github.String("foo")},
+				{Login: github.String("bar")},
+				{Login: github.String("baz")},
+				{Login: github.String("qux")},
+				{Login: github.String("corge")},
+				{Login: github.String("grault")},
+			},
+			[]string{"baz", "foo"},
+			[]string{"bar", "qux", "corge", "grault"},
+		},
+		"When multiple members exist, some are reopeners, some are co-authors, and one is the author": {
+			[]*github.RepositoryCommit{
+				{
+					Committer: &github.User{Login: github.String("bar")},
+					Commit: &github.Commit{
+						Message: github.String("feat: awesome new feature\n\nCo-authored-by: foo <12345678+foo@users.noreply.github.com>"),
+					},
+				},
+				{
+					Committer: &github.User{Login: github.String("qux")},
+				},
+			},
+			[]*github.IssueEvent{
+				{
+					Actor: &github.User{Login: github.String("grault")},
+					Event: github.String("reopened"),
+				},
+				{
+					Actor: &github.User{Login: github.String("corge")},
+					Event: github.String("reopened"),
+				},
+			},
+			[]*github.User{
+				{Login: github.String("foo")},
+				{Login: github.String("bar")},
+				{Login: github.String("baz")},
+				{Login: github.String("qux")},
+				{Login: github.String("corge")},
+				{Login: github.String("grault")},
+			},
+			[]string{"baz"},
+			[]string{"bar", "foo", "qux", "corge", "grault"},
+		},
+		"When multiple members exist, co-author is reopener": {
+			[]*github.RepositoryCommit{
+				{
+					Committer: &github.User{Login: github.String("bar")},
+					Commit: &github.Commit{
+						Message: github.String("feat: awesome new feature\n\nCo-authored-by: foo <12345678+foo@users.noreply.github.com>"),
+					},
+				},
+				{
+					Committer: &github.User{Login: github.String("qux")},
+				},
+			},
+			[]*github.IssueEvent{
+				{
+					Actor: &github.User{Login: github.String("foo")},
+					Event: github.String("reopened"),
+				},
+				{
+					Actor: &github.User{Login: github.String("corge")},
+					Event: github.String("reopened"),
+				},
+			},
+			[]*github.User{
+				{Login: github.String("foo")},
+				{Login: github.String("bar")},
+				{Login: github.String("baz")},
+				{Login: github.String("qux")},
+				{Login: github.String("corge")},
+				{Login: github.String("grault")},
+			},
+			[]string{"baz", "grault"},
+			[]string{"bar", "foo", "qux", "corge"},
+		},
+		"When multiple members exist, author is reopener": {
+			[]*github.RepositoryCommit{
+				{
+					Committer: &github.User{Login: github.String("bar")},
+					Commit: &github.Commit{
+						Message: github.String("feat: awesome new feature\n\nCo-authored-by: foo <12345678+foo@users.noreply.github.com>"),
+					},
+				},
+				{
+					Committer: &github.User{Login: github.String("qux")},
+				},
+			},
+			[]*github.IssueEvent{
+				{
+					Actor: &github.User{Login: github.String("bar")},
+					Event: github.String("reopened"),
+				},
+				{
+					Actor: &github.User{Login: github.String("corge")},
+					Event: github.String("reopened"),
+				},
+			},
+			[]*github.User{
+				{Login: github.String("foo")},
+				{Login: github.String("bar")},
+				{Login: github.String("baz")},
+				{Login: github.String("qux")},
+				{Login: github.String("corge")},
+				{Login: github.String("grault")},
+			},
+			[]string{"baz", "grault"},
+			[]string{"bar", "foo", "qux", "corge"},
+		},
 	}
 
 	for name, tt := range tests {
 		t.Run(name,
 			func(t *testing.T) {
-				gotAllowed, gotIgnored := filterAllowedAndIgnoreReviewers(tt.members, tt.commits)
+				gotAllowed, gotIgnored := filterAllowedAndIgnoreReviewers(tt.members, tt.commits, tt.events)
 				require.ElementsMatch(t, gotAllowed, tt.allowed)
 				require.ElementsMatch(t, gotIgnored, tt.ignored)
 			})
