@@ -20,7 +20,7 @@ const (
 	botName                = "github-team-approver"
 	httpHeaderXFinalStatus = "X-Final-Status"
 
-	ignoredReviewerMsg = "Following reviewers have been ignored as they are also authors in the PR:"
+	ignoredReviewerMsg = "Following reviewers have been ignored as they either contributed to or reopened the PR:"
 )
 
 type ApiStage struct {
