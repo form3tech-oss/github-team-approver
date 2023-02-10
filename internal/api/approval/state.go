@@ -176,7 +176,7 @@ func computeReviewsToRequest(log *log.Entry, teams []*github.Team, pendingTeams 
 
 	for _, pendingTeam := range pendingTeams {
 		for _, team := range teams {
-			if pendingTeam == team.GetName() {
+			if pendingTeam == team.GetSlug() {
 				reviewsToRequest = appendIfMissing(reviewsToRequest, team.GetSlug())
 			}
 		}
