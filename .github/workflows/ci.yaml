@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-22.04
+    runs-on: form3-ubuntu-2004
     steps:
       - name: Checkout repository
         uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
@@ -21,7 +21,7 @@ jobs:
         run: make test
   deploy:
     if: ${{ github.event_name == 'release' }}
-    runs-on: ubuntu-22.04
+    runs-on: form3-ubuntu-2004
     steps:
       - name: Checkout repository
         uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
