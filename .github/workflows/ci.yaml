@@ -3,8 +3,6 @@ on:
   push:
     branches:
       - master
-  release:
-    types: [published]
 
 jobs:
   test:
@@ -19,18 +17,3 @@ jobs:
       - run: make goimports-check
       - name: Test
         run: make test
-  deploy:
-    if: ${{ github.event_name == 'release' }}
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
-      - name: Install Skaffold
-        run: make install-skaffold
-      - name: Skaffold push
-        run: make skaffold.push
-        env:
-          DOCKER_BUILDKIT: 1
-          DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
-          DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
-          TAG: ${{ github.ref_name }}
