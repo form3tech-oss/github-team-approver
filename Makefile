@@ -80,9 +80,6 @@ secret:
 docker.login:
 	@echo $(DOCKER_HUB_PASSWORD) | docker login --username $(DOCKER_HUB_USERNAME) --password-stdin
 
-.PHONY: skaffold.push
-skaffold.push: docker.login
-	@IMAGE_TAG=$(VERSION) skaffold build --profile push
 
 .PHONY: skaffold.dev
 skaffold.dev: GITHUB_APP_ID ?= 

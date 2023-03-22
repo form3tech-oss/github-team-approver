@@ -16,12 +16,3 @@ deploy:
   kubectl:
     manifests:
       - ./tmp/kubernetes/charts/github-team-approver/templates/*
-profiles:
-  - name: push
-    patches:
-      - op: remove
-        path: /build/tagPolicy/sha256
-      - op: add
-        path: /build/tagPolicy/envTemplate
-        value:
-          template: "{{.IMAGE_NAME}}:{{.IMAGE_TAG}}"
