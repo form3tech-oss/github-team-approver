@@ -30,6 +30,8 @@ type state struct {
 	ignoredReviewers []string
 	// Invalid team handles found in configuration
 	invalidTeamHandles []string
+	// Reviewers who have approved PR but are not member of any valid team
+	invalidReviewers []string
 }
 
 func newState() *state {
@@ -131,6 +133,7 @@ func (s *state) result(log *log.Entry, teams []*github.Team) *Result {
 	result := &Result{
 		finalLabels:      s.labels,
 		ignoredReviewers: s.ignoredReviewers,
+		invalidReviewers: s.invalidReviewers,
 	}
 
 	pendingTeamNames := s.pendingTeamNames()
@@ -169,6 +172,14 @@ func (s *state) result(log *log.Entry, teams []*github.Team) *Result {
 	}
 
 	return result
+}
+
+func (s *state) updateInvalidReviewers(allAllowedMembers map[string]bool) {
+	for member := range s.approvingReviewers {
+		if _, ok := allAllowedMembers[member]; !ok {
+			s.invalidReviewers = appendIfMissing(s.invalidReviewers, member)
+		}
+	}
 }
 
 func computeReviewsToRequest(log *log.Entry, teams []*github.Team, pendingTeams []string) []string {

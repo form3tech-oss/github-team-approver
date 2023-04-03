@@ -113,6 +113,7 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 		}
 	}
 
+	allAllowedMembers := map[string]bool{}
 	// Check if each required team has approved the pull request.
 	for _, rule := range rules {
 		matched, err := a.isRuleMatched(ctx, rule, pr)
@@ -153,7 +154,9 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 			if err != nil {
 				return nil, err
 			}
-
+			for _, m := range allowed {
+				allAllowedMembers[m] = true
+			}
 			// Check whether the current team has approved the PR.
 			approvalCount := countApprovalsForTeam(reviews, allowed)
 			// Need to use full team handle here, as we'll be comparing recorded handles
@@ -164,14 +167,21 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 		state.addMatchedRule(mr)
 	}
 
+	state.updateInvalidReviewers(allAllowedMembers)
+
 	result := state.result(a.log, teams) // state should not be consumed past this point
 
 	if result.pendingReviewsWaiting() {
-		err := a.client.ReportIgnoredReviews(
-			ctx, pr.OwnerLogin, pr.RepoName, pr.Number, result.IgnoredReviewers())
-		if err != nil {
+		if err := a.client.ReportIgnoredReviews(
+			ctx, pr.OwnerLogin, pr.RepoName, pr.Number, result.IgnoredReviewers()); err != nil {
 			return nil, err
 		}
+
+		if err := a.client.ReportInvalidReviews(
+			ctx, pr.OwnerLogin, pr.RepoName, pr.Number, result.InvalidReviewers()); err != nil {
+			return nil, err
+		}
+
 	}
 
 	return result, nil
