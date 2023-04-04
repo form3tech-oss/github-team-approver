@@ -21,6 +21,7 @@ const (
 	httpHeaderXFinalStatus = "X-Final-Status"
 
 	ignoredReviewerMsg = "Following reviewers have been ignored as they either contributed to or reopened the PR:"
+	invalidReviewerMsg = "Following reviewers have been ignored as they are not member of any valid team:"
 )
 
 type ApiStage struct {
@@ -749,6 +750,16 @@ func (s *ApiStage) ExpectCommentAliceIgnoredAsReviewer() *ApiStage {
 	require.NotEmpty(s.t, comment.Body)
 	require.Contains(s.t, *comment.Body, ignoredReviewerMsg)
 	require.Contains(s.t, *comment.Body, "alice")
+
+	return s
+}
+
+func (s *ApiStage) ExpectCommentCharlieIgnoredAsReviewer() *ApiStage {
+	comment := s.fakeGitHub.ReportedComment()
+	require.NotNil(s.t, comment)
+	require.NotEmpty(s.t, comment.Body)
+	require.Contains(s.t, *comment.Body, invalidReviewerMsg)
+	require.Contains(s.t, *comment.Body, "charlie")
 
 	return s
 }

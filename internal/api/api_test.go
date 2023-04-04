@@ -328,9 +328,9 @@ func TestWhenPRReviewedByNonTeamMemberAndAuthorsArePartOfTeam(t *testing.T) {
 	then.
 		ExpectPendingAnswerReturned().
 		ExpectStatusPendingReported().
-		ExpectNoCommentsMade().
+		ExpectCommentCharlieIgnoredAsReviewer().
 		ExpectLabelsUpdated().
-		ExpectNoReviewRequestsMade()
+		ExpectedReviewRequestsMadeForFoo()
 }
 
 func TestGitHubTeamApproverCleansUpOldIgnoredReviewsComments(t *testing.T) {
