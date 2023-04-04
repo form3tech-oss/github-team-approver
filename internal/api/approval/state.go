@@ -175,6 +175,9 @@ func (s *state) result(log *log.Entry, teams []*github.Team) *Result {
 }
 
 func (s *state) updateInvalidReviewers(allAllowedMembers map[string]bool) {
+	if len(s.matchedRules) == 0 {
+		return
+	}
 	for member := range s.approvingReviewers {
 		if _, ok := allAllowedMembers[member]; !ok {
 			s.invalidReviewers = appendIfMissing(s.invalidReviewers, member)
