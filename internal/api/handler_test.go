@@ -190,6 +190,22 @@ func Test_Handle(t *testing.T) {
 
 			expectedFinalStatus: approval.StatusEventStatusSuccess,
 		},
+		{
+			name: `PR review Submitted (requires approval from CAB - FOO, David is invalid user thus PR review isn't accepted)`,
+
+			eventType:      eventTypePullRequestReview,
+			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
+			eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
+			pacts: []pacttesting.Pact{
+				"pull_request_commits_pr_7",
+				"pull_request_get_comments_pr_7",
+				"pull_request_post_comment_pr_7",
+				"pull_request_review_submitted_david_approved",
+				"issue_events_pr_7",
+			},
+
+			expectedFinalStatus: approval.StatusEventStatusPending,
+		},
 	}
 
 	for _, tt := range tests {
