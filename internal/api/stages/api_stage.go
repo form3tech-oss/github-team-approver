@@ -508,6 +508,23 @@ func (s *ApiStage) IgnoredReviewCommentsExist() *ApiStage {
 	return s
 }
 
+func (s *ApiStage) InvalidReviewCommentsExist() *ApiStage {
+	msg := fmt.Sprintf("%s\n- @%s\n", invalidReviewerMsg, "some other user")
+	comments := []*github.IssueComment{
+		{
+			ID:   github.Int64(1),
+			Body: github.String(msg),
+		},
+		{
+			ID:   github.Int64(2),
+			Body: github.String(msg),
+		},
+	}
+	s.fakeGitHub.SetIssueComments(comments)
+
+	return s
+}
+
 func (s *ApiStage) AliceApprovesPullRequest() *ApiStage {
 	reviews := []*github.PullRequestReview{
 		{

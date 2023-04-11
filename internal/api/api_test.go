@@ -358,6 +358,31 @@ func TestGitHubTeamApproverCleansUpOldIgnoredReviewsComments(t *testing.T) {
 		ExpectedReviewRequestsMadeForFoo()
 }
 
+func TestGitHubTeamApproverCleansUpOldInvalidReviewsComments(t *testing.T) {
+	given, when, then := stages.ApiTest(t)
+
+	given.
+		EncryptionKeyExists().
+		GitHubWebHookTokenExists().
+		FakeGHRunning().
+		OrganisationWithTeamFoo().
+		RepoWithNoContributorReviewEnabledAndFooAsApprovingTeam().
+		PullRequestExists().
+		InvalidReviewCommentsExist().
+		CommitsWithAliceAsContributor().
+		CharlieApprovesPullRequest().
+		GitHubTeamApproverRunning()
+	when.
+		SendingApprovedPRReviewSubmittedEvent()
+	then.
+		ExpectPendingAnswerReturned().
+		ExpectStatusPendingReported().
+		ExpectPreviousIgnoredReviewCommentsDeleted().
+		ExpectCommentCharlieIgnoredAsReviewer().
+		ExpectLabelsUpdated().
+		ExpectedReviewRequestsMadeForFoo()
+}
+
 func TestGitHubTeamApproverReportsInvalidTeamHandlesInConfiguration(t *testing.T) {
 	given, when, then := stages.ApiTest(t)
 
