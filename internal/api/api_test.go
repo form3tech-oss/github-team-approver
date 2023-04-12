@@ -328,7 +328,7 @@ func TestWhenPRReviewedByNonTeamMemberAndAuthorsArePartOfTeam(t *testing.T) {
 	then.
 		ExpectPendingAnswerReturned().
 		ExpectStatusPendingReported().
-		ExpectCommentCharlieIgnoredAsReviewer().
+		ExpectInvalidCommentCharlieIgnoredAsReviewer().
 		ExpectLabelsUpdated().
 		ExpectedReviewRequestsMadeForFoo()
 }
@@ -378,7 +378,32 @@ func TestGitHubTeamApproverCleansUpOldInvalidReviewsComments(t *testing.T) {
 		ExpectPendingAnswerReturned().
 		ExpectStatusPendingReported().
 		ExpectPreviousIgnoredReviewCommentsDeleted().
-		ExpectCommentCharlieIgnoredAsReviewer().
+		ExpectInvalidCommentCharlieIgnoredAsReviewer().
+		ExpectLabelsUpdated().
+		ExpectedReviewRequestsMadeForFoo()
+}
+
+func TestGitHubTeamApproverCleansUpOldInvalidAndRetainsIgnoredReviewsComments(t *testing.T) {
+	given, when, then := stages.ApiTest(t)
+
+	given.
+		EncryptionKeyExists().
+		GitHubWebHookTokenExists().
+		FakeGHRunning().
+		OrganisationWithTeamFoo().
+		RepoWithNoContributorReviewEnabledAndFooAsApprovingTeam().
+		PullRequestExists().
+		InvalidAndIgnoredReviewCommentsExist().
+		CommitsWithAliceAsContributor().
+		CharlieApprovesPullRequest().
+		GitHubTeamApproverRunning()
+	when.
+		SendingApprovedPRReviewSubmittedEvent()
+	then.
+		ExpectPendingAnswerReturned().
+		ExpectStatusPendingReported().
+		ExpectPreviousAliceIgnoredReviewCommentsRetained().
+		ExpectInvalidCommentCharlieIgnoredAsReviewer().
 		ExpectLabelsUpdated().
 		ExpectedReviewRequestsMadeForFoo()
 }

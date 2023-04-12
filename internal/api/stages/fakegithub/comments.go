@@ -44,7 +44,7 @@ func (f *FakeGitHub) postCommentHandler(w http.ResponseWriter, r *http.Request) 
 	err = json.Unmarshal(payload, &comment)
 	require.NoError(f.t, err)
 
-	f.reportedComment = comment
+	f.reportedComments = append(f.reportedComments, comment)
 
 	w.Header().Set("Content-Type", "application/json")
 

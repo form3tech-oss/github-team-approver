@@ -54,7 +54,7 @@ type FakeGitHub struct {
 	events        []*github.IssueEvent
 
 	reportedStatus         *github.RepoStatus
-	reportedComment        *github.IssueComment
+	reportedComments       []*github.IssueComment
 	reportedLabels         []string
 	requestedTeamReviewers []string
 }
@@ -143,11 +143,11 @@ func (f *FakeGitHub) Org() *Org   { return f.org }
 func (f *FakeGitHub) Repo() *Repo { return f.repo }
 func (f *FakeGitHub) PR() *PR     { return f.pr }
 
-func (f *FakeGitHub) ReportedLabels() []string              { return f.reportedLabels }
-func (f *FakeGitHub) ReportedStatus() *github.RepoStatus    { return f.reportedStatus }
-func (f *FakeGitHub) ReportedComment() *github.IssueComment { return f.reportedComment }
-func (f *FakeGitHub) RequestedTeamReviews() []string        { return f.requestedTeamReviewers }
-func (f *FakeGitHub) Comments() []*github.IssueComment      { return f.issueComments }
+func (f *FakeGitHub) ReportedLabels() []string                 { return f.reportedLabels }
+func (f *FakeGitHub) ReportedStatus() *github.RepoStatus       { return f.reportedStatus }
+func (f *FakeGitHub) ReportedComments() []*github.IssueComment { return f.reportedComments }
+func (f *FakeGitHub) RequestedTeamReviews() []string           { return f.requestedTeamReviewers }
+func (f *FakeGitHub) Comments() []*github.IssueComment         { return f.issueComments }
 
 func (f *FakeGitHub) URL() string {
 	return fmt.Sprintf("%s", f.ts.URL)
