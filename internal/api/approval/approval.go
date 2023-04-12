@@ -180,7 +180,6 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 			ctx, pr.OwnerLogin, pr.RepoName, pr.Number, result.InvalidReviewers()); err != nil {
 			return nil, err
 		}
-
 	}
 
 	return result, nil
