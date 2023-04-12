@@ -1,0 +1,241 @@
+{
+  "provider": {
+    "name": "github-api"
+  },
+  "consumer": {
+    "name": "github-team-approver"
+  },
+  "interactions": [
+    {
+      "description": "Get reviews (#7) (david approved)",
+      "request": {
+        "method": "GET",
+        "path": "/repos/form3tech/github-team-approver-test/pulls/7/reviews"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8"
+        },
+        "body": [
+          {
+            "user": {
+              "login": "david"
+            },
+            "state": "APPROVED",
+            "submitted_at": "2019-06-18T13:11:12Z"
+          }
+        ]
+      }
+    },
+    {
+      "description": "Get '.github' (#7) (david approved))",
+      "request": {
+        "method": "GET",
+        "path": "/repos/form3tech/github-team-approver-test/contents/.github"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8"
+        },
+        "body": [
+          {
+            "name": "GITHUB_TEAM_APPROVER.yaml",
+            "download_url": "http://localhost:18080/form3tech/github-team-approver-test/master/.github/GITHUB_TEAM_APPROVER.yaml"
+          }
+        ]
+      }
+    },
+    {
+      "description": "Get '.github/GITHUB_TEAM_APPROVER.yaml' (#7) (david approved))",
+      "request": {
+        "method": "GET",
+        "path": "/form3tech/github-team-approver-test/master/.github/GITHUB_TEAM_APPROVER.yaml"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "text/plain; charset=utf-8"
+        },
+        "body": "pull_request_approval_rules:\n- target_branches:\n  - master\n  rules:\n  - approval_mode: require_any\n    regex: \"- \\\\[x\\\\] Yes - this change impacts customers\"\n    ignore_contributor_approval: true\n    approving_team_handles:\n    - cab-foo\n    labels:\n    - needs-cab-approval"
+      }
+    },
+    {
+      "description": "Get Team IDs (Page 1, Per Page: 100) (#7) (david approved))",
+      "request": {
+        "method": "GET",
+        "path": "/orgs/form3tech/teams",
+        "query": "page=1&per_page=100"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8"
+        },
+        "body": [
+          {
+            "id": 1,
+            "name": "CAB - Foo",
+            "slug": "cab-foo"
+          }
+        ]
+      }
+    },
+    {
+      "description": "Get Org (#7)",
+      "request": {
+        "method": "GET",
+        "path": "/orgs/form3tech"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8"
+        },
+        "body": {
+          "login": "github",
+          "id": 1,
+          "node_id": "MDEyOk9yZ2FuaXphdGlvbjE=",
+          "url": "https://api.github.com/orgs/github",
+          "repos_url": "https://api.github.com/orgs/github/repos",
+          "events_url": "https://api.github.com/orgs/github/events",
+          "hooks_url": "https://api.github.com/orgs/github/hooks",
+          "issues_url": "https://api.github.com/orgs/github/issues",
+          "members_url": "https://api.github.com/orgs/github/members{/member}",
+          "public_members_url": "https://api.github.com/orgs/github/public_members{/member}",
+          "avatar_url": "https://github.com/images/error/octocat_happy.gif",
+          "description": "A great organization",
+          "name": "github",
+          "company": "GitHub",
+          "blog": "https://github.com/blog",
+          "location": "San Francisco",
+          "email": "octocat@github.com",
+          "twitter_username": "github",
+          "is_verified": true,
+          "has_organization_projects": true,
+          "has_repository_projects": true,
+          "public_repos": 2,
+          "public_gists": 1,
+          "followers": 20,
+          "following": 0,
+          "html_url": "https://github.com/octocat",
+          "created_at": "2008-01-14T04:33:35Z",
+          "updated_at": "2014-03-03T18:58:10Z",
+          "type": "Organization",
+          "total_private_repos": 100,
+          "owned_private_repos": 100,
+          "private_gists": 81,
+          "disk_usage": 10000,
+          "collaborators": 8,
+          "billing_email": "mona@github.com",
+          "plan": {
+            "name": "Medium",
+            "space": 400,
+            "private_repos": 20,
+            "filled_seats": 4,
+            "seats": 5
+          },
+          "default_repository_permission": "read",
+          "members_can_create_repositories": true,
+          "two_factor_requirement_enabled": true,
+          "members_allowed_repository_creation_type": "all",
+          "members_can_create_public_repositories": false,
+          "members_can_create_private_repositories": false,
+          "members_can_create_internal_repositories": false,
+          "members_can_create_pages": true,
+          "members_can_fork_private_repositories": false
+        }
+      }
+    },
+    {
+      "description": "Get Team Members (CAB - Foo) (#7) (david approved))",
+      "providerStates": [
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/organizations/1/team/1/members"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8"
+        },
+        "body": [
+          {
+            "login": "alice"
+          },
+          {
+            "login": "bob"
+          }
+        ]
+      }
+    },
+    {
+      "description": "Report Status (#7) (david approved))",
+      "providerStates": [
+      ],
+      "request": {
+        "method": "POST",
+        "path": "/repos/form3tech/github-team-approver-test/statuses/0e7aa0c3cf3421ec914afc47c76f44d5af91c598",
+        "body": {
+          "state": "pending",
+          "description": "Needs approval from:\ncab-foo",
+          "context": "github-team-approver"
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8"
+        }
+      }
+    },
+    {
+      "description": "Update Labels (#7) (david approved))",
+      "providerStates": [
+      ],
+      "request": {
+        "method": "PUT",
+        "path": "/repos/form3tech/github-team-approver-test/issues/7/labels",
+        "body": [
+          "foo",
+          "bar",
+          "github-team-approver/needs-cab-approval"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8"
+        }
+      }
+    },
+    {
+      "description": "Request Reviews (#7) (david approved)",
+      "request": {
+        "method": "POST",
+        "path": "/repos/form3tech/github-team-approver-test/pulls/7/requested_reviewers",
+        "body": {
+          "team_reviewers": [
+            "cab-foo"
+          ]
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8"
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "pact-specification": {
+      "version": "3.0.0"
+    },
+    "pact-jvm": {
+      "version": "3.0.0"
+    }
+  }
+}

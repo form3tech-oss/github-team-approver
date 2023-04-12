@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
 
 	approverCfg "github.com/form3tech-oss/github-team-approver-commons/v2/pkg/configuration"
@@ -21,6 +22,7 @@ const (
 	httpHeaderXFinalStatus = "X-Final-Status"
 
 	ignoredReviewerMsg = "Following reviewers have been ignored as they either contributed to or reopened the PR:"
+	invalidReviewerMsg = "Following reviewers have been ignored as they are not a member of any valid team:"
 )
 
 type ApiStage struct {
@@ -507,6 +509,41 @@ func (s *ApiStage) IgnoredReviewCommentsExist() *ApiStage {
 	return s
 }
 
+func (s *ApiStage) InvalidReviewCommentsExist() *ApiStage {
+	msg := fmt.Sprintf("%s\n- @%s\n", invalidReviewerMsg, "some other user")
+	comments := []*github.IssueComment{
+		{
+			ID:   github.Int64(1),
+			Body: github.String(msg),
+		},
+		{
+			ID:   github.Int64(2),
+			Body: github.String(msg),
+		},
+	}
+	s.fakeGitHub.SetIssueComments(comments)
+
+	return s
+}
+
+func (s *ApiStage) InvalidAndIgnoredReviewCommentsExist() *ApiStage {
+	msgIgnored := fmt.Sprintf("%s\n- @%s\n", ignoredReviewerMsg, "alice")
+	msgInvalid := fmt.Sprintf("%s\n- @%s\n", invalidReviewerMsg, "some other user")
+	comments := []*github.IssueComment{
+		{
+			ID:   github.Int64(1),
+			Body: github.String(msgIgnored),
+		},
+		{
+			ID:   github.Int64(2),
+			Body: github.String(msgInvalid),
+		},
+	}
+	s.fakeGitHub.SetIssueComments(comments)
+
+	return s
+}
+
 func (s *ApiStage) AliceApprovesPullRequest() *ApiStage {
 	reviews := []*github.PullRequestReview{
 		{
@@ -744,23 +781,49 @@ func (s *ApiStage) ExpectedReviewRequestsMadeForFoo() *ApiStage {
 }
 
 func (s *ApiStage) ExpectCommentAliceIgnoredAsReviewer() *ApiStage {
-	comment := s.fakeGitHub.ReportedComment()
-	require.NotNil(s.t, comment)
-	require.NotEmpty(s.t, comment.Body)
-	require.Contains(s.t, *comment.Body, ignoredReviewerMsg)
-	require.Contains(s.t, *comment.Body, "alice")
+
+	var comments []*github.IssueComment
+	for _, c := range s.fakeGitHub.ReportedComments() {
+		if strings.Contains(*c.Body, ignoredReviewerMsg) {
+			comments = append(comments, c)
+		}
+	}
+
+	require.Len(s.t, comments, 1)
+	require.NotNil(s.t, comments[0])
+	require.NotEmpty(s.t, comments[0].Body)
+	require.Contains(s.t, *comments[0].Body, ignoredReviewerMsg)
+	require.Contains(s.t, *comments[0].Body, "alice")
+
+	return s
+}
+
+func (s *ApiStage) ExpectInvalidCommentCharlieIgnoredAsReviewer() *ApiStage {
+
+	var comments []*github.IssueComment
+	for _, c := range s.fakeGitHub.ReportedComments() {
+		if strings.Contains(*c.Body, invalidReviewerMsg) {
+			comments = append(comments, c)
+		}
+	}
+
+	require.Len(s.t, comments, 1)
+	require.NotNil(s.t, comments[0])
+	require.NotEmpty(s.t, comments[0].Body)
+	require.Contains(s.t, *comments[0].Body, invalidReviewerMsg)
+	require.Contains(s.t, *comments[0].Body, "charlie")
 
 	return s
 }
 
 func (s *ApiStage) ExpectNoCommentsMade() *ApiStage {
-	require.Nil(s.t, s.fakeGitHub.ReportedComment())
+	require.Empty(s.t, s.fakeGitHub.ReportedComments())
 
 	return s
 }
 
 func (s *ApiStage) ExpectNoReviewRequestsMade() *ApiStage {
-	require.Nil(s.t, s.fakeGitHub.ReportedComment())
+	require.Empty(s.t, s.fakeGitHub.ReportedComments())
 
 	return s
 }
@@ -768,6 +831,16 @@ func (s *ApiStage) ExpectNoReviewRequestsMade() *ApiStage {
 func (s *ApiStage) ExpectPreviousIgnoredReviewCommentsDeleted() *ApiStage {
 	require.Empty(s.t, s.fakeGitHub.Comments())
 
+	return s
+}
+
+func (s *ApiStage) ExpectPreviousAliceIgnoredReviewCommentsRetained() *ApiStage {
+	require.Len(s.t, s.fakeGitHub.Comments(), 1)
+	comment := s.fakeGitHub.Comments()[0]
+	require.NotNil(s.t, comment)
+	require.NotEmpty(s.t, comment.Body)
+	require.Contains(s.t, *comment.Body, ignoredReviewerMsg)
+	require.Contains(s.t, *comment.Body, "alice")
 	return s
 }
 

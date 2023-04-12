@@ -328,9 +328,9 @@ func TestWhenPRReviewedByNonTeamMemberAndAuthorsArePartOfTeam(t *testing.T) {
 	then.
 		ExpectPendingAnswerReturned().
 		ExpectStatusPendingReported().
-		ExpectNoCommentsMade().
+		ExpectInvalidCommentCharlieIgnoredAsReviewer().
 		ExpectLabelsUpdated().
-		ExpectNoReviewRequestsMade()
+		ExpectedReviewRequestsMadeForFoo()
 }
 
 func TestGitHubTeamApproverCleansUpOldIgnoredReviewsComments(t *testing.T) {
@@ -354,6 +354,56 @@ func TestGitHubTeamApproverCleansUpOldIgnoredReviewsComments(t *testing.T) {
 		ExpectStatusPendingReported().
 		ExpectPreviousIgnoredReviewCommentsDeleted().
 		ExpectCommentAliceIgnoredAsReviewer().
+		ExpectLabelsUpdated().
+		ExpectedReviewRequestsMadeForFoo()
+}
+
+func TestGitHubTeamApproverCleansUpOldInvalidReviewsComments(t *testing.T) {
+	given, when, then := stages.ApiTest(t)
+
+	given.
+		EncryptionKeyExists().
+		GitHubWebHookTokenExists().
+		FakeGHRunning().
+		OrganisationWithTeamFoo().
+		RepoWithNoContributorReviewEnabledAndFooAsApprovingTeam().
+		PullRequestExists().
+		InvalidReviewCommentsExist().
+		CommitsWithAliceAsContributor().
+		CharlieApprovesPullRequest().
+		GitHubTeamApproverRunning()
+	when.
+		SendingApprovedPRReviewSubmittedEvent()
+	then.
+		ExpectPendingAnswerReturned().
+		ExpectStatusPendingReported().
+		ExpectPreviousIgnoredReviewCommentsDeleted().
+		ExpectInvalidCommentCharlieIgnoredAsReviewer().
+		ExpectLabelsUpdated().
+		ExpectedReviewRequestsMadeForFoo()
+}
+
+func TestGitHubTeamApproverCleansUpOldInvalidAndRetainsIgnoredReviewsComments(t *testing.T) {
+	given, when, then := stages.ApiTest(t)
+
+	given.
+		EncryptionKeyExists().
+		GitHubWebHookTokenExists().
+		FakeGHRunning().
+		OrganisationWithTeamFoo().
+		RepoWithNoContributorReviewEnabledAndFooAsApprovingTeam().
+		PullRequestExists().
+		InvalidAndIgnoredReviewCommentsExist().
+		CommitsWithAliceAsContributor().
+		CharlieApprovesPullRequest().
+		GitHubTeamApproverRunning()
+	when.
+		SendingApprovedPRReviewSubmittedEvent()
+	then.
+		ExpectPendingAnswerReturned().
+		ExpectStatusPendingReported().
+		ExpectPreviousAliceIgnoredReviewCommentsRetained().
+		ExpectInvalidCommentCharlieIgnoredAsReviewer().
 		ExpectLabelsUpdated().
 		ExpectedReviewRequestsMadeForFoo()
 }

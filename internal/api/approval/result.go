@@ -12,6 +12,7 @@ type Result struct {
 	finalLabels      []string
 	reviewsToRequest []string
 	ignoredReviewers []string
+	invalidReviewers []string
 }
 
 func (r *Result) pendingReviewsWaiting() bool {
@@ -26,6 +27,7 @@ func (r *Result) Status() string             { return r.status }
 func (r *Result) FinalLabels() []string      { return r.finalLabels }
 func (r *Result) ReviewsToRequest() []string { return r.reviewsToRequest }
 func (r *Result) IgnoredReviewers() []string { return r.ignoredReviewers }
+func (r *Result) InvalidReviewers() []string { return r.invalidReviewers }
 
 func truncate(v string, n int) string {
 	suffix := "..."

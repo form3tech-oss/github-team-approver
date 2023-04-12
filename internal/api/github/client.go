@@ -35,6 +35,9 @@ const (
 	envGitHubAppId             = "GITHUB_APP_ID"
 	envGitHubAppInstallationId = "GITHUB_APP_INSTALLATION_ID"
 	envGitHubAppPrivateKeyPath = "GITHUB_APP_PRIVATE_KEY_PATH"
+
+	ignoredReviewersTitle = "Following reviewers have been ignored as they either contributed to or reopened the PR:\n"
+	invalidReviewersTitle = "Following reviewers have been ignored as they are not a member of any valid team:\n"
 )
 
 var (
@@ -364,11 +367,17 @@ func (c *Client) ReportStatus(ctx context.Context, ownerLogin, repoName, statuse
 }
 
 func (c *Client) ReportIgnoredReviews(ctx context.Context, owner, repo string, prNumber int, reviewers []string) error {
+	return c.reportIgnoredReviews(ctx, owner, repo, prNumber, reviewers, ignoredReviewersTitle)
+}
+
+func (c *Client) ReportInvalidReviews(ctx context.Context, owner, repo string, prNumber int, reviewers []string) error {
+	return c.reportIgnoredReviews(ctx, owner, repo, prNumber, reviewers, invalidReviewersTitle)
+}
+
+func (c *Client) reportIgnoredReviews(ctx context.Context, owner, repo string, prNumber int, reviewers []string, title string) error {
 	if len(reviewers) == 0 {
 		return nil
 	}
-
-	title := "Following reviewers have been ignored as they either contributed to or reopened the PR:\n"
 
 	err := c.removeOldBotComments(ctx, owner, repo, prNumber, title)
 	if err != nil {
