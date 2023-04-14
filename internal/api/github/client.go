@@ -36,8 +36,8 @@ const (
 	envGitHubAppInstallationId = "GITHUB_APP_INSTALLATION_ID"
 	envGitHubAppPrivateKeyPath = "GITHUB_APP_PRIVATE_KEY_PATH"
 
-	ignoredReviewersTitle = "Following reviewers have been ignored as they either contributed to or reopened the PR:\n"
-	invalidReviewersTitle = "Following reviewers have been ignored as they are not a member of any valid team:\n"
+	ignoredReviewersTitle = "Following reviewers do not have approval capabilities for this review as they either contributed to or reopened the PR:\n"
+	invalidReviewersTitle = "Following reviewers are not member of a team with approval capabilities:\n"
 )
 
 var (
