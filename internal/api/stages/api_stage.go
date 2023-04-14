@@ -21,8 +21,8 @@ const (
 	botName                = "github-team-approver"
 	httpHeaderXFinalStatus = "X-Final-Status"
 
-	ignoredReviewerMsg = "Following reviewers have been ignored as they either contributed to or reopened the PR:"
-	invalidReviewerMsg = "Following reviewers have been ignored as they are not a member of any valid team:"
+	ignoredReviewerMsg = "Following reviewers do not have approval capabilities for this review as they either contributed to or reopened the PR:"
+	invalidReviewerMsg = "Following reviewers are not member of a team with approval capabilities:"
 )
 
 type ApiStage struct {
