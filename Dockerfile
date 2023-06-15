@@ -1,6 +1,4 @@
-# syntax=docker/dockerfile:1.1.3-experimental
-
-FROM golang:1.17.2 AS build-env
+FROM golang:1.20.5-alpine3.18@sha256:6b6fd1071edb52b61f79aec51281c55050f58dd58e2080b4e24556607c98086f AS build-env
 ARG DEBUG
 ENV SRCROOT /go/src/github.com/form3tech/github-team-approver
 WORKDIR $SRCROOT
