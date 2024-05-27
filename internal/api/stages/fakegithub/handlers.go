@@ -1,6 +1,7 @@
 package fakegithub
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -18,23 +19,24 @@ func (f *FakeGitHub) contentsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	payload, err := json.Marshal(f.repoContents)
+	if f.repo.ApproverCfg == nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	var buf bytes.Buffer
+	err := f.repo.ApproverCfg.Write(&buf)
+	require.NoError(f.t, err)
+
+	content := &github.RepositoryContent{
+		Content: github.String(buf.String()),
+	}
+
+	payload, err := json.Marshal(content)
 	require.NoError(f.t, err)
 
 	w.Header().Set("Content-Type", "application/json")
 	_, err = w.Write(payload)
-	require.NoError(f.t, err)
-}
-
-func (f *FakeGitHub) configFileHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	// Write the configuration provided by stage setup
-	err := f.repo.ApproverCfg.Write(w)
 	require.NoError(f.t, err)
 }
 

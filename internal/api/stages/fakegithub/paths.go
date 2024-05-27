@@ -6,8 +6,8 @@ func (f *FakeGitHub) RepoURL() string {
 	return fmt.Sprintf("%s/%s", f.URL(), f.repoFullName())
 }
 
-func (f *FakeGitHub) contentsURL(dir string) string {
-	return fmt.Sprintf("/repos/%s/contents/%s", f.repoFullName(), dir)
+func (f *FakeGitHub) contentsURL(filePath string) string {
+	return fmt.Sprintf("/repos/%s/contents/%s", f.repoFullName(), filePath)
 }
 
 func (f *FakeGitHub) fileURL(branch, filename string) string {

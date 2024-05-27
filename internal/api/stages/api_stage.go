@@ -117,12 +117,6 @@ func (s *ApiStage) RepoWithFooAsApprovingTeam() *ApiStage {
 		},
 	}
 	s.fakeGitHub.SetRepo(repo)
-	s.fakeGitHub.SetRepoContents([]*github.RepositoryContent{
-		{
-			Name:        github.String("GITHUB_TEAM_APPROVER.yaml"),
-			DownloadURL: github.String(fmt.Sprintf("%s/master/%s", s.fakeGitHub.RepoURL(), approverCfg.ConfigurationFilePath)),
-		},
-	})
 
 	return s
 }
@@ -152,12 +146,6 @@ func (s *ApiStage) RepoWithNoContributorReviewEnabledAndFooAsApprovingTeam() *Ap
 		},
 	}
 	s.fakeGitHub.SetRepo(repo)
-	s.fakeGitHub.SetRepoContents([]*github.RepositoryContent{
-		{
-			Name:        github.String("GITHUB_TEAM_APPROVER.yaml"),
-			DownloadURL: github.String(fmt.Sprintf("%s/master/%s", s.fakeGitHub.RepoURL(), approverCfg.ConfigurationFilePath)),
-		},
-	})
 
 	return s
 }
@@ -195,12 +183,6 @@ func (s *ApiStage) RepoWithFooAsApprovingTeamAndMultipleRules() *ApiStage {
 		},
 	}
 	s.fakeGitHub.SetRepo(repo)
-	s.fakeGitHub.SetRepoContents([]*github.RepositoryContent{
-		{
-			Name:        github.String("GITHUB_TEAM_APPROVER.yaml"),
-			DownloadURL: github.String(fmt.Sprintf("%s/master/%s", s.fakeGitHub.RepoURL(), approverCfg.ConfigurationFilePath)),
-		},
-	})
 
 	return s
 }
@@ -236,12 +218,6 @@ func (s *ApiStage) RepoWithFooAsApprovingTeamWithEmergencyRule() *ApiStage {
 		},
 	}
 	s.fakeGitHub.SetRepo(repo)
-	s.fakeGitHub.SetRepoContents([]*github.RepositoryContent{
-		{
-			Name:        github.String("GITHUB_TEAM_APPROVER.yaml"),
-			DownloadURL: github.String(fmt.Sprintf("%s/master/%s", s.fakeGitHub.RepoURL(), approverCfg.ConfigurationFilePath)),
-		},
-	})
 
 	return s
 }
@@ -253,7 +229,6 @@ func (s *ApiStage) RepoWithoutConfigurationFile() *ApiStage {
 		Name: "some-service",
 	}
 	s.fakeGitHub.SetRepo(repo)
-	s.fakeGitHub.SetRepoContents([]*github.RepositoryContent{})
 
 	return s
 }
@@ -289,12 +264,6 @@ func (s *ApiStage) RepoWithConfigurationReferencingInvalidTeamHandles() *ApiStag
 		},
 	}
 	s.fakeGitHub.SetRepo(repo)
-	s.fakeGitHub.SetRepoContents([]*github.RepositoryContent{
-		{
-			Name:        github.String("GITHUB_TEAM_APPROVER.yaml"),
-			DownloadURL: github.String(fmt.Sprintf("%s/master/%s", s.fakeGitHub.RepoURL(), approverCfg.ConfigurationFilePath)),
-		},
-	})
 
 	return s
 }

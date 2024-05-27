@@ -47,7 +47,6 @@ type FakeGitHub struct {
 	repo *Repo
 	pr   *PR
 
-	repoContents  []*github.RepositoryContent
 	commits       []*github.RepositoryCommit
 	reviews       []*github.PullRequestReview
 	issueComments []*github.IssueComment
@@ -90,7 +89,7 @@ func (f *FakeGitHub) SetRepo(r *Repo) {
 	f.repo = r
 
 	// only expose handlers when expected data is there
-	f.mux.HandleFunc(f.fileURL("master", approverCfg.ConfigurationFilePath), f.configFileHandler)
+	f.mux.HandleFunc(f.contentsURL(approverCfg.ConfigurationFilePath), f.contentsHandler)
 }
 
 func (f *FakeGitHub) SetPR(pr *PR) {
@@ -103,13 +102,6 @@ func (f *FakeGitHub) SetPR(pr *PR) {
 	f.mux.HandleFunc(f.requestedReviewersURL(), f.requestedReviewersHandler)
 	f.mux.HandleFunc(f.prFilesURL(), f.prFilesHandler)
 
-}
-
-func (f *FakeGitHub) SetRepoContents(c []*github.RepositoryContent) {
-	f.repoContents = c
-
-	// only expose handlers when expected data is there
-	f.mux.HandleFunc(f.contentsURL(".github"), f.contentsHandler)
 }
 
 func (f *FakeGitHub) SetCommits(r []*github.RepositoryCommit) {
