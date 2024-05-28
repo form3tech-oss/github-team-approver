@@ -114,30 +114,30 @@ func Test_Handle(t *testing.T) {
 
 			expectedFinalStatus: approval.StatusEventStatusPending,
 		},
-		//{
-		//	name: `PR review Submitted (requires approval from at least one of the "CAB - Foo" and "CAB - BAR" teams, as well as from the "CAB - Documentation" team)`,
-		//
-		//	eventType:      eventTypePullRequestReview,
-		//	eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
-		//	eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
-		//	pacts: []pacttesting.Pact{
-		//		"pull_request_review_submitted_approval_mode_require_any",
-		//		"issue_events_pr_7",
-		//	},
-		//
-		//	expectedFinalStatus: approval.StatusEventStatusSuccess,
-		//},
-		//{
-		//	name: `PR Merged to master (matches slack alert - alert should fire)`,
-		//
-		//	eventType:      eventTypePullRequest,
-		//	eventBody:      readGitHubExampleFile("pull_request_merged_to_master.json"),
-		//	eventSignature: "sha256=2324407137f738fc9e5e335e5ed6d52ab5d8a8b33705937d04463d7b9c678fcd",
-		//	pacts: []pacttesting.Pact{
-		//		"pull_request_merged_single_alert",
-		//		"slack_post_message_for_emergency_change",
-		//	},
-		//},
+		{
+			name: `PR review Submitted (requires approval from at least one of the "CAB - Foo" and "CAB - BAR" teams, as well as from the "CAB - Documentation" team)`,
+
+			eventType:      eventTypePullRequestReview,
+			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
+			eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
+			pacts: []pacttesting.Pact{
+				"pull_request_review_submitted_approval_mode_require_any",
+				"issue_events_pr_7",
+			},
+
+			expectedFinalStatus: approval.StatusEventStatusSuccess,
+		},
+		{
+			name: `PR Merged to master (matches slack alert - alert should fire)`,
+
+			eventType:      eventTypePullRequest,
+			eventBody:      readGitHubExampleFile("pull_request_merged_to_master.json"),
+			eventSignature: "sha256=2324407137f738fc9e5e335e5ed6d52ab5d8a8b33705937d04463d7b9c678fcd",
+			pacts: []pacttesting.Pact{
+				"pull_request_merged_single_alert",
+				"slack_post_message_for_emergency_change",
+			},
+		},
 		//{
 		//	name: `PR closed (matches slack alert - alert should not fire)`,
 		//
