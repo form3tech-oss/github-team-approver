@@ -138,74 +138,74 @@ func Test_Handle(t *testing.T) {
 				"slack_post_message_for_emergency_change",
 			},
 		},
-		//{
-		//	name: `PR closed (matches slack alert - alert should not fire)`,
-		//
-		//	eventType:      eventTypePullRequest,
-		//	eventBody:      readGitHubExampleFile("pull_request_closed.json"),
-		//	eventSignature: "sha256=5d681e510b19e1a5e3588839f541615eded29c0c955cd795efcc56450dbad8c2",
-		//	pacts:          []pacttesting.Pact{},
-		//},
-		//{
-		//	name: `PR review Submitted (requires approval from CAB - FOO, a member of CAB - FOO contributed to the PR thus PR review isn't accepted)`,
-		//
-		//	eventType:      eventTypePullRequestReview,
-		//	eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
-		//	eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
-		//	pacts: []pacttesting.Pact{
-		//		"pull_request_commits_alice_contributed",
-		//		"pull_request_get_comments_pr_7",
-		//		"pull_request_post_comment_pr_7",
-		//		"pull_request_review_submitted_alice_approved",
-		//		"issue_events_pr_7",
-		//	},
-		//
-		//	expectedFinalStatus: approval.StatusEventStatusPending,
-		//},
-		//{
-		//	name: `PR review Submitted (requires approval from CAB - FOO, Alice and Bob are members of CAB - FOO, Alice is a contributor to PR, her review is ignored. Bob's review is accepted.')`,
-		//
-		//	eventType:      eventTypePullRequestReview,
-		//	eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
-		//	eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
-		//	pacts: []pacttesting.Pact{
-		//		"pull_request_commits_alice_contributed",
-		//		"pull_request_review_submitted_alice_bob_approved",
-		//		"issue_events_pr_7",
-		//	},
-		//
-		//	expectedFinalStatus: approval.StatusEventStatusSuccess,
-		//},
-		//{
-		//	name: `PR review Submitted (requires approval from CAB - FOO, Alice and Bob are members of CAB - FOO, Alice is a coauthor of a commit in PR, her review is ignored. Bob's review is accepted.')`,
-		//
-		//	eventType:      eventTypePullRequestReview,
-		//	eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
-		//	eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
-		//	pacts: []pacttesting.Pact{
-		//		"pull_request_commits_alice_coauthor",
-		//		"pull_request_review_submitted_alice_bob_approved",
-		//		"issue_events_pr_7",
-		//	},
-		//
-		//	expectedFinalStatus: approval.StatusEventStatusSuccess,
-		//},
-		//{
-		//	name: `PR review Submitted (requires approval from CAB - FOO, David is invalid user thus PR review isn't accepted)`,
-		//
-		//	eventType:      eventTypePullRequestReview,
-		//	eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
-		//	eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
-		//	pacts: []pacttesting.Pact{
-		//		"pull_request_commits_pr_7",
-		//		"pull_request_get_comments_pr_7",
-		//		"pull_request_post_comment_pr_7",
-		//		"pull_request_review_submitted_david_approved",
-		//		"issue_events_pr_7",
-		//	},
-		//
-		//	expectedFinalStatus: approval.StatusEventStatusPending,
-		//},
+		{
+			name: `PR closed (matches slack alert - alert should not fire)`,
+
+			eventType:      eventTypePullRequest,
+			eventBody:      readGitHubExampleFile("pull_request_closed.json"),
+			eventSignature: "sha256=5d681e510b19e1a5e3588839f541615eded29c0c955cd795efcc56450dbad8c2",
+			pacts:          []pacttesting.Pact{},
+		},
+		{
+			name: `PR review Submitted (requires approval from CAB - FOO, a member of CAB - FOO contributed to the PR thus PR review isn't accepted)`,
+
+			eventType:      eventTypePullRequestReview,
+			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
+			eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
+			pacts: []pacttesting.Pact{
+				"pull_request_commits_alice_contributed",
+				"pull_request_get_comments_pr_7",
+				"pull_request_post_comment_pr_7",
+				"pull_request_review_submitted_alice_approved",
+				"issue_events_pr_7",
+			},
+
+			expectedFinalStatus: approval.StatusEventStatusPending,
+		},
+		{
+			name: `PR review Submitted (requires approval from CAB - FOO, Alice and Bob are members of CAB - FOO, Alice is a contributor to PR, her review is ignored. Bob's review is accepted.')`,
+
+			eventType:      eventTypePullRequestReview,
+			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
+			eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
+			pacts: []pacttesting.Pact{
+				"pull_request_commits_alice_contributed",
+				"pull_request_review_submitted_alice_bob_approved",
+				"issue_events_pr_7",
+			},
+
+			expectedFinalStatus: approval.StatusEventStatusSuccess,
+		},
+		{
+			name: `PR review Submitted (requires approval from CAB - FOO, Alice and Bob are members of CAB - FOO, Alice is a coauthor of a commit in PR, her review is ignored. Bob's review is accepted.')`,
+
+			eventType:      eventTypePullRequestReview,
+			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
+			eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
+			pacts: []pacttesting.Pact{
+				"pull_request_commits_alice_coauthor",
+				"pull_request_review_submitted_alice_bob_approved",
+				"issue_events_pr_7",
+			},
+
+			expectedFinalStatus: approval.StatusEventStatusSuccess,
+		},
+		{
+			name: `PR review Submitted (requires approval from CAB - FOO, David is invalid user thus PR review isn't accepted)`,
+
+			eventType:      eventTypePullRequestReview,
+			eventBody:      readGitHubExampleFile("pull_request_review_submitted.json"),
+			eventSignature: "sha256=802a01c378001fbbbea8f59e7d5eab688550bcbd097491abc907d8850cef6e17",
+			pacts: []pacttesting.Pact{
+				"pull_request_commits_pr_7",
+				"pull_request_get_comments_pr_7",
+				"pull_request_post_comment_pr_7",
+				"pull_request_review_submitted_david_approved",
+				"issue_events_pr_7",
+			},
+
+			expectedFinalStatus: approval.StatusEventStatusPending,
+		},
 	}
 
 	for _, tt := range tests {
