@@ -82,13 +82,10 @@ func (f *FakeGitHub) SetOrg(o *Org) {
 	f.mux.HandleFunc(f.teamsURL(), f.teamsHandler)
 	f.mux.HandleFunc("/orgs/{org:.*}", f.orgsHandler)
 	f.mux.HandleFunc("/organizations/{orgid:[0-9]+}/team/{id:[0-9]+}/members", f.teamsMemberHandler)
-
 }
 
 func (f *FakeGitHub) SetRepo(r *Repo) {
 	f.repo = r
-
-	// only expose handlers when expected data is there
 	f.mux.HandleFunc(f.contentsURL(approverCfg.ConfigurationFilePath), f.contentsHandler)
 }
 
@@ -101,7 +98,6 @@ func (f *FakeGitHub) SetPR(pr *PR) {
 	f.mux.HandleFunc(f.labelsURL(), f.labelsHandler)
 	f.mux.HandleFunc(f.requestedReviewersURL(), f.requestedReviewersHandler)
 	f.mux.HandleFunc(f.prFilesURL(), f.prFilesHandler)
-
 }
 
 func (f *FakeGitHub) SetCommits(r []*github.RepositoryCommit) {
