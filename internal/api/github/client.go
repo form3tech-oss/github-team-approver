@@ -25,6 +25,7 @@ import (
 const (
 	// DefaultGitHubOperationTimeout is the maximum duration of requests against the GitHub API.
 	DefaultGitHubOperationTimeout = 15 * time.Second
+	defaultBranch                 = "master"
 
 	// defaultListOptionsPerPage is the number of items per page that we request by default from the GitHub API.
 	defaultListOptionsPerPage = 100
@@ -49,24 +50,31 @@ type Client struct {
 }
 
 func (c *Client) GetConfiguration(ctx context.Context, ownerLogin, repoName string) (*configuration.Configuration, error) {
-	// Try to download the contents of the configuration file.
 	ctxTimeout, fn := context.WithTimeout(ctx, DefaultGitHubOperationTimeout)
 	defer fn()
-	r, res, err := c.githubClient.Repositories.DownloadContents(ctxTimeout, ownerLogin, repoName, configuration.ConfigurationFilePath, nil)
+
+	file, _, resp, err := c.githubClient.Repositories.GetContents(
+		ctxTimeout,
+		ownerLogin,
+		repoName,
+		configuration.ConfigurationFilePath,
+		&github.RepositoryContentGetOptions{Ref: defaultBranch},
+	)
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, ErrNoConfigurationFile
+	}
+
 	if err != nil {
-		if strings.Contains(strings.ToLower(err.Error()), "no file named") { // fixme: look at status code instead of body
-			return nil, ErrNoConfigurationFile
-		}
 		return nil, fmt.Errorf("error downloading configuration: %w", err)
 	}
-	defer res.Body.Close()
-	defer r.Close()
-	// Parse the configuration file.
-	v, err := configuration.ReadConfiguration(r)
+
+	content, err := file.GetContent()
 	if err != nil {
 		return nil, err
 	}
-	return v, nil
+
+	return configuration.ReadConfiguration(strings.NewReader(content))
 }
 
 func (c *Client) GetPullRequestReviews(ctx context.Context, ownerLogin, repoName string, prNumber int) ([]*github.PullRequestReview, error) {
