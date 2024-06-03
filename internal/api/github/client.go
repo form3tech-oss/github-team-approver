@@ -58,14 +58,13 @@ func (c *Client) GetConfiguration(ctx context.Context, ownerLogin, repoName stri
 		ownerLogin,
 		repoName,
 		configuration.ConfigurationFilePath,
-		&github.RepositoryContentGetOptions{Ref: defaultBranch},
+		nil,
 	)
 
-	if resp.StatusCode == http.StatusNotFound {
-		return nil, ErrNoConfigurationFile
-	}
-
 	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			return nil, ErrNoConfigurationFile
+		}
 		return nil, fmt.Errorf("error downloading configuration: %w", err)
 	}
 
