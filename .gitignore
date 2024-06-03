@@ -5,6 +5,7 @@
 /pact
 
 /.idea/
+/.vscode/
 /build/
 /github-app-private-key
 /github-app-webhook-secret-token
