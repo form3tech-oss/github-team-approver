@@ -64,14 +64,14 @@ Then, run the following command to build and deploy `github-team-approver` in de
 $ make skaffold.dev \
     GITHUB_APP_ID=<app-id> \
     GITHUB_APP_INSTALLATION_ID=<installation-id>
-``` 
+```
 
 **NOTE:** Depending on your setup, you may need to specify a custom Docker image using the `DOCKER_IMG` and `DOCKER_TAG` variables in the command above.
 
 **NOTE:** If you are using AWS ECR as the container registry, you may need to run the following command:
 
 ```shell
-$ docker login <registry> --username AWS --password $(aws ecr get-login-password)
+docker login <registry> --username AWS --password $(aws ecr get-login-password)
 ```
 
 ### Configuring
@@ -103,7 +103,7 @@ pull_request_approval_rules:
    - regex: '- \[x\] Emergency\.'
      slack_webhook_secret: "encrypted_slack_hook (see below)"
      slack_message: "emergency change merged <PR_URL>"
-``` 
+```
 
 Each item under `pull_request_approval_rules` represents how approval for PRs made to specific target branches should work, according to the following table:
 
@@ -129,24 +129,26 @@ Each item under `alert` represents a slack alert that will fire if regex is matc
 A live example of a configuration file can be seen [here](https://github.com/form3tech/application-versions/blob/develop/.github/GITHUB_TEAM_APPROVER.yaml).
 
 #### Encryption
+
 In order to send a slack alert you need to register a slack app and setup a webhook to a channel.  Upon doing this slack will generate a secret url, do not share this url as it will enable anyone to post to your slack channel.
 
-Generate a 256 bit aes key in hex for example by using: https://www.allkeysgenerator.com/Random/Security-Encryption-Key-Generator.aspx
+Generate a 256 bit aes key in hex for example by using: <https://www.allkeysgenerator.com/Random/Security-Encryption-Key-Generator.aspx>
 
 Place the key into a file and encrypt the webhook by building the `encrypt` program
 
-```
+```bash
 go build ./cmd/encrypt
 ```
 
 Then encrypt your webhook by:
 
-```
+```bash
 ./encrypt https://hooks.slack.com/services/1234/5678/9012 /home/kevin/code/src/github.com/form3tech-oss/github-team-approver/encryption.key 
 ```
 
-Or you can use the Make command: 
-```
+Or you can use the Make command:
+
+```bash
 env ENCRYPTION_KEY_PATH=/Users/kevin/code/src/github.com/form3tech-oss/github-team-approver/examples/github/test.key HOOK=https://slack.com/1234 make encrypt-hook
 
 ```
