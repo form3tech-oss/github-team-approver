@@ -2,13 +2,10 @@ package api
 
 import (
 	"context"
-	"encoding/hex"
-	"fmt"
 	"net/http"
 	"os"
 	"strings"
 
-	"github.com/form3tech-oss/github-team-approver/internal/api/aes"
 	"github.com/form3tech-oss/github-team-approver/internal/api/github"
 	"github.com/form3tech-oss/github-team-approver/internal/api/secret"
 	log "github.com/sirupsen/logrus"
@@ -19,23 +16,21 @@ const (
 
 	logTimeFormat = "2006-01-02T15:04:05.000Z07:00"
 
-	logzioListenerURL = "https://listener-eu.logz.io:8071"
-
 	envAppName                         = "APP_NAME"
 	envGitHubAppWebhookSecretTokenPath = "GITHUB_APP_WEBHOOK_SECRET_TOKEN_PATH"
 	envIgnoredRepositories             = "IGNORED_REPOSITORIES"
 	envLogLevel                        = "LOG_LEVEL"
 	envLogFormat                       = "LOG_FORMAT"
 	envSecretStoreType                 = "SECRET_STORE_TYPE" // Set to AWS_SSM for the ability to run in ECS using SSM. Empty, not set or anything else for default K8s secret
-	envEncryptionKeyPath               = "ENCRYPTION_KEY_PATH"
+	envSlackWebhookSecret              = "SLACK_WEBHOOK_SECRET"
 )
 
 type API struct {
 	AppName                  string
 	SecretStore              secret.Store
-	cipher                   aes.Cipher
 	githubWebhookSecretToken []byte
 	ignoredRepositories      []string
+	slackWebhookSecret       string
 }
 
 func newApi() *API {
@@ -54,8 +49,8 @@ func (api *API) init() {
 	api.initSecretStore(os.Getenv(envSecretStoreType))
 	api.configureLogger()
 	api.setGitHubAppSecret()
+	api.setSlackWebhookSecret()
 	api.setIgnoredRepositories()
-	api.initAES()
 }
 
 func (api *API) setAppName() {
@@ -107,6 +102,16 @@ func (api *API) setGitHubAppSecret() {
 	log.Info("Configured GitHub App Secret")
 }
 
+func (api *API) setSlackWebhookSecret() {
+	webhook, err := api.SecretStore.Get(envSlackWebhookSecret)
+	if err != nil {
+		log.WithError(err).Warn("Slack notification won't be send: failed to read slack webhook secret")
+		return
+	}
+	api.slackWebhookSecret = string(webhook)
+	log.Info("Configured Slack Webhook Secret")
+}
+
 func (api *API) setIgnoredRepositories() {
 	v, ok := os.LookupEnv(envIgnoredRepositories)
 	if !ok {
@@ -117,36 +122,6 @@ func (api *API) setIgnoredRepositories() {
 	ignored := strings.Split(v, ",")
 	api.ignoredRepositories = ignored
 	log.Info("Configured Ignored repositories")
-}
-
-func (api *API) initAES() {
-	// Read the encryption key for slack web hooks
-	k, err := api.SecretStore.Get(envEncryptionKeyPath)
-	if err != nil {
-		// Warn but do not fail, meaning we will not be able to decrypt slack hooks
-		log.WithError(err).Warn("Failed to read decryption key")
-	}
-
-	key, err := hex.DecodeString(string(k))
-	if err != nil {
-		// Warn but do not fail, meaning we will not be able to decrypt slack hooks
-		log.WithError(err).Warn("Failed to read decryption key")
-	}
-
-	cipher, err := aes.NewCipher(key)
-	if err != nil {
-		log.WithError(err).Warn("Failed to create AES cipher for decrypting")
-		return
-	}
-	api.cipher = cipher
-	log.Info("Configured cipher")
-}
-
-func (api *API) GetCipher() (aes.Cipher, error) {
-	if api.cipher == nil {
-		return nil, fmt.Errorf("AES cipher not initialized")
-	}
-	return api.cipher, nil
 }
 
 func (api *API) startServer(address string, shutdown <-chan os.Signal, ready chan<- struct{}) {
