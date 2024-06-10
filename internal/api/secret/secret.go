@@ -1,7 +1,6 @@
 package secret
 
 import (
-	"io/ioutil"
 	"os"
 	"strings"
 )
@@ -21,7 +20,7 @@ type FileSecretStore struct {
 }
 
 func (s *FileSecretStore) Get(envVariable string) ([]byte, error) {
-	return ioutil.ReadFile(os.Getenv(envVariable))
+	return os.ReadFile(os.Getenv(envVariable))
 }
 
 func NewSSMStore() *EnvSecretStore {

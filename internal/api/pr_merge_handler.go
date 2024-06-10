@@ -34,10 +34,11 @@ func (handler *MergeEventHandler) handlePrMergeEvent(ctx context.Context, event 
 		prBody         = event.GetPullRequest().GetBody()
 	)
 
-	cipher, err := handler.api.GetCipher()
-	if err != nil {
-		return fmt.Errorf("can not handle webhook: %w", err)
+	if handler.api.slackWebhookSecret == "" {
+		handler.log.Tracef("Ignoring alerts on repo %s: Slack Webhook Secret not configured", repoName)
+		return nil
 	}
+	webhookURL := handler.api.slackWebhookSecret
 
 	handler.log.Tracef("Computing the set of alerts that applies to target branch %q", prTargetBranch)
 
@@ -55,8 +56,6 @@ func (handler *MergeEventHandler) handlePrMergeEvent(ctx context.Context, event 
 		}
 		if m {
 			handler.log.Tracef("matched alert expression: %q, firing alert", alert.Regex)
-
-			url, err := cipher.Decrypt(alert.SlackWebhookSecret)
 			if err != nil {
 				handler.log.WithError(err).Errorf("could not decrypt: secret: %s", alert.SlackWebhookSecret)
 				return err
@@ -73,7 +72,7 @@ func (handler *MergeEventHandler) handlePrMergeEvent(ctx context.Context, event 
 				return err
 			}
 
-			if err := slack.PostWebhook(url, &msg); err != nil {
+			if err := slack.PostWebhook(webhookURL, &msg); err != nil {
 				return err
 			}
 		}
