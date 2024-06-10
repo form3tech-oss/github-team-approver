@@ -43,15 +43,6 @@ pact:
 	tar xzf ${pact_filename}
 	rm ${pact_filename}
 
-.PHONY: build-encrypt
-build-encrypt:
-	go build ./cmd/encrypt
-
-.PHONY: encrypt-hook
-encrypt-hook: build-encrypt
-encrypt-hook:
-	./encrypt ${HOOK} ${ENCRYPTION_KEY_PATH}
-
 .PHONY: dep
 dep:
 	cd github-team-approver && dep ensure -v
@@ -66,13 +57,11 @@ goimports-check: install-goimports
 .PHONY: secret
 secret: GITHUB_APP_PRIVATE_KEY_PATH ?= $(ROOT)/github-app-private-key
 secret: GITHUB_APP_WEBHOOK_SECRET_TOKEN_PATH ?= $(ROOT)/github-app-webhook-secret-token
-secret: ENCRYPTION_KEY_PATH ?= $(ROOT)/encryption.key
 secret: NAMESPACE ?= github-team-approver
 secret:
 	@kubectl -n $(NAMESPACE) create secret generic github-team-approver \
 		--from-file github-app-private-key=$(GITHUB_APP_PRIVATE_KEY_PATH) \
 		--from-file github-app-webhook-secret-token=$(GITHUB_APP_WEBHOOK_SECRET_TOKEN_PATH) \
-		--from-file encryption-key=$(ENCRYPTION_KEY_PATH) \
 		--dry-run \
 		-o yaml | kubectl apply -n $(NAMESPACE) -f-
 
@@ -95,7 +84,6 @@ test: EXAMPLES_DIR := $(ROOT)/examples/github
 test: pact
 	EXAMPLES_DIR=$(EXAMPLES_DIR) \
 	GITHUB_APP_WEBHOOK_SECRET_TOKEN_PATH=$(EXAMPLES_DIR)/token.txt \
-	ENCRYPTION_KEY_PATH=$(EXAMPLES_DIR)/test.key \
 	GITHUB_STATUS_NAME=github-team-approver \
 	SLACK_WEBHOOK_SECRET=$(EXAMPLES_DIR)/slack_webhook.txt \
 	RUN_PACT_TESTS=1 \
