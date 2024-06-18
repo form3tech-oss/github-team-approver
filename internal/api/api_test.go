@@ -10,7 +10,6 @@ func TestWhenSendingInvalidSignatures(t *testing.T) {
 	given, when, then := stages.ApiTest(t)
 
 	given.
-		EncryptionKeyExists().
 		GitHubWebHookTokenExists().
 		GitHubTeamApproverRunning()
 	when.
@@ -22,7 +21,6 @@ func TestWhenSendingUnsupportedEvent(t *testing.T) {
 	given, when, then := stages.ApiTest(t)
 
 	given.
-		EncryptionKeyExists().
 		GitHubWebHookTokenExists().
 		GitHubTeamApproverRunning()
 	when.
@@ -35,7 +33,6 @@ func TestWhenRepoLacksConfigurationFile(t *testing.T) {
 	given, when, then := stages.ApiTest(t)
 
 	given.
-		EncryptionKeyExists().
 		GitHubWebHookTokenExists().
 		FakeGHRunning().
 		OrganisationWithTeamFoo().
@@ -54,7 +51,6 @@ func TestWhenEventIsForIgnoredRepository(t *testing.T) {
 	given, when, then := stages.ApiTest(t)
 
 	given.
-		EncryptionKeyExists().
 		GitHubWebHookTokenExists().
 		FakeGHRunning().
 		OrganisationWithTeamFoo().
@@ -76,7 +72,6 @@ func TestWhenNoContributorReviewIsUnsetAndReviewApproverIsAContributor(t *testin
 	given, when, then := stages.ApiTest(t)
 
 	given.
-		EncryptionKeyExists().
 		GitHubWebHookTokenExists().
 		FakeGHRunning().
 		OrganisationWithTeamFoo().
@@ -100,7 +95,6 @@ func TestWhenNoContributorReviewIsEnabledAndReviewApproverIsAContributor(t *test
 	given, when, then := stages.ApiTest(t)
 
 	given.
-		EncryptionKeyExists().
 		GitHubWebHookTokenExists().
 		FakeGHRunning().
 		OrganisationWithTeamFoo().
@@ -124,7 +118,6 @@ func TestWhenNoContributorReviewIsEnabledAndReviewApproverIsACoAuthor(t *testing
 	given, when, then := stages.ApiTest(t)
 
 	given.
-		EncryptionKeyExists().
 		GitHubWebHookTokenExists().
 		FakeGHRunning().
 		OrganisationWithTeamFoo().
@@ -148,7 +141,6 @@ func TestWhenMultipleRulesMatch(t *testing.T) {
 	given, when, then := stages.ApiTest(t)
 
 	given.
-		EncryptionKeyExists().
 		GitHubWebHookTokenExists().
 		FakeGHRunning().
 		OrganisationWithTeamFoo().
@@ -172,7 +164,6 @@ func TestWhenReviewApproverIsNotAContributor(t *testing.T) {
 	given, when, then := stages.ApiTest(t)
 
 	given.
-		EncryptionKeyExists().
 		GitHubWebHookTokenExists().
 		FakeGHRunning().
 		OrganisationWithTeamFoo().
@@ -195,7 +186,6 @@ func TestWhenReviewApproverIsNotACoAuthor(t *testing.T) {
 	given, when, then := stages.ApiTest(t)
 
 	given.
-		EncryptionKeyExists().
 		GitHubWebHookTokenExists().
 		FakeGHRunning().
 		OrganisationWithTeamFoo().
@@ -218,7 +208,6 @@ func TestWhenReviewApproverIsReopener(t *testing.T) {
 	given, when, then := stages.ApiTest(t)
 
 	given.
-		EncryptionKeyExists().
 		GitHubWebHookTokenExists().
 		FakeGHRunning().
 		OrganisationWithTeamFoo().
@@ -242,7 +231,6 @@ func TestForciblyApprovedPRWithoutAnyReviewsIsPassed(t *testing.T) {
 	given, when, then := stages.ApiTest(t)
 
 	given.
-		EncryptionKeyExists().
 		GitHubWebHookTokenExists().
 		FakeGHRunning().
 		OrganisationWithTeamFoo().
@@ -265,7 +253,6 @@ func TestWhenPRHasNoReviewsAndAuthorIsPartOfTeam(t *testing.T) {
 	given, when, then := stages.ApiTest(t)
 
 	given.
-		EncryptionKeyExists().
 		GitHubWebHookTokenExists().
 		FakeGHRunning().
 		OrganisationWithTeamFoo().
@@ -289,7 +276,6 @@ func TestWhenPRReviewedByAuthorNotPartOfTeam(t *testing.T) {
 	given, when, then := stages.ApiTest(t)
 
 	given.
-		EncryptionKeyExists().
 		GitHubWebHookTokenExists().
 		FakeGHRunning().
 		OrganisationWithTeamFoo().
@@ -313,7 +299,6 @@ func TestWhenPRReviewedByNonTeamMemberAndAuthorsArePartOfTeam(t *testing.T) {
 	given, when, then := stages.ApiTest(t)
 
 	given.
-		EncryptionKeyExists().
 		GitHubWebHookTokenExists().
 		FakeGHRunning().
 		OrganisationWithTeamFoo().
@@ -337,7 +322,6 @@ func TestGitHubTeamApproverCleansUpOldIgnoredReviewsComments(t *testing.T) {
 	given, when, then := stages.ApiTest(t)
 
 	given.
-		EncryptionKeyExists().
 		GitHubWebHookTokenExists().
 		FakeGHRunning().
 		OrganisationWithTeamFoo().
@@ -362,7 +346,6 @@ func TestGitHubTeamApproverCleansUpOldInvalidReviewsComments(t *testing.T) {
 	given, when, then := stages.ApiTest(t)
 
 	given.
-		EncryptionKeyExists().
 		GitHubWebHookTokenExists().
 		FakeGHRunning().
 		OrganisationWithTeamFoo().
@@ -387,7 +370,6 @@ func TestGitHubTeamApproverCleansUpOldInvalidAndRetainsIgnoredReviewsComments(t 
 	given, when, then := stages.ApiTest(t)
 
 	given.
-		EncryptionKeyExists().
 		GitHubWebHookTokenExists().
 		FakeGHRunning().
 		OrganisationWithTeamFoo().
@@ -412,7 +394,6 @@ func TestGitHubTeamApproverReportsInvalidTeamHandlesInConfiguration(t *testing.T
 	given, when, then := stages.ApiTest(t)
 
 	given.
-		EncryptionKeyExists().
 		GitHubWebHookTokenExists().
 		FakeGHRunning().
 		OrganisationWithTeamFoo().
@@ -432,7 +413,6 @@ func TestNoTeamRequestedForReviewIfConfigurationIsInvalid(t *testing.T) {
 	given, when, then := stages.ApiTest(t)
 
 	given.
-		EncryptionKeyExists().
 		GitHubWebHookTokenExists().
 		FakeGHRunning().
 		OrganisationWithTeamFoo().

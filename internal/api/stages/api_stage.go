@@ -38,15 +38,6 @@ type ApiStage struct {
 	resp *http.Response
 }
 
-func (s *ApiStage) EncryptionKeyExists() *ApiStage {
-	abs, err := filepath.Abs("testdata/key")
-	require.NoError(s.t, err, "filepath.Abs: %s", err)
-
-	s.setupEnv("ENCRYPTION_KEY_PATH", abs)
-
-	return s
-}
-
 func (s *ApiStage) GitHubWebHookTokenExists() *ApiStage {
 	abs, err := filepath.Abs(tokenPath)
 	require.NoError(s.t, err, "filepath.Abs: %s", err)
