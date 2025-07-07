@@ -1,6 +1,6 @@
 module github.com/form3tech-oss/github-team-approver
 
-go 1.20
+go 1.22
 
 replace github.com/gregjones/httpcache => github.com/form3tech-oss/httpcache v0.0.0-20190708110905-85712625ba05
 
@@ -15,9 +15,9 @@ require (
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
 	github.com/phayes/freeport v0.0.0-20220201140144-74d24b5ae9f5
 	github.com/sirupsen/logrus v1.9.3
-	github.com/slack-go/slack v0.12.2
+	github.com/slack-go/slack v0.17.3
 	github.com/spf13/viper v1.15.0
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.10.0
 )
 
 require (
@@ -27,7 +27,7 @@ require (
 	github.com/giantswarm/retry-go v0.0.0-20151203102909-d78cea247d5e // indirect
 	github.com/google/go-github/v29 v29.0.3 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
-	github.com/gorilla/websocket v1.5.0 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/hashicorp/go-version v1.2.1-0.20190424083514-192140e6f3e6 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hashicorp/logutils v1.0.0 // indirect
