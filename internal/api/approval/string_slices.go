@@ -39,3 +39,18 @@ func indexOf(s []string, v string) int {
 	}
 	return -1
 }
+
+func intersection(a, b []string) []string {
+	m := map[string]bool{}
+	for _, e := range a {
+		m[e] = true
+	}
+	result := make([]string, 0, len(a))
+	for _, e := range b {
+		if _, ok := m[e]; ok {
+			result = append(result, e)
+			delete(m, e) // avoid duplicates
+		}
+	}
+	return result
+}

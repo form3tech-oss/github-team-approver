@@ -75,22 +75,6 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 		return nil, err
 	}
 
-	rules, err := a.computeRulesForTargetBranch(cfg, pr)
-	if err != nil {
-		return nil, err
-	}
-	if len(rules) > 0 {
-		a.log.Tracef("A total of %d rules apply to target branch %q", len(rules), pr.TargetBranch)
-	} else {
-		a.log.Tracef("No rules apply to target branch %q", pr.TargetBranch)
-		status := &Result{
-			status:      StatusEventStatusSuccess,
-			description: statusEventDescriptionNoRulesForTargetBranch,
-		}
-
-		return status, nil
-	}
-
 	// Grab the list of teams under the current organisation.
 	teams, err := a.client.GetTeams(ctx, pr.OwnerLogin)
 	if err != nil {
@@ -101,6 +85,67 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 	reviews, err := a.client.GetPullRequestReviews(ctx, pr.OwnerLogin, pr.RepoName, pr.Number)
 	if err != nil {
 		return nil, err
+	}
+
+	results := make([]*Result, 0)
+	for _, prCfg := range cfg.PullRequestApprovalRules {
+		if len(prCfg.TargetBranches) == 0 || indexOf(prCfg.TargetBranches, pr.TargetBranch) >= 0 {
+			result, err := a.computeApprovalStatus(ctx, pr, teams, reviews, prCfg.Rules)
+			if err != nil {
+				return nil, err
+			}
+
+			results = append(results, result)
+		}
+	}
+
+	if len(results) == 0 {
+		return &Result{
+			status:      StatusEventStatusSuccess,
+			description: statusEventDescriptionNoRulesForTargetBranch,
+		}, nil
+	}
+
+	firstFailedResult := firstFailedResult(results)
+	if firstFailedResult != nil {
+		ignoredReviewers := results[0].IgnoredReviewers()
+		invalidReviewers := results[0].InvalidReviewers()
+		for _, result := range results[1:] {
+			ignoredReviewers = intersection(ignoredReviewers, result.IgnoredReviewers())
+			invalidReviewers = intersection(invalidReviewers, result.InvalidReviewers())
+		}
+
+		if err := a.client.ReportIgnoredReviews(ctx, pr.OwnerLogin, pr.RepoName, pr.Number, ignoredReviewers); err != nil {
+			return nil, err
+		}
+		if err := a.client.ReportInvalidReviews(ctx, pr.OwnerLogin, pr.RepoName, pr.Number, invalidReviewers); err != nil {
+			return nil, err
+		}
+	}
+
+	return firstFailedResult, nil
+}
+
+func firstFailedResult(results []*Result) *Result {
+	for _, result := range results {
+		if result.Status() != StatusEventStatusSuccess {
+			return result
+		}
+	}
+	return nil
+}
+
+func (a *Approval) computeApprovalStatus(ctx context.Context, pr *PR, teams []*github.Team, reviews []*github.PullRequestReview, rules []configuration.Rule) (*Result, error) {
+	if len(rules) > 0 {
+		a.log.Tracef("A total of %d rules apply to target branch %q", len(rules), pr.TargetBranch)
+	} else {
+		a.log.Tracef("No rules apply to target branch %q", pr.TargetBranch)
+		status := &Result{
+			status:      StatusEventStatusSuccess,
+			description: statusEventDescriptionNoRulesForTargetBranch,
+		}
+
+		return status, nil
 	}
 
 	state := newState()
@@ -168,21 +213,7 @@ func (a *Approval) ComputeApprovalStatus(ctx context.Context, pr *PR) (*Result, 
 
 	state.updateInvalidReviewers(allAllowedMembers)
 
-	result := state.result(a.log, teams) // state should not be consumed past this point
-
-	if result.pendingReviewsWaiting() {
-		if err := a.client.ReportIgnoredReviews(
-			ctx, pr.OwnerLogin, pr.RepoName, pr.Number, result.IgnoredReviewers()); err != nil {
-			return nil, err
-		}
-
-		if err := a.client.ReportInvalidReviews(
-			ctx, pr.OwnerLogin, pr.RepoName, pr.Number, result.InvalidReviewers()); err != nil {
-			return nil, err
-		}
-	}
-
-	return result, nil
+	return state.result(a.log, teams), nil // state should not be consumed past this point
 }
 
 func addMembers(allowed map[string]bool, members []*github.User) {
