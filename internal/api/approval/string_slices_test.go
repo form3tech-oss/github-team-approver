@@ -153,3 +153,54 @@ func Test_uniqueAppend(t *testing.T) {
 			})
 	}
 }
+
+func Test_intersection(t *testing.T) {
+	tests := map[string]struct {
+		a    []string
+		b    []string
+		want []string
+	}{
+		"intersection of nil and empty slice": {
+			nil,
+			[]string{},
+			[]string{},
+		},
+		"intersection of empty slice and nil": {
+			[]string{},
+			nil,
+			[]string{},
+		},
+		"intersection of empty slices": {
+			[]string{},
+			[]string{},
+			[]string{},
+		},
+		"intersection of empty slice and empty slice": {
+			[]string{},
+			[]string{},
+			[]string{},
+		},
+		"intersection of slices with no common elements": {
+			[]string{"foo", "bar", "baz"},
+			[]string{"qux", "quux", "corge"},
+			[]string{},
+		},
+		"intersection of slices with common elements": {
+			[]string{"foo", "bar", "baz"},
+			[]string{"foo", "bar", "qux"},
+			[]string{"foo", "bar"},
+		},
+		"intersection of slices with duplicates": {
+			[]string{"foo", "foo", "bar", "baz"},
+			[]string{"foo", "bar", "bar", "qux"},
+			[]string{"foo", "bar"},
+		},
+	}
+	for name, tt := range tests {
+		t.Run(name,
+			func(t *testing.T) {
+				require.Equal(t, intersection(tt.a, tt.b), tt.want)
+			},
+		)
+	}
+}
